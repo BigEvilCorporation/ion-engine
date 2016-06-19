@@ -92,7 +92,8 @@ namespace ion
 			Keyframe(float time, const T& value);
 
 			float GetTime() const;
-			const T GetValue() const;
+			const T& GetValue() const;
+			void SetValue(const T& value);
 
 			bool operator < (const Keyframe& rhs) const;
 
@@ -117,6 +118,7 @@ namespace ion
 			void InsertKeyframe(const Keyframe<T>& keyframe);
 
 			//Get keyframe
+			Keyframe<T>& GetKeyframe(int index);
 			const Keyframe<T>& GetKeyframe(int index) const;
 
 			//Get num keyframes
@@ -137,7 +139,7 @@ namespace ion
 
 			//Set/get blend mode
 			void SetBlendMode(BlendMode blendMode);
-			BlendMode GetBlendMode() const { return m_blendMode };
+			BlendMode GetBlendMode() const { return m_blendMode; }
 
 			//Serialise
 			void Serialise(io::Archive& archive);
@@ -184,9 +186,14 @@ namespace ion
 			return m_time;
 		}
 
-		template <class T> const T Keyframe<T>::GetValue() const
+		template <class T> const T& Keyframe<T>::GetValue() const
 		{
 			return m_value;
+		}
+
+		template <class T> void Keyframe<T>::SetValue(const T& value)
+		{
+			m_value = value;
 		}
 
 		template <class T> bool Keyframe<T>::operator < (const Keyframe& rhs) const
@@ -212,6 +219,12 @@ namespace ion
 		template <class T> void AnimationTrack<T>::InsertKeyframe(const Keyframe<T>& keyframe)
 		{
 			m_keyframes.insert(std::upper_bound(m_keyframes.begin(), m_keyframes.end(), keyframe), keyframe);
+		}
+
+		template <class T> Keyframe<T>& AnimationTrack<T>::GetKeyframe(int index)
+		{
+			debug::Assert(index < GetNumKeyframes(), "AnimationTrack::GetKeyframe() - Index out of range");
+			return m_keyframes[index];
 		}
 
 		template <class T> const Keyframe<T>& AnimationTrack<T>::GetKeyframe(int index) const
