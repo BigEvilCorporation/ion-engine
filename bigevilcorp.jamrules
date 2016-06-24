@@ -101,6 +101,11 @@ rule ApplyIonGameKit TARGET
 	ApplyIonLib $(TARGET) : gamekit ;
 }
 
+rule ApplyIonNetwork TARGET
+{
+	ApplyIonLib $(TARGET) : network ;
+}
+
 #################################################
 ## Apply API implementations
 #################################################
@@ -154,6 +159,7 @@ rule ApplyWin32SDK TARGET
 		uuid.lib
 		ole32.lib
 		delayimp.lib
+		Ws2_32.lib
 		;
 
 	C.LinkPrebuiltLibraries $(TARGET) : $(WIN32_LIBS) ;

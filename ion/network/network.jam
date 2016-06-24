@@ -1,0 +1,17 @@
+SubDir bigevilcorp ion network ;
+
+local SRC =
+	Address.h
+	Socket.cpp
+	Socket.h
+	SocketTCP.cpp
+	SocketTCP.h
+	;
+
+ApplyIonDefines network ;
+ApplyIonIncludes network ;
+ApplyWin32SDK network ;
+
+AutoSourceGroup network : $(SRC) ;
+C.RuntimeType network : static ;
+C.Library network : $(SRC) ;
