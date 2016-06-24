@@ -110,8 +110,22 @@ namespace ion
 
 		int SocketTCP::Send(const std::vector<u8>& data)
 		{
-			int result = send(m_winSocket, (const char*)data.data(), data.size(), 0);
-			return (result == SOCKET_ERROR) ? -1 : result;
+			int result = 0;
+			int bytesRemaining = data.size();
+			const char* dataPtr = (const char*)data.data();
+			
+			while(bytesRemaining > 0 && result != SOCKET_ERROR)
+			{
+				result = send(m_winSocket, dataPtr, bytesRemaining, 0);
+
+				if(result != SOCKET_ERROR)
+				{
+					bytesRemaining -= result;
+					dataPtr += result;
+				}
+			}
+			
+			return (result == SOCKET_ERROR) ? -1 : data.size();
 		}
 
 		int SocketTCP::Recv(std::vector<u8>& data)
