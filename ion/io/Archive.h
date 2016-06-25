@@ -127,12 +127,24 @@ namespace ion
 				#pragma pack(push, 1)
 				struct Header
 				{
+					Header()
+					{
+						tag = 0;
+						size = 0;
+					}
+
 					Tag tag;
 					u64 size;
 
 					void Serialise(Archive& archive);
 				};
 				#pragma pack(pop)
+
+				Block()
+				{
+					startPos = 0;
+					parent = NULL;
+				}
 				
 				Header header;
 				MemoryStream data;
@@ -140,8 +152,8 @@ namespace ion
 				Block* parent;
 			};
 
-			//Block tree
-			Block* m_blockNode;
+			//Block stack
+			std::vector<Block> m_blockStack;
 
 			//Pointer constructor/serialiser
 			struct PointerMappingBase

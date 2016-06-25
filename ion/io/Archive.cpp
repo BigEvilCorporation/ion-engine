@@ -26,7 +26,6 @@ namespace ion
 			m_direction = direction;
 			m_version = version;
 			m_resourceManager = resourceManager;
-			m_blockNode = NULL;
 		}
 
 		void Archive::Serialise(void* data, u64 size)
@@ -37,10 +36,16 @@ namespace ion
 			}
 			else
 			{
-				if(m_blockNode)
-					m_blockNode->data.Write(data, size);
+				if(m_blockStack.size() > 0)
+				{
+					//Not root block, write to temp data
+					m_blockStack.back().data.Write(data, size);
+				}
 				else
+				{
+					//Root block, write to file
 					m_stream.Write(data, size);
+				}
 			}
 		}
 
@@ -62,109 +67,109 @@ namespace ion
 		bool Archive::PushBlock(const Tag& tag)
 		{
 			//Create block
-			Block* block = new Block;
+			Block block;
+
+			if(m_blockStack.size() > 0)
+			{
+				//Set parent
+				block.parent = &m_blockStack.back();
+			}
 
 			if(m_direction == eIn)
 			{
-				u64 parentBlockStartPos = m_blockNode ? m_blockNode->startPos : 0;
-				u64 parentBlockEndPos = m_blockNode ? (parentBlockStartPos + m_blockNode->header.size - 1) : (m_stream.GetSize() - 1);
-
-				//Record search start pos
-				u64 searchStartPos = m_stream.GetPosition();
-
-				//Record block start pos
-				block->startPos = searchStartPos;
-				block->header.tag = 0;
-				block->header.size = 0;
+				//Record block position
+				block.startPos = m_stream.GetPosition();
 
 				//Read header at current position
-				Serialise(block->header);
+				Serialise(block.header);
 
-				if(block->header.tag != tag)
+				if(block.header.tag != tag)
 				{
-					//No match, begin search of current block (or whole file if not in a block)
-					if(m_blockNode)
-						block->startPos = m_blockNode->startPos + sizeof(Block::Header);
-					else
-						block->startPos = 0;
+					//No match, record search start pos
+					u64 searchStartPos = block.startPos;
 
-					//Seek to start of search block
-					m_stream.Seek(block->startPos);
-
-					//Seek to each child of current block in turn, checking tag
-					while(block->header.tag != tag && block->header.size && block->startPos + block->header.size < parentBlockEndPos)
+					do
 					{
-						//Record start pos
-						block->startPos = m_stream.GetPosition();
-
-						//Serialise block header
-						Serialise(block->header);
-
-						if(block->header.tag != tag)
+						//If end of parent or end of file
+						if(block.header.size == 0 || (block.parent && (block.startPos + block.header.size) >= (block.parent->startPos + block.parent->header.size)))
 						{
-							//Seek to end of block
-							m_stream.Seek(block->startPos + block->header.size);
+							if(block.parent)
+							{
+								//End of parent, seek back to first child
+								m_stream.Seek(block.parent->startPos + sizeof(Block::Header), eSeekModeStart);
+							}
+							else
+							{
+								//End of file, seek back to start
+								m_stream.Seek(0, eSeekModeStart);
+							}
 						}
-					}
+						else
+						{
+							//Seek to start of next block
+							m_stream.Seek(block.startPos + block.header.size, eSeekModeStart);
+						}
 
-					if(block->header.tag != tag)
+						//Record next block position
+						block.startPos = m_stream.GetPosition();
+
+						//Serialise next block header
+						Serialise(block.header);
+
+					} while(block.header.tag != tag && block.startPos != searchStartPos);
+
+					if(block.header.tag != tag)
 					{
 						//Block not found, return to original starting position
-						m_stream.Seek(searchStartPos);
+						m_stream.Seek(searchStartPos, eSeekModeStart);
 					}
 				}
 			}
 			else
 			{
-				block->startPos = m_stream.GetPosition();
-				block->header.tag = tag;
+				block.startPos = m_stream.GetPosition();
+				block.header.tag = tag;
 			}
 
-			if(block->header.tag == tag)
+			if(block.header.tag == tag)
 			{
-				//Add to tree
-				block->parent = m_blockNode;
-
-				//Set as current
-				m_blockNode = block;
+				//Block found (or being written), push to stack
+				m_blockStack.push_back(block);
 
 				//Success
 				return true;
 			}
 			else
 			{
-				//Could not find block, seek back to start pos
-				delete block;
-
+				//Could not find block
 				return false;
 			}
 		}
 
 		void Archive::PopBlock()
 		{
-			debug::Assert(m_blockNode, "Archive::PopBlock() - No block to pop");
+			debug::Assert(m_blockStack.size() > 0, "Archive::PopBlock() - No block to pop");
 
-			//Pop back to parent
-			Block* child = m_blockNode;
-			m_blockNode = child->parent;
+			//Get top block
+			Block block = m_blockStack.back();
+
+			//Pop block
+			m_blockStack.pop_back();
 
 			if(m_direction == eIn)
 			{
 				//Seek to block end
-				m_stream.Seek(child->startPos + child->header.size);
+				m_stream.Seek(block.startPos + block.header.size, eSeekModeStart);
 			}
 			else
 			{
 				//Set block size
-				child->header.size = sizeof(Block::Header) + child->data.GetSize();
+				block.header.size = sizeof(Block::Header) + block.data.GetSize();
 
 				//Write current block
-				Serialise(child->header);
-				Serialise(child->data);
+				Serialise(block.header);
+				Serialise(block.data);
 			}
-
-			//Delete block
-			delete child;
 		}
 
 		void Archive::Block::Header::Serialise(Archive& archive)

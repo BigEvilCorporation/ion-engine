@@ -17,6 +17,7 @@
 #include "core/debug/Debug.h"
 
 #include <algorithm>
+#include <utility>
 
 namespace ion
 {
@@ -27,17 +28,17 @@ namespace ion
 			m_position = 0;
 		}
 
-		u64 MemoryStream::GetSize() const
+		s64 MemoryStream::GetSize() const
 		{
 			return m_bytes.size();
 		}
 
-		u64 MemoryStream::GetPosition() const
+		s64 MemoryStream::GetPosition() const
 		{
 			return m_position;
 		}
 
-		u64 MemoryStream::Read(void* data, u64 size)
+		s64 MemoryStream::Read(void* data, s64 size)
 		{
 			size = std::min(size, GetSize() - m_position);
 			memory::MemCopy(data, &m_bytes[m_position], size);
@@ -45,21 +46,33 @@ namespace ion
 			return size;
 		}
 
-		u64 MemoryStream::Write(const void* data, u64 size)
+		s64 MemoryStream::Write(const void* data, s64 size)
 		{
-			u64 requiredSize = m_position + size + 1;
-			if(m_position + size > GetSize())
-				m_bytes.resize(requiredSize);
-			memory::MemCopy(&m_bytes[m_position], data, size);
-			m_position += size;
+			if(size > 0)
+			{
+				s64 requiredSize = m_position + size;
+				if(requiredSize > GetSize())
+					m_bytes.resize(requiredSize);
+
+				memory::MemCopy(&m_bytes[m_position], data, size);
+				m_position += size;
+			}
+			
 			return size;
 		}
 
-		u64 MemoryStream::Seek(u64 position)
+		s64 MemoryStream::Seek(s64 position, SeekMode origin)
 		{
 			debug::Assert(position < GetSize(), "MemoryStream::Seek() - eOut of range");
 			m_position = position;
 			return m_position;
+		}
+
+		MemoryStream& MemoryStream::operator = (const MemoryStream& rhs)
+		{
+			m_bytes = std::move(rhs.m_bytes);
+			m_position = rhs.m_position;
+			return *this;
 		}
 	}
 }

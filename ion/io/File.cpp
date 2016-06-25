@@ -8,7 +8,7 @@
 */
 
 #include "io/File.h"
-
+#include "core/debug/Debug.h"
 #include <algorithm>
 
 namespace ion
@@ -20,7 +20,7 @@ namespace ion
 			return false;
 		}
 
-		u64 GetFileSize(const std::string& filename)
+		s64 GetFileSize(const std::string& filename)
 		{
 			return false;
 		}
@@ -70,7 +70,7 @@ namespace ion
 
 				//Get size (seek to end, get pos, seek back)
 				m_stream.seekg(0, std::ios::end);
-				m_size = (u64)m_stream.tellg();
+				m_size = (s64)m_stream.tellg();
 				m_stream.seekg(0, std::ios::beg);
 			}
 
@@ -86,59 +86,64 @@ namespace ion
 			}
 		}
 
-		u64 File::Seek(u64 position)
+		s64 File::Seek(s64 position, SeekMode origin)
 		{
-			return Seek(position, eStart);
-		}
-
-		u64 File::Seek(u64 position, SeekMode origin)
-		{
-			if(m_open && position != m_currentPosition)
+			if(m_open)
 			{
 				std::ios_base::seek_dir direction = std::ios_base::cur;
 
-				if(origin == eStart)
+				if(origin == eSeekModeStart)
 				{
 					direction = std::ios_base::beg;
 					position = std::min(position, m_size - 1);
 					m_currentPosition = position;
 				}
-				else if(origin == eCurrent)
+				else if(origin == eSeekModeCurrent)
 				{
 					position = std::min(position, m_size - m_currentPosition - 1);
 					m_currentPosition += position;
 				}
 			
 				m_stream.seekg(position, direction);
+
+#if !defined _RELEASE
+				s64 currPos = (s64)m_stream.tellg();
+				debug::Assert(m_currentPosition == currPos, "File::Seek() - Seek failed");
+#endif
 			}
 		
 			return m_currentPosition;
 		}
 
-		u64 File::Read(void* data, u64 size)
+		s64 File::Read(void* data, s64 size)
 		{
-			u64 bytesRead = 0;
+			s64 bytesRead = 0;
 
 			if(m_open)
 			{
-				size = std::min(size, m_currentPosition + m_size);
+				size = std::min(size, m_size - m_currentPosition);
 				m_stream.read((char*)data, size);
 				m_currentPosition += size;
 				bytesRead = size;
+
+#if !defined _RELEASE
+				s64 currPos = (s64)m_stream.tellg();
+				debug::Assert(m_currentPosition == currPos, "File::Read() - Read failed");
+#endif
 			}
 
 			return bytesRead;
 		}
 
-		u64 File::Write(const void* Data, u64 Size)
+		s64 File::Write(const void* Data, s64 Size)
 		{
-			u64 bytesWritten = 0;
+			s64 bytesWritten = 0;
 
 			if(m_open)
 			{
-				u64 startPosition = (u64)m_stream.tellp();
+				s64 startPosition = (s64)m_stream.tellp();
 				m_stream.write((const char*)Data, Size);
-				m_currentPosition = (u64)m_stream.tellp();
+				m_currentPosition = (s64)m_stream.tellp();
 				bytesWritten = m_currentPosition - startPosition;
 				m_size += bytesWritten;
 			}
@@ -151,12 +156,12 @@ namespace ion
 			m_stream.flush();
 		}
 
-		u64 File::GetSize() const
+		s64 File::GetSize() const
 		{
 			return m_size;
 		}
 
-		u64 File::GetPosition() const
+		s64 File::GetPosition() const
 		{
 			return m_currentPosition;
 		}

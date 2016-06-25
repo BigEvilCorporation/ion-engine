@@ -22,29 +22,33 @@ namespace ion
 {
 	namespace io
 	{
+		enum SeekMode { eSeekModeStart, eSeekModeCurrent };
+
 		class Stream
 		{
 		public:
-			virtual u64 GetSize() const = 0;
-			virtual u64 GetPosition() const = 0;
-			virtual u64 Read(void* data, u64 size) = 0;
-			virtual u64 Write(const void* data, u64 size) = 0;
-			virtual u64 Seek(u64 position) = 0;
+			virtual s64 GetSize() const = 0;
+			virtual s64 GetPosition() const = 0;
+			virtual s64 Read(void* data, s64 size) = 0;
+			virtual s64 Write(const void* data, s64 size) = 0;
+			virtual s64 Seek(s64 position, SeekMode origin = eSeekModeCurrent) = 0;
 		};
 
 		class MemoryStream : public Stream
 		{
 		public:
 			MemoryStream();
-			virtual u64 GetSize() const;
-			virtual u64 GetPosition() const;
-			virtual u64 Read(void* data, u64 size);
-			virtual u64 Write(const void* data, u64 size);
-			virtual u64 Seek(u64 position);
+			virtual s64 GetSize() const;
+			virtual s64 GetPosition() const;
+			virtual s64 Read(void* data, s64 size);
+			virtual s64 Write(const void* data, s64 size);
+			virtual s64 Seek(s64 position, SeekMode origin = eSeekModeCurrent);
+
+			MemoryStream& operator = (const MemoryStream& rhs);
 
 		private:
 			std::vector<u8> m_bytes;
-			u64 m_position;
+			s64 m_position;
 		};
 	}
 }
