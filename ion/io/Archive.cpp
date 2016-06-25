@@ -91,7 +91,9 @@ namespace ion
 					do
 					{
 						//If end of parent or end of file
-						if(block.header.size == 0 || (block.parent && (block.startPos + block.header.size) >= (block.parent->startPos + block.parent->header.size)))
+						if(block.header.size == 0
+							|| (block.parent && (block.startPos + block.header.size) >= (block.parent->startPos + block.parent->header.size))
+							|| ((block.startPos + block.header.size) >= m_stream.GetSize()))
 						{
 							if(block.parent)
 							{
