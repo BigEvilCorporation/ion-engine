@@ -20,6 +20,6 @@ namespace ion
 	namespace build
 	{
 		void BuildTexture(const std::string& name, const std::string& textureFile);
-		void BuildShader(const std::string& name, const std::string& vertexProgram, const std::string& fragmentProgram, const std::string& entrypoint);
+		void BuildShader(const std::string& name, const std::string& binary, const std::string& entrypoint, render::Shader::ProgramType programType);
 	}
 }

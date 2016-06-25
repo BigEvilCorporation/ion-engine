@@ -74,7 +74,7 @@ namespace ion
 			virtual bool Load(const std::string& filename) = 0;
 
 			//Set entry point, program type and program filename
-			void SetProgram(const std::string programFilename, const std::string& entryPoint, ProgramType programtype);
+			void SetProgram(const std::string& programFilename, const std::string& entryPoint, ProgramType programtype);
 
 			//Get handle to a shader parameter
 			template <typename T> ParamHndl<T> CreateParamHndl(const std::string& name);

@@ -28,7 +28,7 @@ namespace ion
 
 		}
 
-		void Shader::SetProgram(const std::string programFilename, const std::string& entryPoint, ProgramType programtype)
+		void Shader::SetProgram(const std::string& programFilename, const std::string& entryPoint, ProgramType programtype)
 		{
 			m_programFilename = programFilename;
 			m_entryPoint = entryPoint;

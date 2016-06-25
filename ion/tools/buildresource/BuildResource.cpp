@@ -58,6 +58,24 @@ int main(int numargs, char** args)
 				}
 			}
 		}
+		else if(!std::strcmp(resourceType.c_str(), "vshader"))
+		{
+			if(CheckToken(tokens, "Missing vertex shader name"))
+			{
+				const std::string& name = tokens.Pop();
+
+				if(CheckToken(tokens, "Missing vertex shader binary"))
+				{
+					const std::string& shaderBinaryFile = tokens.Pop();
+
+					if(CheckToken(tokens, "Missing vertex shader entry point"))
+					{
+						const std::string& entrypoint = tokens.Pop();
+						ion::build::BuildShader(name, shaderBinaryFile, entrypoint, ion::render::Shader::eVertex);
+					}
+				}
+			}
+		}
 	}
 
 	ion::debug::Log("Done.");
@@ -74,12 +92,12 @@ namespace ion
 			std::string filename = name;
 			filename += ".ion.texture";
 
-			ion::io::File file(filename, ion::io::File::OpenWrite);
+			ion::io::File file(filename, ion::io::File::eOpenWrite);
 			if(file.IsOpen())
 			{
 				ion::render::Texture* texture = ion::render::Texture::Create();
 				texture->SetImageFilename(textureFile);
-				ion::io::Archive archive(file, ion::io::Archive::Out);
+				ion::io::Archive archive(file, ion::io::Archive::eOut);
 				ion::render::Texture::RegisterSerialiseType(archive);
 				archive.Serialise(texture);
 				file.Close();
@@ -90,8 +108,25 @@ namespace ion
 			}
 		}
 
-		void BuildShader(const std::string& name, const std::string& vertexProgram, const std::string& fragmentProgram, const std::string& entrypoint)
+		void BuildShader(const std::string& name, const std::string& binary, const std::string& entrypoint, render::Shader::ProgramType programType)
 		{
+			std::string filename = name;
+			filename += ".ion.shader";
+
+			ion::io::File file(filename, ion::io::File::eOpenWrite);
+			if(file.IsOpen())
+			{
+				ion::render::Shader* shader = ion::render::Shader::Create();
+				shader->SetProgram(binary, entrypoint, programType);
+				ion::io::Archive archive(file, ion::io::Archive::eOut);
+				//ion::render::Shader::RegisterSerialiseType(archive);
+				archive.Serialise(*shader);
+				file.Close();
+
+				std::string message = "Written: ";
+				message += filename;
+				debug::Log(message.c_str());
+			}
 		}
 	}
 }
