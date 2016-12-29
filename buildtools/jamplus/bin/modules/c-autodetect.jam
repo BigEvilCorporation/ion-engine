@@ -18,6 +18,8 @@ switch $(OS)
 		VALID_PLATFORMS ?= linux32 ;
 
 		PLATFORM ?= linux32 ;
+	case DC :
+		VALID_PLATFORMS ?= dreamcast ;
 }
 
 if $(PLATFORM) = "" { PLATFORM = ; }

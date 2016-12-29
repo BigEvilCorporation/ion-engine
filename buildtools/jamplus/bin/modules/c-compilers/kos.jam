@@ -1,0 +1,243 @@
+local KOS_PATH = C:/msys32/opt/toolchains/dc/kos ;
+local KOS_PORTS_PATH = C:/msys32/opt/toolchains/dc/kos-ports ;
+local KOS_SHELF_PATH = C:/msys32/opt/toolchains/dc/sh-elf ;
+local GCC_VER = 4.7.3 ;
+
+if ! [ RuleExists FindKOSToolchain ]
+{
+	rule FindKOSToolchain
+	{
+		local PATHS =
+			$(KOS_SHELF_PATH)/bin
+			$(KOS_PATH)/sh-elf/bin
+		;
+
+		local kos = [ Glob $(PATHS) : sh-elf-c++.exe ] ;
+		if ! $(kos)
+		{
+			return ;
+		}
+
+		return [ Match (.+)/ : $(kos[1]) ] ;
+	}
+}
+
+if ! [ RuleExists FindMingW32Runtime ]
+{
+	rule FindMingW32Runtime
+	{
+		local PATHS =
+			C:/msys32/mingw32/bin
+			$(KOS_PATH)/mingw32/bin
+		;
+
+		local mingw32 = [ Glob $(PATHS) : libiconv-2.dll ] ;
+		if ! $(mingw32)
+		{
+			return ;
+		}
+
+		return [ Match (.+)/ : $(mingw32[1]) ] ;
+	}
+}
+
+rule C.AutoDetect
+{
+	local COMPILER_BIN_PATH = [ FindKOSToolchain ] ;
+	local COMPILER_RUNTIME_PATH = [ FindMingW32Runtime ] ;
+
+	if ! $(COMPILER_BIN_PATH)
+	{
+		echo "ERROR: Path to sh-elf-c++.exe (KOS compiler suite) not found" ;
+		return ;
+	}
+
+	if ! $(COMPILER_RUNTIME_PATH)
+	{
+		echo "ERROR: Path to libiconv-2.dll (mingw32 runtime) not found" ;
+		return ;
+	}
+
+	C.COMPILER = kos ;
+	C.COMPILER_SUITE = kos ;
+	C.COMPILER_SUITE_SYMBOL = !c.$(C.ACTIVE_TOOLCHAIN).info! ;
+	COMPILER_BIN_PATH on $(C.COMPILER_SUITE_SYMBOL) = $(COMPILER_BIN_PATH) ;
+	COMPILER_RUNTIME_PATH on $(C.COMPILER_SUITE_SYMBOL) = $(COMPILER_RUNTIME_PATH) ;
+
+	return $(C.COMPILER) ;
+}
+
+{
+	# Find KOS toolchain
+	C.AutoDetect kos ;
+
+	local SUFOBJ = .o ;
+	SUFEXE on $(C.COMPILER_SUITE_SYMBOL) = .elf ;
+	SUFLIB on $(C.COMPILER_SUITE_SYMBOL) = .a ;
+	SUFMODULE on $(C.COMPILER_SUITE_SYMBOL) = .so ;
+	SUFLINKLIBS on $(C.COMPILER_SUITE_SYMBOL) = .a .so ;
+	SUFOBJ on $(C.COMPILER_SUITE_SYMBOL) = $(SUFOBJ) ;
+	SUFSHAREDLIB on $(C.COMPILER_SUITE_SYMBOL) = .so ;
+
+	NOARSCAN on $(C.COMPILER_SUITE_SYMBOL) = true ;
+	NOARUPDATE on $(C.COMPILER_SUITE_SYMBOL) = true ;
+
+	C.BUILD_EXTENSIONS on $(C.COMPILER_SUITE_SYMBOL) = $(SUFOBJ) ;
+	C.AddBuildExtensions CC : .c .s : C.kos.CC : $(SUFOBJ) "" : 1 1 0 : 1 ;
+	C.AddBuildExtensions C++ : .cc .cpp .cxx : C.kos.C++ : $(SUFOBJ) "" : 1 0 1 : 1 ;
+	C.AddBuildExtensions M : .m : C.kos.CC : $(SUFOBJ) "" : 1 1 0 : 1 ;
+	C.AddBuildExtensions MM : .mm : C.kos.C++ : $(SUFOBJ) "" : 1 0 1 : 1 ;
+	C.AddBuildExtensions PCH : .h .pch : C.kos.PCH : "" .gch ;
+
+	PCHCCFLAGS on $(C.COMPILER_SUITE_SYMBOL) = -x c-header -ml -m4-single-only -ffunction-sections -fdata-sections ;
+	PCHC++FLAGS on $(C.COMPILER_SUITE_SYMBOL) = -x c++-header ;
+	PCHMFLAGS on $(C.COMPILER_SUITE_SYMBOL) = -x objective-c-header ;
+	PCHMMFLAGS on $(C.COMPILER_SUITE_SYMBOL) = -x objective-c++-header ;
+
+	STDHDRS on $(C.COMPILER_SUITE_SYMBOL) = $(KOS_SHELF_PATH)/lib/gcc/sh-elf/$(GCC_VER)/include ;
+
+	C.IncludeDirectories * :
+		$(KOS_PATH)/include
+		$(KOS_PATH)/addons/include
+		$(KOS_PATH)/libc/include
+		$(KOS_PORTS_PATH)/libGL/inst/include
+		$(KOS_SHELF_PATH)/lib/gcc/sh-elf/$(GCC_VER)/include
+		;
+
+	C.LinkDirectories * :
+		$(KOS_PATH)/lib/dreamcast
+		$(KOS_PATH)/addons/lib/dreamcast
+		$(KOS_PORTS_PATH)/lib
+		$(KOS_PORTS_PATH)/libGL/inst/lib
+		$(KOS_SHELF_PATH)/sh-elf/lib/m4
+		$(KOS_SHELF_PATH)/lib/gcc/sh-elf/$(GCC_VER)/m4
+		;
+
+	C.LinkPrebuiltLibraries * :
+		libstdc++.a
+		libsupc++.a
+		libc.a
+		libg.a
+		libm.a
+		libkallisti.a
+		libgl.a
+		;
+
+	C.Flags * : CC	: -x c -Wno-unused-parameter -ml -m4-single-only -ffunction-sections -fdata-sections -Wall -g -fno-builtin -fno-strict-aliasing ;
+	C.Flags * : C++	: -x c++ -Wno-unused-parameter -ml -m4-single-only -ffunction-sections -fdata-sections -fno-operator-names -fno-exceptions ;
+	C.LibFlags * : ru ;
+	C.LinkFlags * : -ml -m4-single-only -T$(KOS_PATH)/utils/ldscripts/shlelf.xc ;
+	
+	C.Defines * : _arch_dreamcast ;
+
+	local COMPILER_BIN_PATH = $(COMPILER_BIN_PATH:Z=$(C.COMPILER_SUITE_SYMBOL)) ;
+	C.AR on $(C.COMPILER_SUITE_SYMBOL) = $(COMPILER_BIN_PATH)/sh-elf-ar.exe ;
+	C.CC on $(C.COMPILER_SUITE_SYMBOL) = $(COMPILER_BIN_PATH)/sh-elf-gcc.exe ;
+	C.C++ on $(C.COMPILER_SUITE_SYMBOL) = $(COMPILER_BIN_PATH)/sh-elf-g++.exe ;
+	C.LINK on $(C.COMPILER_SUITE_SYMBOL) = $(COMPILER_BIN_PATH)/sh-elf-g++.exe ;
+	C.RANLIB on $(C.COMPILER_SUITE_SYMBOL) = $(COMPILER_BIN_PATH)/sh-elf-ranlib.exe ;
+}
+
+if ! $(TARGETINFO_LOCATE)
+{
+	rule C.kos.FDefines { return -D$(<) ; }
+	rule C.kos.FIncludes { return -I$(<) ; }
+	rule C.kos.FLibraryPaths { return -L$(<) ; }
+}
+
+actions updated response C.kos.CC
+{
+	set PATH=$(COMPILER_RUNTIME_PATH);%PATH%
+	"$(C.CC)" -c $(MFLAGS) $(>:C)
+}
+
+actions updated response C.kos.C++
+{
+	set PATH=$(COMPILER_RUNTIME_PATH);%PATH%
+	"$(C.C++)" -c $(MFLAGS) $(>:C)
+}
+
+actions updated response C.kos.PCH
+{
+	set PATH=$(COMPILER_RUNTIME_PATH);%PATH%
+	"$(C.C++)" -c $(MFLAGS) $(>:C)
+}
+
+actions C.kos.Archive
+{
+	set PATH=$(COMPILER_RUNTIME_PATH);%PATH%
+	"$(C.AR)" $(LIBFLAGS) $(<:C) $(>:C)
+}
+
+# "-Wl,--start/end-group" wraps all libs to resolve recursive dependencies between libkallisti, libc and libgcc
+actions C.kos.Link
+{
+	set PATH=$(COMPILER_RUNTIME_PATH);%PATH%
+	"$(C.LINK)" $(LINKFLAGS) -o $(<[1]:C) $(>:C) $(NEEDLIBS:TC) -Wl,--start-group $(LINKLIBS:TC) -Wl,--end-group
+}
+
+actions together C.kos.Ranlib
+{
+	set PATH=$(COMPILER_RUNTIME_PATH);%PATH%
+	"$(C.RANLIB)" $(<:C)
+}
+
+rule C.kos._MultiCppCompile_SetupFlags
+{
+	if $(_pch[1])  &&  ! $(_nopch) {
+		_flags += -Winvalid-pch ;
+
+		local md5 = [ MD5 $(_flags) ] ;
+		local _pchName = @($(_pch[3]:LBS):G=$(C.ACTIVE_TOOLCHAIN_TARGET_GRIST)-$(md5)) ;
+		BINDING on $(_pchName) = $(_pch[3]) ;
+		local _pchFilename = $(_pchName).gch ;
+
+		if ! $(built-$(_pchName)) {
+			built-$(_pchName) = 1 ;
+
+			local pchext = $(_pchName:S) ;
+			local pchBUILD_EXT = C.BUILD$(pchext) ;
+
+			MakeLocate $(_pchFilename) : $(LOCATE_TARGET)/$(_pchName:S=:G=)-$(md5) ;
+
+			newsrcs += $(_pchName) ;
+
+			PCHFLAGS on $(_pchFilename) += $($($(pchBUILD_EXT).PCHFLAGS)) ;
+			MFLAGS on $(_pchName) = $($(pchBUILD_EXT).RULE) $($(pchBUILD_EXT).SUFOBJ) $($(pchBUILD_EXT).ADD_TO_LINK) $(_flags[5-]) $($($(BUILD_EXT).PCHFLAGS)) -o \"$(_pchFilename:T)\" ;
+
+			Depends $(_pchFilename) : $(_pchName) ;
+			SEARCH on $(_pchName) = $(_hdrs) ;
+
+			# source needs to be scanned for header dependencies
+			HDRRULE on $(_pchName) = C.HdrRule ;
+			HDRSCAN on $(_pchName) = $(C.HDRPATTERN) ;
+			HDRGRIST on $(_pchName) = $(C.ACTIVE_TOOLCHAIN_TARGET_GRIST) ;
+			HDRSEARCH on $(_pchName) = $(_hdrs) ;
+		}
+
+		_flags += -include $(_pchFilename:T:S=:C) ;
+
+		HDREXTRA on $(_src) += $(_pchName:T) ;
+
+		# if the source should use pch
+		if $(_pch[2]) {
+			# mark that compilation will depend on it
+			Includes $(_src) : $(_pchFilename) ;
+		}
+
+		if $(_pch[3]) {
+			Depends $(_obj) : $(_pchFilename) ;
+		}
+	}
+
+	if $(objectForceIncludes[1]) {
+		SEARCH on $(objectForceIncludes) = $(_hdrs) ;
+		_flags += "-include $(objectForceIncludes:G=)" ;
+	}
+
+	_flags += "-o \"$(_obj:T)\"" ;
+
+	if $(C_LIBRARY_SHARED_MODULE) {
+		_flags += -fPIC ;
+	}
+}

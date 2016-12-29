@@ -1,0 +1,6 @@
+{
+	C.ToolchainSpecKeys C.COMPILER C.PLATFORM C.CONFIG C.ARCHITECTURE ;
+
+	# Include the KOS compiler
+	IncludeModule c-compilers/kos ;
+}
