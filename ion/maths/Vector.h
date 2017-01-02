@@ -169,7 +169,7 @@ namespace ion
 
 	template <typename T> T TVector2<T>::GetLength() const
 	{
-		return sqrt(x*x + y*y);
+		return maths::Sqrt(x*x + y*y);
 	}
 
 	template <typename T> T TVector2<T>::Dot(const TVector2<T>& vector) const

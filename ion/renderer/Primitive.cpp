@@ -252,13 +252,13 @@ namespace ion
 
 			for(int ring = 0; ring <= rings; ring++)
 			{
-				float r0 = radius * sinf (ring * deltaRingAngle);
-				float y0 = radius * cosf (ring * deltaRingAngle);
+				float r0 = radius * maths::Sin(ring * deltaRingAngle);
+				float y0 = radius * maths::Cos(ring * deltaRingAngle);
 
 				for(int seg = 0; seg <= segments; seg++)
 				{
-					float x0 = r0 * sinf(seg * deltaSegAngle);
-					float z0 = r0 * cosf(seg * deltaSegAngle);
+					float x0 = r0 * maths::Sin(seg * deltaSegAngle);
+					float z0 = r0 * maths::Cos(seg * deltaSegAngle);
 
 					m_vertexBuffer.AddVertex(Vector3(x0, y0, z0), Vector3(x0, y0, z0).Normalise(), TexCoord((float)seg / (float)segments, (float)ring / (float)rings));
 

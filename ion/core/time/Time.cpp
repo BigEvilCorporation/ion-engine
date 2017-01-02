@@ -14,7 +14,9 @@
 
 #include "Time.h"
 
+#if defined ION_PLATFORM_WINDOWS
 #include <Windows.h>
+#endif
 
 namespace ion
 {
@@ -22,9 +24,13 @@ namespace ion
 	{
 		u64 GetSystemTicks()
 		{
+#if defined ION_PLATFORM_WINDOWS
 			LARGE_INTEGER ticks;
 			QueryPerformanceCounter(&ticks);
 			return (u64)ticks.QuadPart;
+#elif defined ION_PLATFORM_DREAMCAST
+			return 0;
+#endif
 		}
 
 		double TicksToSeconds(u64 ticks)
@@ -33,9 +39,11 @@ namespace ion
 
 			if(timerFrequency == 0)
 			{
+#if defined ION_PLATFORM_WINDOWS
 				LARGE_INTEGER freq = {0};
 				QueryPerformanceFrequency(&freq);
 				timerFrequency = (double)freq.QuadPart;
+#endif
 			}
 
 			return (double)ticks / timerFrequency;

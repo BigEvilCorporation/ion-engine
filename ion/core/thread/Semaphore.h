@@ -27,6 +27,7 @@ namespace ion
 		class Semaphore
 		{
 		public:
+			Semaphore();
 			Semaphore(int maxSignalCount);
 			~Semaphore();
 
@@ -36,7 +37,7 @@ namespace ion
 		private:
 			#if defined ION_PLATFORM_WINDOWS
 			HANDLE m_semaphoreHndl;
-			#endif;
+			#endif
 		};
 	}
 }

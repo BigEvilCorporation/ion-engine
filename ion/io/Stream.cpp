@@ -70,7 +70,7 @@ namespace ion
 
 		MemoryStream& MemoryStream::operator = (const MemoryStream& rhs)
 		{
-			m_bytes = std::move(rhs.m_bytes);
+			m_bytes = rhs.m_bytes;
 			m_position = rhs.m_position;
 			return *this;
 		}

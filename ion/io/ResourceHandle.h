@@ -75,7 +75,7 @@ namespace ion
 
 		template <class T> ResourceHandle<T>::ResourceHandle(const ResourceHandle<T>& rhs)
 		{
-			m_resource = rhs.mResource;
+			m_resource = rhs.m_resource;
 
 			if(m_resource)
 			{

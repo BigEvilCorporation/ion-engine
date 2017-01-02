@@ -9,9 +9,6 @@
 
 #pragma once
 
-#include <math.h>
-#include <stdlib.h>
-
 namespace ion
 {
 	namespace maths
@@ -29,7 +26,7 @@ namespace ion
 		const float FLOAT_MAX = 3.402823466e+38f;
 		const float FLOAT_EPSILON = 1.19209290e-7f;
 
-		int Round(double x);
+		int Round(float x);
 		float RoundToNearest(float value, int nearest);
 		int NextPowerOfTwo(int x);
 		float Sqrt(float value);
@@ -46,6 +43,10 @@ namespace ion
 
 		float Cos(float value);
 		float Sin(float value);
+		float Acos(float value);
+		float Asin(float value);
+		float Atan(float value);
+		float Atan2(float y, float x);
 
 		int RandInt();
 		float RandFloat();

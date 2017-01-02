@@ -14,13 +14,19 @@
 
 #include "core/memory/Memory.h"
 
+#if defined ION_PLATFORM_WINDOWS
+#include <memory.h>
+#elif defined ION_PLATFORM_DREAMCAST
+#include <memory>
+#endif
+
 namespace ion
 {
 	namespace memory
 	{
 		void MemSet(void* address, int value, u32 size)
 		{
-			memset(address, value, (size_t)size);
+			memset(address, value, size);
 		}
 
 		void MemCopy(void* destination, const void* source, u32 size)

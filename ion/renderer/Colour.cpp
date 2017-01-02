@@ -48,6 +48,16 @@ namespace ion
 		a = (float)alpha / 255.0f;
 	}
 
+	bool Colour::operator == (const Colour& rhs) const
+	{
+		return (r == rhs.r) && (g == rhs.g) && (b == rhs.b) && (a == rhs.a);
+	}
+
+	bool Colour::operator != (const Colour& rhs) const
+	{
+		return !(*this == rhs);
+	}
+
 	ColourRGB::ColourRGB()
 	{
 		r = g = b = 1.0f;

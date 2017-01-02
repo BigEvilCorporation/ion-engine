@@ -12,7 +12,8 @@
 // Description:	Serialisable archive
 ///////////////////////////////////////////////////
 
-#pragma once
+#ifndef ARCHIVE_H
+#define ARCHIVE_H
 
 #include "io/stream.h"
 
@@ -21,6 +22,7 @@
 #include "maths/Maths.h"
 
 //Includes STL types handled directly by Archive
+#include <string>
 #include <vector>
 #include <list>
 #include <map>
@@ -82,29 +84,29 @@ namespace ion
 			template <typename T> void Serialise(ResourceHandle<T>& object);
 
 			//Stream serialise
-			template <> void Serialise(MemoryStream& stream);
+			void Serialise(MemoryStream& stream);
 
 			//Raw serialisation (no endian flipping)
 			void Serialise(void* data, u64 size);
 
 			//Raw serialisation of basic types (with endian flipping)
-			template <> void Serialise<u8>(u8& data);
-			template <> void Serialise<s8>(s8& data);
-			template <> void Serialise<u16>(u16& data);
-			template <> void Serialise<s16>(s16& data);
-			template <> void Serialise<u32>(u32& data);
-			template <> void Serialise<s32>(s32& data);
-			template <> void Serialise<u64>(u64& data);
-			template <> void Serialise<s64>(s64& data);
-			template <> void Serialise<float>(float& data);
-			template <> void Serialise<bool>(bool& data);
+			void Serialise(u8& data);
+			void Serialise(s8& data);
+			void Serialise(u16& data);
+			void Serialise(s16& data);
+			void Serialise(u32& data);
+			void Serialise(s32& data);
+			void Serialise(u64& data);
+			void Serialise(s64& data);
+			void Serialise(float& data);
+			void Serialise(bool& data);
 
 			//Serialise STL string
-			template <> void Serialise<std::string>(std::string& string);
+			void Serialise(std::string& string);
 
 			//Serialise STL containers
 			template <typename T1, typename T2> void Serialise(std::pair<T1, T2>& pair);
-			template <typename T1, typename T2, typename T3> void Serialise(std::tuple<T1, T2, T3>& tuple);
+			//template <typename T1, typename T2, typename T3> void Serialise(std::tuple<T1, T2, T3>& tuple);
 			template <typename T> void Serialise(std::vector<T>& objects);
 			template <typename T> void Serialise(std::list<T>& objects);
 			template <typename KEY, typename T> void Serialise(std::map<KEY, T>& objects);
@@ -308,7 +310,11 @@ namespace ion
 					Serialise(resourceName, "name");
 
 					//Request resource
+#if defined ION_TOOLCHAIN_GCCDC
+					handle = m_resourceManager->template GetResource<T>(resourceName);
+#else
 					handle = m_resourceManager->GetResource<T>(resourceName);
+#endif
 				}
 				else
 				{
@@ -319,143 +325,18 @@ namespace ion
 			}
 		}
 
-		template <> void Archive::Serialise<MemoryStream>(MemoryStream& stream)
-		{
-			const u64 bufferSize = 1024;
-			u8 buffer[bufferSize] = { 0 };
-
-			if(GetDirection() == eIn)
-			{
-				debug::Error("Archive::Serialise() - Cannot serialise a stream back in");
-			}
-			else
-			{
-				u64 size = stream.GetSize();
-				stream.Seek(0);
-
-				while(size)
-				{
-					u64 bytesToWrite = maths::Min(size, bufferSize);
-					stream.Read(buffer, bytesToWrite);
-					Serialise((void*)buffer, bytesToWrite);
-					size -= bytesToWrite;
-				}
-			}
-		}
-
-		template <> void Archive::Serialise<u8>(u8& data)
-		{
-			Serialise((void*)&data, sizeof(u8));
-		}
-
-		template <> void Archive::Serialise<s8>(s8& data)
-		{
-			Serialise((void*)&data, sizeof(s8));
-		}
-
-		template <> void Archive::Serialise<u16>(u16& data)
-		{
-			Serialise((void*)&data, sizeof(u16));
-		}
-
-		template <> void Archive::Serialise<s16>(s16& data)
-		{
-			Serialise((void*)&data, sizeof(s16));
-		}
-
-		template <> void Archive::Serialise<u32>(u32& data)
-		{
-			Serialise((void*)&data, sizeof(u32));
-		}
-
-		template <> void Archive::Serialise<s32>(s32& data)
-		{
-			Serialise((void*)&data, sizeof(s32));
-		}
-
-		template <> void Archive::Serialise<u64>(u64& data)
-		{
-			Serialise((void*)&data, sizeof(u64));
-		}
-
-		template <> void Archive::Serialise<s64>(s64& data)
-		{
-			Serialise((void*)&data, sizeof(s64));
-		}
-
-		template <> void Archive::Serialise<float>(float& data)
-		{
-			Serialise((void*)&data, sizeof(float));
-		}
-
-		template <> void Archive::Serialise<bool>(bool& data)
-		{
-			if(GetDirection() == eIn)
-			{
-				u8 boolean = 0;
-				Serialise(boolean);
-				data = (boolean != 0);
-			}
-			else
-			{
-				u8 boolean = data ? 1 : 0;
-				Serialise(boolean);
-			}
-		}
-		
-		template <> void Archive::Serialise<std::string>(std::string& string)
-		{
-			if(GetDirection() == eIn)
-			{
-				if(PushBlock("__string"))
-				{
-					//Serialise in num chars
-					int numChars = 0;
-					Serialise(numChars, "count");
-
-					//Clear and reserve string
-					string.clear();
-					string.reserve(numChars);
-
-					//Serialise chars
-					for(int i = 0; i < numChars; i++)
-					{
-						char character = 0;
-						Serialise(character);
-						string += character;
-					}
-
-					PopBlock();
-				}
-			}
-			else
-			{
-				if(PushBlock("__string"))
-				{
-					//Serialise out num chars
-					int numChars = (int)string.size();
-					Serialise(numChars, "count");
-
-					//Serialise out chars
-					Serialise((void*)string.data(), numChars);
-
-					PopBlock();
-				}
-			}
-		}
-
 		template <typename T1, typename T2> void Archive::Serialise(std::pair<T1, T2>& pair)
 		{
 			Serialise(pair.first, "first");
 			Serialise(pair.second, "second");
 		}
 
-		template <typename T1, typename T2, typename T3> void Archive::Serialise(std::tuple<T1, T2, T3>& tuple)
-		{
-			Serialise(std::get<0>(tuple), "t1");
-			Serialise(std::get<1>(tuple), "t2");
-			Serialise(std::get<2>(tuple), "t3");
-		}
+		//template <typename T1, typename T2, typename T3> void Archive::Serialise(std::tuple<T1, T2, T3>& tuple)
+		//{
+		//	Serialise(std::get<0>(tuple), "t1");
+		//	Serialise(std::get<1>(tuple), "t2");
+		//	Serialise(std::get<2>(tuple), "t3");
+		//}
 
 		template <typename T> void Archive::Serialise(std::vector<T>& objects)
 		{
@@ -512,7 +393,7 @@ namespace ion
 				Serialise(numObjects, "count");
 
 				//Serialise all objects out
-				for(std::list<T>::iterator it = objects.begin(), end = objects.end(); it != end; ++it)
+				for(typename std::list<T>::iterator it = objects.begin(), end = objects.end(); it != end; ++it)
 				{
 					Serialise(*it, "object");
 				}
@@ -552,7 +433,7 @@ namespace ion
 				Serialise(numObjects);
 
 				//Serialise all objects out
-				for(std::map<KEY, T>::iterator it = objects.begin(), end = objects.end(); it != end; ++it)
+				for(typename std::map<KEY, T>::iterator it = objects.begin(), end = objects.end(); it != end; ++it)
 				{
 					//Serialise key (lose const correctness, direction is known)
 					Serialise((KEY&)it->first, "key");
@@ -564,3 +445,5 @@ namespace ion
 		}
 	}
 }
+
+#endif // Header guard

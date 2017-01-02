@@ -17,12 +17,25 @@
 #include "core/thread/CriticalSection.h"
 #include "renderer/Renderer.h"
 
+#if defined ION_PLATFORM_WINDOWS
 #include <windows.h>
+#endif
+
+#if defined ION_RENDER_SUPPORTS_GLEW
 #include <GL/glew.h>
+#endif
+
+#if defined ION_RENDER_SUPPORTS_GLUT
+#include <GL/glut.h>
+#endif
+
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <GL/glext.h>
+
+#if defined ION_PLATFORM_WINDOWS
 #include <GL/wglext.h>
+#endif
 
 namespace ion
 {
@@ -76,7 +89,9 @@ namespace ion
 			void UnlockGLContext();
 
 			//OpenGL context
+#if defined ION_PLATFORM_WINDOWS
 			HGLRC m_openGLContext;
+#endif
 
 			//DC for gobal (non-rendering) context
 			DeviceContext m_globalDC;

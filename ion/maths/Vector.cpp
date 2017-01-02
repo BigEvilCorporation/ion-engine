@@ -152,7 +152,7 @@ namespace ion
 
 	float Vector3::GetLength() const
 	{
-		return sqrt(x*x + y*y + z*z);
+		return maths::Sqrt(x*x + y*y + z*z);
 	}
 
 	float Vector3::GetDistance(const Vector3& vector) const
@@ -161,7 +161,7 @@ namespace ion
 		dx = x - vector.x;
 		dy = y - vector.y;
 		dz = z - vector.z;
-		return sqrt(dx*dx + dy*dy + dz*dz);
+		return maths::Sqrt(dx*dx + dy*dy + dz*dz);
 	}
 
 	Vector3 Vector3::Lerp(const Vector3& vector, float time) const

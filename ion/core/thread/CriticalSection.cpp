@@ -36,6 +36,8 @@ namespace ion
 		{
 			#if defined ION_PLATFORM_WINDOWS
 			return TryEnterCriticalSection(&m_criticalSectionHndl) != 0;
+			#else
+			return false;
 			#endif
 		}
 

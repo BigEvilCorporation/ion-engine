@@ -18,9 +18,12 @@ namespace ion
 {
 	namespace render
 	{
-#if defined WIN32
+#if defined ION_PLATFORM_WINDOWS
 		typedef HWND WindowHandle;
 		typedef HDC DeviceContext;
+#elif defined ION_PLATFORM_DREAMCAST
+		typedef int WindowHandle;
+		typedef void* DeviceContext;
 #else
 		#error Unsupported platform
 #endif

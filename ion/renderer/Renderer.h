@@ -86,7 +86,9 @@ namespace ion
 		protected:
 			Renderer();
 
+#if defined ION_RENDERER_SHADER
 			ShaderManager* m_shaderManager;
+#endif
 		};
 	}
 }

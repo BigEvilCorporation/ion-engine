@@ -20,11 +20,15 @@
 #include <windows.h>
 #endif
 
+#if defined ION_RENDER_SUPPORTS_GLEW
 #include <GL/glew.h>
+#endif
+
 #include <GL/gl.h>
+
+#ifdef ION_PLATFORM_WINDOWS
 #include <GL/glext.h>
-#include <SDL/SDL.h>
-#include <SDLImage/SDL_image.h>
+#endif
 
 #include <string>
 

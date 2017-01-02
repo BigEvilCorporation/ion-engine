@@ -12,7 +12,8 @@
 // Description:	Read/write stream for serialisation
 ///////////////////////////////////////////////////
 
-#pragma once
+#ifndef STREAM_H
+#define STREAM_H
 
 #include "core/Types.h"
 
@@ -52,3 +53,5 @@ namespace ion
 		};
 	}
 }
+
+#endif

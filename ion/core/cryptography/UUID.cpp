@@ -14,15 +14,21 @@
 
 #include "UUID.h"
 
+#if defined ION_PLATFORM_WINDOWS
 #include <objbase.h>
+#endif
 
 namespace ion
 {
 	UUID64 GenerateUUID64()
 	{
+#if defined ION_PLATFORM_WINDOWS
 		GUID guid;
 		CoCreateGuid(&guid);
 		UUID64 uuid = ((u64)guid.Data1 << 32 | (u64)guid.Data2 << 16 | (u64)guid.Data3);
 		return uuid;
+#elif defined ION_PLATFORM_DREAMCAST
+		return 0;
+#endif
 	}
 }

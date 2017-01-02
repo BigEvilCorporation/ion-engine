@@ -22,6 +22,8 @@ namespace ion
 		{
 			#if defined ION_PLATFORM_WINDOWS
 			return (ThreadId)::GetCurrentThreadId();
+			#else
+			return 0;
 			#endif
 		}
 
@@ -86,11 +88,14 @@ namespace ion
 			return m_threadId;
 		}
 
+		#if defined ION_PLATFORM_WINDOWS
 		unsigned long WINAPI Thread::ThreadFunction(void* params)
 		{
+			
 			Thread* thread = (Thread*)params;
 			thread->Entry();
 			return 0;
 		}
+		#endif
 	}
 }

@@ -19,15 +19,21 @@
 #include "renderer/IndexBuffer.h"
 #include "renderer/Shader.h"
 #include "renderer/opengl/RendererOpenGL.h"
-#include "renderer/opengl/ShaderCgGL.h"
 
+#if defined ION_RENDER_SUPPORTS_CGGL
+#include "renderer/opengl/ShaderCgGL.h"
+#endif
+
+#if defined ION_PLATFORM_WINDOWS
 #include <Windows.h>
+#endif
 
 namespace ion
 {
 	namespace render
 	{
 		//OpenGL extensions
+#if defined ION_RENDER_SUPPORTS_GLEW
 		PFNGLACTIVETEXTUREARBPROC glActiveTextureARB;
 		PFNGLGENFRAMEBUFFERSEXTPROC glGenFramebuffersEXT;
 		PFNGLBINDFRAMEBUFFEREXTPROC glBindFramebufferEXT;
@@ -40,6 +46,7 @@ namespace ion
 		PFNGLDELETEFRAMEBUFFERSEXTPROC glDeleteFramebuffersEXT;
 		PFNGLDELETERENDERBUFFERSEXTPROC glDeleteRenderbuffersEXT;
 		PFNGLDRAWBUFFERSPROC glDrawBuffers;
+#endif
 
 		Renderer* Renderer::Create(DeviceContext globalDeviceContext)
 		{
@@ -63,17 +70,21 @@ namespace ion
 
 		RendererOpenGL::~RendererOpenGL()
 		{
+#if defined ION_RENDERER_SHADER
 			delete m_shaderManager;
+#endif
 		}
 
 		void RendererOpenGL::CreateContext(DeviceContext deviceContext)
 		{
 			//Create OpenGL context
+#if defined ION_PLATFORM_WINDOWS
 			m_openGLContext = wglCreateContext(deviceContext);
 			if(!m_openGLContext)
 			{
 				debug::Error("Could not create OpenGL context");
 			}
+#endif
 		}
 
 		void RendererOpenGL::InitContext(DeviceContext deviceContext)
@@ -81,10 +92,8 @@ namespace ion
 			//Lock context
 			LockGLContext(deviceContext);
 
-			//Get version
-			const char* version = (const char*)glGetString(GL_VERSION);
-
 			//Intialise OpenGL extensions
+#if defined ION_RENDER_SUPPORTS_GLEW
 			glActiveTextureARB = (PFNGLACTIVETEXTUREARBPROC)wglGetProcAddress("glActiveTextureARB");
 			glGenFramebuffersEXT = (PFNGLGENFRAMEBUFFERSEXTPROC)wglGetProcAddress("glGenFramebuffersEXT");
 			glBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)wglGetProcAddress("glBindFramebufferEXT");
@@ -97,6 +106,12 @@ namespace ion
 			glDeleteFramebuffersEXT = (PFNGLDELETEFRAMEBUFFERSEXTPROC)wglGetProcAddress("glDeleteFramebuffersEXT");
 			glDeleteRenderbuffersEXT = (PFNGLDELETERENDERBUFFERSEXTPROC)wglGetProcAddress("glDeleteRenderbuffersEXT");
 			glDrawBuffers = (PFNGLDRAWBUFFERSPROC)wglGetProcAddress("glDrawBuffers");
+#endif
+
+#if defined ION_RENDERER_KGL
+			//Init KOS GL
+			glKosInit();
+#endif
 
 			//Background colour
 			glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -107,6 +122,9 @@ namespace ion
 			//Depth buffer setup
 			glClearDepth(1.0f);
 			glDepthFunc(GL_LEQUAL);
+
+			//Set default vertex winding
+			glFrontFace(GL_CCW);
 
 			//Enable back face culling
 			glEnable(GL_CULL_FACE);
@@ -129,7 +147,9 @@ namespace ion
 			ClearDepth();
 
 			//Create shader manager
+#if defined ION_RENDERER_SHADER
 			m_shaderManager = ShaderManager::Create();
+#endif
 
 			//Unlock context (binds global DC)
 			UnlockGLContext();
@@ -166,11 +186,11 @@ namespace ion
 				break;
 
 			case Viewport::eOrtho2DNormalised:
-				glOrtho(0.0, 1.0f, 0.0, 1.0f, -1.0, 1.0);
+				glOrtho(0.0f, 1.0f, 0.0f, 1.0f, -1.0f, 1.0f);
 				break;
 
 			case Viewport::eOrtho2DAbsolute:
-				glOrtho(0.0, width, 0.0, height, -1.0, 1.0);
+				glOrtho(0.0f, width, 0.0f, height, -1.0f, 1.0f);
 				break;
 			}
 
@@ -181,21 +201,22 @@ namespace ion
 			glLoadIdentity();
 
 			//Set clear colour
-			const Colour& clearColour = viewport.GetClearColour();
-			glClearColor(clearColour.r, clearColour.g, clearColour.b, clearColour.a);
+			SetClearColour(viewport.GetClearColour());
 		}
 
-		void RendererOpenGL::LockGLContext(HDC deviceContext)
+		void RendererOpenGL::LockGLContext(DeviceContext deviceContext)
 		{
 			//m_contextCriticalSection.Begin();
 
 			if(m_contextLockStack == 0)
 			{
+#if defined ION_PLATFORM_WINDOWS
 				//Unbind global DC
 				wglMakeCurrent(m_globalDC, NULL);
 
 				//Make context current
 				wglMakeCurrent(deviceContext, m_openGLContext);
+#endif
 
 				//Set current DC
 				m_currentDC = deviceContext;
@@ -219,12 +240,15 @@ namespace ion
 			m_contextLockStack--;
 			if(!m_contextLockStack)
 			{
+#if defined ION_PLATFORM_WINDOWS
 				//Unbind current DC
 				wglMakeCurrent(m_currentDC, NULL);
-				m_currentDC = NULL;
 
 				//Bind global DC
 				wglMakeCurrent(m_globalDC, m_openGLContext);
+#endif
+
+				m_currentDC = NULL;
 			}
 
 			//m_contextCriticalSection.End();
@@ -232,6 +256,10 @@ namespace ion
 
 		bool RendererOpenGL::CheckGLError()
 		{
+#if defined ION_PLATFORM_DREAMCAST
+			//TODO
+			return true;
+#else
 			GLenum error = glGetError();
 
 			if(error != GL_NO_ERROR)
@@ -240,6 +268,7 @@ namespace ion
 			}
 
 			return error == GL_NO_ERROR;
+#endif
 		}
 
 		bool RendererOpenGL::Update(float deltaTime)
@@ -281,7 +310,12 @@ namespace ion
 		void RendererOpenGL::SwapBuffers()
 		{
 			debug::Assert(m_contextLockStack > 0, "OpenGL context is not locked");
+
+#if defined ION_PLATFORM_WINDOWS
 			::SwapBuffers(m_currentDC);
+#elif defined ION_PLATFORM_DREAMCAST
+			glutSwapBuffers();
+#endif
 		}
 
 		void RendererOpenGL::SetClearColour(const Colour& colour)
@@ -381,7 +415,10 @@ namespace ion
 
 		void RendererOpenGL::SetLineWidth(float width)
 		{
+			//TODO: Dreamcast
+#if !defined ION_PLATFORM_DREAMCAST
 			glLineWidth(width);
+#endif
 		}
 
 		void RendererOpenGL::DrawVertexBuffer(const VertexBuffer& vertexBuffer)
@@ -432,7 +469,7 @@ namespace ion
 			glDisableClientState(GL_NORMAL_ARRAY);
 			glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 
-			if(glGetError() != GL_NO_ERROR)
+			if(!CheckGLError())
 			{
 				debug::Error("Could not draw vertex buffer");
 			}
@@ -471,7 +508,7 @@ namespace ion
 			}
 
 			//Draw
-			glDrawElements(drawPattern, indexBuffer.GetSize(), GL_UNSIGNED_INT, indexBuffer.GetAddress());
+			glDrawElements(drawPattern, indexBuffer.GetSize(), GL_UNSIGNED_SHORT, indexBuffer.GetAddress());
 
 			//Disable client states
 			glDisableClientState(GL_VERTEX_ARRAY);

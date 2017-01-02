@@ -12,8 +12,6 @@
 // Description:	Entity (transformable) class
 ///////////////////////////////////////////////////
 
-#pragma once
-
 #include "renderer/Entity.h"
 #include "renderer/CoordSys.h"
 

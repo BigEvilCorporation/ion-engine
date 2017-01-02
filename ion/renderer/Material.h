@@ -15,11 +15,15 @@
 #pragma once
 
 #include "core/Types.h"
+#include "maths/Matrix.h"
 #include "renderer/Colour.h"
-#include "renderer/Shader.h"
 #include "renderer/Texture.h"
 #include "io/Archive.h"
 #include "io/ResourceHandle.h"
+
+#if defined ION_RENDERER_SHADER
+#include "renderer/Shader.h"
+#endif
 
 #include <string>
 #include <vector>
@@ -71,8 +75,10 @@ namespace ion
 			void Unbind();
 
 			//Shaders
+#if defined ION_RENDERER_SHADER
 			void SetVertexShader(Shader* vertexShader);
 			void SetPixelShader(Shader* pixelShader);
+#endif
 
 			//Colour
 			void SetAmbientColour(const Colour& ambient);
@@ -123,7 +129,9 @@ namespace ion
 
 		protected:
 
+#if defined ION_RENDERER_SHADER
 			void ApplyShaderParams(const Matrix4& worldMtx, const Matrix4& viewMtx, const Matrix4& projectionMtx);
+#endif
 
 			Colour m_ambientColour;
 			Colour m_diffuseColour;
@@ -135,6 +143,13 @@ namespace ion
 			Texture* m_specularMap;
 			Texture* m_opacityMap;
 
+			bool m_lightingEnabled;
+			bool m_receiveShadows;
+			LightingMode m_lightingMode;
+
+			BlendMode m_blendMode;
+
+#if defined ION_RENDERER_SHADER
 			Shader* m_vertexShader;
 			Shader* m_pixelShader;
 
@@ -165,12 +180,7 @@ namespace ion
 
 			ShaderParams m_vertexShaderParams;
 			ShaderParams m_pixelShaderParams;
-
-			bool m_lightingEnabled;
-			bool m_receiveShadows;
-			LightingMode m_lightingMode;
-
-			BlendMode m_blendMode;
+#endif
 		};
 	}
 }

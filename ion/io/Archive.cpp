@@ -215,5 +215,130 @@ namespace ion
 		{
 			return m_hash != rhs.m_hash;
 		}
+
+		void Archive::Serialise(MemoryStream& stream)
+		{
+			const u64 bufferSize = 1024;
+			u8 buffer[bufferSize] = { 0 };
+
+			if(GetDirection() == eIn)
+			{
+				debug::Error("Archive::Serialise() - Cannot serialise a stream back in");
+			}
+			else
+			{
+				u64 size = stream.GetSize();
+				stream.Seek(0);
+
+				while(size)
+				{
+					u64 bytesToWrite = maths::Min(size, bufferSize);
+					stream.Read(buffer, bytesToWrite);
+					Serialise((void*)buffer, bytesToWrite);
+					size -= bytesToWrite;
+				}
+			}
+		}
+
+		void Archive::Serialise(u8& data)
+		{
+			Serialise((void*)&data, sizeof(u8));
+		}
+
+		void Archive::Serialise(s8& data)
+		{
+			Serialise((void*)&data, sizeof(s8));
+		}
+
+		void Archive::Serialise(u16& data)
+		{
+			Serialise((void*)&data, sizeof(u16));
+		}
+
+		void Archive::Serialise(s16& data)
+		{
+			Serialise((void*)&data, sizeof(s16));
+		}
+
+		void Archive::Serialise(u32& data)
+		{
+			Serialise((void*)&data, sizeof(u32));
+		}
+
+		void Archive::Serialise(s32& data)
+		{
+			Serialise((void*)&data, sizeof(s32));
+		}
+
+		void Archive::Serialise(u64& data)
+		{
+			Serialise((void*)&data, sizeof(u64));
+		}
+
+		void Archive::Serialise(s64& data)
+		{
+			Serialise((void*)&data, sizeof(s64));
+		}
+
+		void Archive::Serialise(float& data)
+		{
+			Serialise((void*)&data, sizeof(float));
+		}
+
+		void Archive::Serialise(bool& data)
+		{
+			if(GetDirection() == eIn)
+			{
+				u8 boolean = 0;
+				Serialise(boolean);
+				data = (boolean != 0);
+			}
+			else
+			{
+				u8 boolean = data ? 1 : 0;
+				Serialise(boolean);
+			}
+		}
+
+		void Archive::Serialise(std::string& string)
+		{
+			if(GetDirection() == eIn)
+			{
+				if(PushBlock("__string"))
+				{
+					//Serialise in num chars
+					int numChars = 0;
+					Serialise(numChars, "count");
+
+					//Clear and reserve string
+					string = "";
+					string.reserve(numChars);
+
+					//Serialise chars
+					for(int i = 0; i < numChars; i++)
+					{
+						char character = 0;
+						Serialise(character);
+						string += character;
+					}
+
+					PopBlock();
+				}
+			}
+			else
+			{
+				if(PushBlock("__string"))
+				{
+					//Serialise out num chars
+					int numChars = (int)string.size();
+					Serialise(numChars, "count");
+
+					//Serialise out chars
+					Serialise((void*)string.data(), numChars);
+
+					PopBlock();
+				}
+			}
+		}
 	}
 }

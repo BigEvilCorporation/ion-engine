@@ -28,7 +28,7 @@ namespace ion
 		void SetIdentity();
 
 		void SetTranslation(const Vector3& pos);
-		void SetRotation(float agle, const Vector3& axis);
+		void SetRotation(float angle, const Vector3& axis);
 		void SetScale(const Vector3& scale);
 		void SetForward(const Vector3& forward);
 		void SetRight(const Vector3& right);

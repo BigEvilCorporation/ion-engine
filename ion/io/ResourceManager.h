@@ -20,6 +20,7 @@
 #include "core/containers/Queue.h"
 
 #include <map>
+#include <string>
 
 namespace ion
 {

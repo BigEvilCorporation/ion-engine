@@ -1,5 +1,5 @@
+KOS_PORTS_PATH = C:/msys32/opt/toolchains/dc/kos-ports ;
 local KOS_PATH = C:/msys32/opt/toolchains/dc/kos ;
-local KOS_PORTS_PATH = C:/msys32/opt/toolchains/dc/kos-ports ;
 local KOS_SHELF_PATH = C:/msys32/opt/toolchains/dc/sh-elf ;
 local GCC_VER = 4.7.3 ;
 
@@ -98,9 +98,10 @@ rule C.AutoDetect
 
 	C.IncludeDirectories * :
 		$(KOS_PATH)/include
+		$(KOS_PATH)/kernel/arch/dreamcast/include
 		$(KOS_PATH)/addons/include
 		$(KOS_PATH)/libc/include
-		$(KOS_PORTS_PATH)/libGL/inst/include
+		$(KOS_PORTS_PATH)/include
 		$(KOS_SHELF_PATH)/lib/gcc/sh-elf/$(GCC_VER)/include
 		;
 
@@ -108,32 +109,27 @@ rule C.AutoDetect
 		$(KOS_PATH)/lib/dreamcast
 		$(KOS_PATH)/addons/lib/dreamcast
 		$(KOS_PORTS_PATH)/lib
-		$(KOS_PORTS_PATH)/libGL/inst/lib
 		$(KOS_SHELF_PATH)/sh-elf/lib/m4
 		$(KOS_SHELF_PATH)/lib/gcc/sh-elf/$(GCC_VER)/m4
 		;
 
 	C.LinkPrebuiltLibraries * :
-		libstdc++.a
-		libsupc++.a
-		libc.a
-		libg.a
-		libm.a
 		libkallisti.a
-		libgl.a
+		libc.a
+		libgcc.a
 		;
 
-	C.Flags * : CC	: -x c -Wno-unused-parameter -ml -m4-single-only -ffunction-sections -fdata-sections -Wall -g -fno-builtin -fno-strict-aliasing ;
-	C.Flags * : C++	: -x c++ -Wno-unused-parameter -ml -m4-single-only -ffunction-sections -fdata-sections -fno-operator-names -fno-exceptions ;
+	C.Flags * : CC	: -x c -O2 -fomit-frame-pointer -ml -m4-single-only -ffunction-sections -fdata-sections -Wall -g -fno-builtin -fno-strict-aliasing ;
+	C.Flags * : C++	: -x c++ -O2 -fomit-frame-pointer -ml -m4-single-only -ffunction-sections -fdata-sections -fno-operator-names -fno-exceptions ;
 	C.LibFlags * : ru ;
-	C.LinkFlags * : -ml -m4-single-only -T$(KOS_PATH)/utils/ldscripts/shlelf.xc ;
+	C.LinkFlags * : -T$(KOS_PATH)/utils/ldscripts/shlelf.xc -Wl,-Ttext=0x8c010000 -Wl,--gc-sections ;
 	
-	C.Defines * : _arch_dreamcast ;
+	C.Defines * : _arch_dreamcast _arch_sub_pristine ;
 
 	local COMPILER_BIN_PATH = $(COMPILER_BIN_PATH:Z=$(C.COMPILER_SUITE_SYMBOL)) ;
-	C.AR on $(C.COMPILER_SUITE_SYMBOL) = $(COMPILER_BIN_PATH)/sh-elf-ar.exe ;
 	C.CC on $(C.COMPILER_SUITE_SYMBOL) = $(COMPILER_BIN_PATH)/sh-elf-gcc.exe ;
 	C.C++ on $(C.COMPILER_SUITE_SYMBOL) = $(COMPILER_BIN_PATH)/sh-elf-g++.exe ;
+	C.AR on $(C.COMPILER_SUITE_SYMBOL) = $(COMPILER_BIN_PATH)/sh-elf-ar.exe ;
 	C.LINK on $(C.COMPILER_SUITE_SYMBOL) = $(COMPILER_BIN_PATH)/sh-elf-g++.exe ;
 	C.RANLIB on $(C.COMPILER_SUITE_SYMBOL) = $(COMPILER_BIN_PATH)/sh-elf-ranlib.exe ;
 }
@@ -173,7 +169,7 @@ actions C.kos.Archive
 actions C.kos.Link
 {
 	set PATH=$(COMPILER_RUNTIME_PATH);%PATH%
-	"$(C.LINK)" $(LINKFLAGS) -o $(<[1]:C) $(>:C) $(NEEDLIBS:TC) -Wl,--start-group $(LINKLIBS:TC) -Wl,--end-group
+	"$(C.LINK)" $(LINKFLAGS) -o $(<[1]:C) $(>:C) $(NEEDLIBS:TC) $(NEEDLIBS:TC) -Wl,--start-group $(LINKLIBS:TC) -Wl,--end-group
 }
 
 actions together C.kos.Ranlib

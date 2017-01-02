@@ -15,7 +15,6 @@
 #pragma once
 
 #include <string>
-#include <locale>
 #include <algorithm>
 #include <vector>
 
@@ -25,7 +24,6 @@ namespace ion
 	{
 		static std::string ToLower(const std::string& string)
 		{
-			std::locale locale;
 			std::string stringLower = string;
 			std::transform(stringLower.begin(), stringLower.end(), stringLower.begin(), ::tolower);
 			return stringLower;

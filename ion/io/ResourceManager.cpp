@@ -55,7 +55,8 @@ namespace ion
 			else
 			{
 				//Push to job to worker thread
-				m_workerThread->PushJob(WorkerThread::Job(WorkerThread::Job::Load, resource));
+				WorkerThread::Job job(WorkerThread::Job::Load, resource);
+				m_workerThread->PushJob(job);
 			}
 		}
 
@@ -69,12 +70,14 @@ namespace ion
 			else
 			{
 				//Push to job to worker thread
-				m_workerThread->PushJob(WorkerThread::Job(WorkerThread::Job::Unload, resource));
+				WorkerThread::Job job(WorkerThread::Job::Unload, resource);
+				m_workerThread->PushJob(job);
 			}
 		}
 
 		ResourceManager::WorkerThread::WorkerThread()
-			: m_jobQueueSemaphore(s_jobQueueSize)
+			: thread::Thread("ResourceManagerWorker")
+			, m_jobQueueSemaphore(s_jobQueueSize)
 		{
 			m_numJobsInQueue = 0;
 		}

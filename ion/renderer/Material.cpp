@@ -36,6 +36,7 @@ namespace ion
 
 		void Material::Bind(const Matrix4& worldMtx, const Matrix4& viewMtx, const Matrix4& projectionMtx)
 		{
+#if defined ION_RENDERER_SHADER
 			ApplyShaderParams(worldMtx, viewMtx, projectionMtx);
 
 			if(m_vertexShader)
@@ -47,10 +48,14 @@ namespace ion
 			{
 				m_pixelShader->Bind();
 			}
+#elif ION_RENDERER_FIXED
+			//TODO: Fixed function material params
+#endif
 		}
 
 		void Material::Unbind()
 		{
+#if defined ION_RENDERER_SHADER
 			if(m_vertexShader)
 			{
 				m_vertexShader->Unbind();
@@ -60,8 +65,10 @@ namespace ion
 			{
 				m_pixelShader->Unbind();
 			}
+#endif
 		}
 
+#if defined ION_RENDERER_SHADER
 		void Material::SetVertexShader(Shader* vertexShader)
 		{
 			m_vertexShader = vertexShader;
@@ -99,6 +106,7 @@ namespace ion
 				m_pixelShaderParams.m_textures.m_specularMap = pixelShader->CreateParamHndl<Texture>("gSpecularTexture");
 			}
 		}
+#endif
 
 		void Material::RegisterSerialiseType(io::Archive& archive)
 		{
@@ -289,6 +297,7 @@ namespace ion
 
 		}
 
+#if defined ION_RENDERER_SHADER
 		void Material::ApplyShaderParams(const Matrix4& worldMtx, const Matrix4& viewMtx, const Matrix4& projectionMtx)
 		{
 			Matrix4 worldViewProjMtx = worldMtx * viewMtx * projectionMtx;
@@ -347,5 +356,6 @@ namespace ion
 				m_pixelShaderParams.m_textures.m_opacityMap.SetValue(*m_opacityMap);
 			}
 		}
+#endif
 	}
 }

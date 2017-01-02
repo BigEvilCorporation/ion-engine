@@ -15,7 +15,6 @@
 #pragma once
 
 #include "core/Types.h"
-#include <memory.h>
 
 namespace ion
 {

@@ -45,6 +45,8 @@ namespace ion
 		{
 			#if defined ION_PLATFORM_WINDOWS
 			return (StorageData*)TlsGetValue(m_TLSIndex);
+			#else
+			return NULL;
 			#endif
 		}
 	}

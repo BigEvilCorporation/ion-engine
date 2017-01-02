@@ -12,8 +12,6 @@
 // Description:	XML reader
 ///////////////////////////////////////////////////
 
-#pragma once
-
 #include "io/XML.h"
 #include "core/string/string.h"
 
@@ -146,15 +144,24 @@ namespace ion
 		void XML::SetAttribute(const std::string& name, int value)
 		{
 			std::string nameLower = string::ToLower(name);
-			char text[128] = {0};
-			m_attributes.insert(std::make_pair(nameLower, std::string(itoa(value, text, 10))));
+			char text[128] = { 0 };
+#if defined ION_PLATFORM_DREAMCAST
+			sprintf(text, "%i", value);
+#else
+			sprintf_s(text, 128, "%i", value);
+#endif
+			m_attributes.insert(std::make_pair(nameLower, std::string(text)));
 		}
 
 		void XML::SetAttribute(const std::string& name, float value)
 		{
 			std::string nameLower = string::ToLower(name);
 			char text[128] = {0};
+#if defined ION_PLATFORM_DREAMCAST
+			sprintf(text, "%f", value);
+#else
 			sprintf_s(text, 128, "%f", value);
+#endif
 			m_attributes.insert(std::make_pair(nameLower, std::string(text)));
 		}
 

@@ -12,12 +12,18 @@
 // Description:	OpenGL texture implementation
 ///////////////////////////////////////////////////
 
-#pragma once
-
 #include "core/debug/Debug.h"
 #include "core/memory/Memory.h"
 #include "renderer/OpenGL/TextureOpenGL.h"
 #include "renderer/OpenGL/RendererOpenGL.h"
+
+#if defined ION_RENDER_SUPPORTS_SDL
+#include <SDL/SDL.h>
+#endif
+
+#if defined ION_RENDER_SUPPORTS_SDLIMAGE
+#include <SDLImage/SDL_image.h>
+#endif
 
 namespace ion
 {
@@ -58,6 +64,7 @@ namespace ion
 
 		bool TextureOpenGL::Load()
 		{
+#if defined ION_RENDER_SUPPORTS_SDLIMAGE
 			//Load image onto a new SDL surface
 			SDL_Surface* sdlSurface = IMG_Load(m_imageFilename.c_str());
 
@@ -91,6 +98,7 @@ namespace ion
 				//Free SDL surface
 				SDL_FreeSurface(sdlSurface);
 			}
+#endif
 
 			return m_glTextureId != 0;
 		}
@@ -108,21 +116,30 @@ namespace ion
 
 			debug::Assert(m_glTextureId != 0, "Could not create OpenGL texture");
 
+			//Get GL format
+			m_glFormat = GetOpenGLMode(destFormat, bitsPerPixel);
+			m_bitsPerPixel = bitsPerPixel;
+
 			//Bind the texture
 			glBindTexture(GL_TEXTURE_2D, m_glTextureId);
 
 			//Generate mipmaps
+#if defined ION_RENDERER_KGL && defined ION_RENDER_SUPPORTS_GLUT
+			gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGB, width, height, m_glFormat, 0, data);
+#else
 			glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, generateMipmaps ? GL_TRUE : GL_FALSE);
+#endif
 
 			//Set default filters
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, generateMipmaps ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
 
-			//Get GL format
-			m_glFormat = GetOpenGLMode(destFormat, bitsPerPixel);
-			m_bitsPerPixel = bitsPerPixel;
+#if defined ION_RENDERER_KGL
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+#else
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, generateMipmaps ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
+#endif
 
 			bool blankTexture = (data == NULL);
 
@@ -170,6 +187,7 @@ namespace ion
 
 		void TextureOpenGL::SetPixel(const ion::Vector2i& position, const Colour& colour)
 		{
+#if !defined ION_RENDERER_KGL
 			u8 data[4];
 
 			data[0] = (int)(colour.r * 255);
@@ -182,20 +200,24 @@ namespace ion
 			glBindTexture(GL_TEXTURE_2D, 0);
 
 			RendererOpenGL::CheckGLError();
+#endif
 		}
 
 		void TextureOpenGL::SetPixels(Format sourceFormat, u8* data)
 		{
+#if !defined ION_RENDERER_KGL
 			GLint glFormat = GetOpenGLMode(sourceFormat, m_bitsPerPixel);
 			glBindTexture(GL_TEXTURE_2D, m_glTextureId);
 			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_width, m_height, glFormat, GL_UNSIGNED_BYTE, data);
 			glBindTexture(GL_TEXTURE_2D, 0);
 
 			RendererOpenGL::CheckGLError();
+#endif
 		}
 
 		void TextureOpenGL::GetPixels(const ion::Vector2i& position, const ion::Vector2i& size, Format format, BitsPerPixel bitsPerPixel, u8* data) const
 		{
+#if !defined ION_RENDERER_KGL
 			const u32 bytesPerPixel = (u32)bitsPerPixel / 8;
 			const u32 bufferSize = size.x * size.y * bytesPerPixel;
 			u8* buffer = new u8[bufferSize];
@@ -217,6 +239,7 @@ namespace ion
 			}
 
 			delete buffer;
+#endif
 		}
 
 		void TextureOpenGL::SetMinifyFilter(Filter filter)
@@ -285,9 +308,11 @@ namespace ion
 			case eWrapRepeat:
 				wrapMode = GL_REPEAT;
 				break;
+#if !defined ION_RENDERER_KGL
 			case eWrapMirror:
 				wrapMode = GL_MIRRORED_REPEAT;
 				break;
+#endif
 			}
 
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapMode);
@@ -302,6 +327,7 @@ namespace ion
 		{
 			switch(bitsPerPixel)
 			{
+#if !defined ION_RENDERER_KGL
 			case eBPP8:
 				switch(format)
 				{
@@ -318,16 +344,20 @@ namespace ion
 				default: break;
 				}
 				break;
+#endif
 			case eBPP24:
 				switch(format)
 				{
 				case eRGB: return GL_RGB;
 				case eRGBA: return GL_RGBA;
+#if !defined ION_RENDERER_KGL
 				case eBGRA: return GL_BGRA;
 				case eRGBA_DXT5: return GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+#endif
 				default: break;
 				}
 				break;
+#if !defined ION_RENDERER_KGL
 			case eBPP32:
 				switch(format)
 				{
@@ -336,6 +366,7 @@ namespace ion
 				default: break;
 				}
 				break;
+#endif
 			default:
 				ion::debug::Error("Unsupported texture data format");
 				break;

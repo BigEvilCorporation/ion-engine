@@ -25,6 +25,9 @@ namespace ion
 		Colour(u8 red, u8 green, u8 blue);
 		Colour(u8 red, u8 green, u8 blue, u8 alpha);
 
+		bool operator == (const Colour& rhs) const;
+		bool operator != (const Colour& rhs) const;
+
 		//TODO: Convertions - RGBA, hue/sat, etc...
 
 		void Serialise(io::Archive& archive)

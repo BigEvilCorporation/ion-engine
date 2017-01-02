@@ -76,8 +76,8 @@ namespace ion
 
 	void Matrix4::SetRotation(float angle, const Vector3& axis)
 	{
-		float s = (float)sin(-angle * 0.0174532925);
-		float c = (float)cos(-angle * 0.0174532925);
+		float s = (float)maths::Sin(-angle * 0.0174532925f);
+		float c = (float)maths::Cos(-angle * 0.0174532925f);
 		float t = 1 - c;
 
 		Vector3 ax;
@@ -87,7 +87,7 @@ namespace ion
 		ax.y = axis.y;
 		ax.z = axis.z;
 
-		Vector3 ax2 = ax / sqrt((ax * ax).GetLength());
+		Vector3 ax2 = ax / maths::Sqrt((ax * ax).GetLength());
 
 		float x = ax2.x;
 		float y = ax2.y;
@@ -184,10 +184,10 @@ namespace ion
 	{
 		static float identity[16] =
 		{
-			1.0, 0.0, 0.0, 0.0,
-			0.0, 1.0, 0.0, 0.0,
-			0.0, 0.0, 1.0, 0.0,
-			0.0, 0.0, 0.0, 1.0
+			1.0f, 0.0f, 0.0f, 0.0f,
+			0.0f, 1.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 1.0f, 0.0f,
+			0.0f, 0.0f, 0.0f, 1.0f
 		};
 
 		for(int i = 0; i < 16; i++)
@@ -235,7 +235,7 @@ namespace ion
 
 		d = 1.0f / d;
 
-		if(fabsf(d) < precisionLimit)
+		if(maths::Abs(d) < precisionLimit)
 		{
 			result.SetIdentity();
 			return result;

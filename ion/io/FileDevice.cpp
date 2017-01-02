@@ -14,8 +14,10 @@
 
 #include "io/FileDevice.h"
 
+#if defined ION_PLATFORM_WINDOWS
 //WIN32_LEAN_AND_MEAN defined in JamRules
 #include <windows.h>
+#endif
 
 namespace ion
 {
@@ -70,6 +72,7 @@ namespace ion
 
 		void FileDevice::ReadDirectory(std::string directory, std::vector<DirectoryItem>& directoryListing)
 		{
+#if defined ION_PLATFORM_WINDOWS
 			HANDLE searchHndl = INVALID_HANDLE_VALUE;
 			bool fileFound = true;
 
@@ -92,6 +95,7 @@ namespace ion
 
 				directoryListing.push_back(directoryItem);
 			}
+#endif
 		}
 
 		std::string FileDevice::NormalisePath(std::string inPath)

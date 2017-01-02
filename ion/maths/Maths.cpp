@@ -9,39 +9,50 @@
 
 #include "maths/Maths.h"
 
+#if defined ION_PLATFORM_DREAMCAST
+#include <dc/fmath.h>
+#endif
+
+#include <math.h>
+#include <stdlib.h>
+
 namespace ion
 {
 	namespace maths
 	{
-		int Round(double x)
+		int Round(float x)
 		{
-			return (int)(x + 0.5);
+			return (int)(x + 0.5f);
 		}
 
 		float RoundToNearest(float value, int nearest)
 		{
-			return floor(value / nearest) * nearest;
+			return floorf(value / nearest) * nearest;
 		}
 
 		int NextPowerOfTwo(int x)
 		{
-			double logbase2 = log((double)x) / log((double)2);
-			return Round(pow((double)2, (double)ceil(logbase2)));
+			float logbase2 = logf(x) / logf(2.0f);
+			return Round(powf(2.0f, ceilf(logbase2)));
 		}
 
 		float Sqrt(float value)
 		{
-			return sqrt(value);
+#if defined ION_PLATFORM_DREAMCAST
+			return fsqrt(value);
+#else
+			return sqrtf(value);
+#endif
 		}
 
 		float Floor(float value)
 		{
-			return floor(value);
+			return floorf(value);
 		}
 
 		float Ceil(float value)
 		{
-			return ceil(value);
+			return ceilf(value);
 		}
 
 		float Clamp(float value, float min, float max)
@@ -58,7 +69,7 @@ namespace ion
 
 		float Abs(float value)
 		{
-			return abs(value);
+			return fabs(value);
 		}
 
 		float Fmod(float value, float divisor)
@@ -85,12 +96,40 @@ namespace ion
 
 		float Cos(float value)
 		{
-			return cos(value);
+#if defined ION_PLATFORM_DREAMCAST
+			return fcos(value);
+#else
+			return cosf(value);
+#endif
 		}
 
 		float Sin(float value)
 		{
-			return sin(value);
+#if defined ION_PLATFORM_DREAMCAST
+			return fsin(value);
+#else
+			return sinf(value);
+#endif
+		}
+
+		float Acos(float value)
+		{
+			return acosf(value);
+		}
+
+		float Asin(float value)
+		{
+			return asinf(value);
+		}
+
+		float Atan(float value)
+		{
+			return atanf(value);
+		}
+
+		float Atan2(float y, float x)
+		{
+			return atan2f(y, x);
 		}
 
 		float DegreesToRadians(float degrees)

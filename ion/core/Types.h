@@ -22,3 +22,8 @@ typedef unsigned int u32;
 typedef int s32;
 typedef unsigned long long u64;
 typedef long long s64;
+
+#if defined ION_PLATFORM_DREAMCAST
+#include <kos.h>
+#include <typeinfo>
+#endif

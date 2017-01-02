@@ -25,21 +25,21 @@ namespace ion
 		class IndexBuffer
 		{
 		public:
-			void Add(u32 index) { m_indices.push_back(index); }
-			void Add(u32 face0, u32 face1, u32 face2)
+			void Add(u16 index) { m_indices.push_back(index); }
+			void Add(u16 face0, u16 face1, u16 face2)
 			{
 				m_indices.push_back(face0);
 				m_indices.push_back(face1);
 				m_indices.push_back(face2);
 			}
 
-			u32 Get(int index) const { return m_indices[index]; }
+			u16 Get(int index) const { return m_indices[index]; }
 
 			int GetSize() const { return m_indices.size(); }
-			const u32* GetAddress() const { return &m_indices[0]; }
+			const u16* GetAddress() const { return &m_indices[0]; }
 
 		private:
-			std::vector<u32> m_indices;
+			std::vector<u16> m_indices;
 		};
 	}
 }

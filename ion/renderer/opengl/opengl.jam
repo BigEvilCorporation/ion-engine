@@ -3,20 +3,31 @@ SubDir bigevilcorp ion renderer opengl ;
 local SRC =
 	RendererOpenGL.cpp
 	RendererOpenGL.h
-	ShaderCgGL.cpp
-	ShaderCgGL.h
 	TextureOpenGL.cpp
 	TextureOpenGL.h
+	;
+
+if ( win32 in $(PLATFORM) )
+{
+	SRC +=
 	../win32/WindowWin32.cpp
 	../win32/WindowWin32.h
 	;
+}
 
 ApplyIonDefines opengl ;
 ApplyIonIncludes opengl ;
-ApplyOpenGLSDK opengl ;
-ApplySDLSDK opengl ;
-ApplyCgSDK opengl ;
-ApplyGlewSDK opengl ;
+
+if ( win32 in $(PLATFORM) )
+{
+	# ApplyIonRenderer opengl : opengl sdl cggl ;
+	ApplyIonRenderer opengl : opengl sdl ;
+}
+
+if ( dreamcast in $(PLATFORM) )
+{
+	ApplyIonRenderer opengl : opengl sdl glut ;
+}
 
 AutoSourceGroup opengl : $(SRC) ;
 C.RuntimeType opengl : static ;

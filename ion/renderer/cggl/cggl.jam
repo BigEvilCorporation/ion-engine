@@ -1,0 +1,14 @@
+SubDir bigevilcorp ion renderer cggl ;
+
+local SRC =
+	ShaderCgGL.cpp
+	ShaderCgGL.h
+	;
+
+ApplyIonDefines cggl ;
+ApplyIonIncludes cggl ;
+ApplyCgSDK cggl ;
+
+AutoSourceGroup cggl : $(SRC) ;
+C.RuntimeType cggl : static ;
+C.Library cggl : $(SRC) ;

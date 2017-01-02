@@ -47,7 +47,9 @@ namespace ion
 
 		void Break()
 		{
+			#if defined ION_PLATFORM_WINDOWS
 			__debugbreak();
+			#endif
 		}
 	}
 }

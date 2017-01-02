@@ -340,6 +340,30 @@ rule ApplyBulletSDK TARGET
 	}
 }
 
+rule ApplyFreeTypeSDK TARGET
+{
+	C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/freetype/include ;
+	C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/freetype/lib/vc120/Win32 ;
+
+	FT_LIBS_DEBUG =
+		freetype27MT.lib
+		;
+
+	FT_LIBS_RELEASE =
+		freetype27d.lib
+		;
+
+	if ( debug in $(CONFIG) )
+	{
+		C.LinkPrebuiltLibraries $(TARGET) : $(FT_LIBS_DEBUG) ;
+	}
+
+	if ( release in $(CONFIG) )
+	{
+		C.LinkPrebuiltLibraries $(TARGET) : $(FT_LIBS_RELEASE) ;
+	}
+}
+
 rule ApplyWxSDK TARGET
 {
 	C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/wx/include ;

@@ -13,10 +13,10 @@ namespace ion
 {
 	Quaternion::Quaternion()
 	{
-		x = 0.0;
-		y = 0.0;
-		z = 0.0;
-		w = 1.0;
+		x = 0.0f;
+		y = 0.0f;
+		z = 0.0f;
+		w = 1.0f;
 	}
 
 	Quaternion::Quaternion(float X, float Y, float Z, float W)
@@ -91,8 +91,8 @@ namespace ion
 
 	void Quaternion::Invert()
 	{
-		float norm = sqrt(w * w + x * x + y * y + z * z);
-		if (norm == 0.0) norm = 1.0;
+		float norm = maths::Sqrt(w * w + x * x + y * y + z * z);
+		if (norm == 0.0f) norm = 1.0f;
 
 		float recip = 1.0f / norm;
 
@@ -104,11 +104,11 @@ namespace ion
 
 	void Quaternion::Normalise()
 	{
-		float norm = sqrt(w * w + x * x + y * y + z * z);
-		if (norm == 0.0)
+		float norm = maths::Sqrt(w * w + x * x + y * y + z * z);
+		if (norm == 0.0f)
 		{
-			w = 1.0;
-			x = y = z = 0.0;
+			w = 1.0f;
+			x = y = z = 0.0f;
 		}
 		else
 		{
@@ -143,14 +143,14 @@ namespace ion
 		// q^n = cos(n*theta) + u*sin(n*theta)
 
 		float ntheta = n * z;
-		float costheta = cos(ntheta);
-		float sintheta = sin(ntheta);
+		float costheta = maths::Cos(ntheta);
+		float sintheta = maths::Sin(ntheta);
 		return Quaternion(costheta, x * sintheta, y * sintheta, z * sintheta);
 	}
 
 	void Quaternion::FromAxis(float radians, const Vector3& axis)
 	{
-		w = 0;
+		w = 0.0f;
 		x = axis.x;
 		y = axis.y;
 		z = axis.z;
@@ -161,10 +161,10 @@ namespace ion
 		
 		Normalise();
 
-		radians = radians / 2;
-		w = (float)cos(radians);
+		radians = radians / 2.0f;
+		w = (float)maths::Cos(radians);
 
-		float scale = (float)sin(radians);
+		float scale = (float)maths::Sin(radians);
 		x *= scale;
 		y *= scale;
 		z *= scale;
@@ -185,7 +185,7 @@ namespace ion
 		}
 		else if(maths::Abs(dot - 1.0f) >= maths::FLOAT_EPSILON)
 		{
-			float rotAngle = acosf(dot);
+			float rotAngle = maths::Acos(dot);
 			Vector3 rotAxis = forward.Cross(forwardVector);
 			rotAxis = rotAxis.Normalise();
 			FromAxis(rotAngle, rotAxis);
@@ -227,12 +227,12 @@ namespace ion
 
 	void Quaternion::FromEuler(const Vector3& euler)
 	{
-		float cosYaw = cos(euler.y / 2);
-		float sinYaw = sin(euler.y / 2);
-		float cosPitch = cos(euler.x / 2);
-		float sinPitch = sin(euler.x / 2);
-		float cosRoll = cos(euler.z / 2);
-		float sinRoll = sin(euler.z / 2);
+		float cosYaw = maths::Cos(euler.y / 2);
+		float sinYaw = maths::Sin(euler.y / 2);
+		float cosPitch = maths::Cos(euler.x / 2);
+		float sinPitch = maths::Sin(euler.x / 2);
+		float cosRoll = maths::Cos(euler.z / 2);
+		float sinRoll = maths::Sin(euler.z / 2);
 		x = cosRoll * sinPitch * cosYaw + sinRoll * cosPitch * sinYaw;
 		y = cosRoll * cosPitch * sinYaw - sinRoll * sinPitch * cosYaw;
 		z = sinRoll * cosPitch * cosYaw - cosRoll * sinPitch * sinYaw;
@@ -245,14 +245,14 @@ namespace ion
 		float testValue = x * y + z * w;
 		if(testValue > 0.499f)
 		{
-			euler.y = 2 * atan2(x,w);
+			euler.y = 2 * maths::Atan2(x, w);
 			euler.z = maths::PI / 2;
 			euler.x = 0.0f;
 			return euler;
 		}
 		if(testValue < -0.499f)
 		{
-			euler.y = -2 * atan2(x,w);
+			euler.y = -2 * maths::Atan2(x, w);
 			euler.z = -maths::PI / 2;
 			euler.x = 0.0f;
 			return euler;
@@ -264,9 +264,9 @@ namespace ion
 		float sqw = w*w;
 		float unit = sqx + sqy + sqz + sqw;
 
-		euler.y = atan2( (float)2.0f*y*w - 2.0f*x*z, (float)sqx - sqy - sqz + sqw );
-		euler.z = asin ( (float)2.0f * testValue / unit );
-		euler.x = atan2( (float)2.0f*x*w - 2.0f*y*z, (float)-sqx + sqy - sqz + sqw );
+		euler.y = maths::Atan2((float)2.0f*y*w - 2.0f*x*z, (float)sqx - sqy - sqz + sqw);
+		euler.z = maths::Asin((float)2.0f * testValue / unit);
+		euler.x = maths::Atan2((float)2.0f*x*w - 2.0f*y*z, (float)-sqx + sqy - sqz + sqw);
 
 		return euler;
 	}
@@ -276,7 +276,7 @@ namespace ion
 		float trace = matrix.Get(0, 0) + matrix.Get(1, 1) + matrix.Get(2, 2);
 		if (trace > 0)
 		{
-			float root = (float)sqrt(trace + 1);
+			float root = (float)maths::Sqrt(trace + 1);
 			w = root * 0.5f;
 
 			root = 0.5f / root;
@@ -295,7 +295,7 @@ namespace ion
 			int j = next[i];
 			int k = next[j];
 
-			float root = sqrt(matrix.Get(i, i) - matrix.Get(j, j) - matrix.Get(k, k) + 1);
+			float root = maths::Sqrt(matrix.Get(i, i) - matrix.Get(j, j) - matrix.Get(k, k) + 1);
 
 			x = 0.5f * root;
 			root = 0.5f / root;
@@ -310,13 +310,13 @@ namespace ion
 		float dotproduct = quat1.x * quat2.x + quat1.y * quat2.y + quat1.z * quat2.z + quat1.w * quat2.w;
 		float theta, st, sut, sout, coeff1, coeff2;
 
-		theta = (float)acos(dotproduct);
+		theta = (float)maths::Acos(dotproduct);
 		if (theta<0.0)
 			theta=-theta;
 	
-		st = (float) sin(theta);
-		sut = (float) sin(time*theta);
-		sout = (float) sin((1.0f-time)*theta);
+		st = (float)maths::Sin(theta);
+		sut = (float)maths::Sin(time*theta);
+		sout = (float)maths::Sin((1.0f - time)*theta);
 		coeff1 = sout/st;
 		coeff2 = sut/st;
 
@@ -331,14 +331,14 @@ namespace ion
 	void Quaternion::Exp()
 	{
 		float Mul;
-		float Length = sqrt(x*x + y*y + z*z);
+		float Length = maths::Sqrt(x*x + y*y + z*z);
 
-		if (Length > 1.0e-4)
-			Mul = sin(Length) / Length;
+		if (Length > 1.0e-4f)
+			Mul = maths::Sin(Length) / Length;
 		else
-			Mul = 1.0;
+			Mul = 1.0f;
 
-		w = cos(Length);
+		w = maths::Cos(Length);
 
 		x *= Mul;
 		y *= Mul;
@@ -349,10 +349,10 @@ namespace ion
 	{
 		float Length;
 
-		Length = sqrt(x*x + y*y + z*z);
-		Length = atan(Length / w);
+		Length = maths::Sqrt(x*x + y*y + z*z);
+		Length = maths::Atan(Length / w);
 
-		w = 0.0;
+		w = 0.0f;
 
 		z *= Length;
 		y *= Length;

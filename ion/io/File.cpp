@@ -51,6 +51,8 @@ namespace ion
 
 		bool File::Open(const std::string& filename, File::OpenMode openMode)
 		{
+			return true;
+
 			std::ios::openmode mode = std::ios::binary;
 
 			if(openMode == eOpenRead)
@@ -65,8 +67,10 @@ namespace ion
 
 			if(m_open)
 			{
+#if defined ION_PLATFORM_WINDOWS
 				//Use buffer
 				m_stream.rdbuf()->pubsetbuf((char*)m_buffer, s_bufferSize);
+#endif
 
 				//Get size (seek to end, get pos, seek back)
 				m_stream.seekg(0, std::ios::end);
@@ -90,11 +94,11 @@ namespace ion
 		{
 			if(m_open)
 			{
-				std::ios_base::seek_dir direction = std::ios_base::cur;
+				std::ios::seekdir direction = std::ios::cur;
 
 				if(origin == eSeekModeStart)
 				{
-					direction = std::ios_base::beg;
+					direction = std::ios::beg;
 					position = std::min(position, m_size - 1);
 					m_currentPosition = position;
 				}

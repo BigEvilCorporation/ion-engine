@@ -14,9 +14,11 @@
 
 #include "io/FileSystem.h"
 
+#if defined ION_PLATFORM_WINDOWS
 //WIN32_LEAN_AND_MEAN defined in JamRules
 #include <windows.h>
 #include <direct.h>
+#endif
 
 namespace ion
 {
@@ -41,6 +43,7 @@ namespace ion
 
 		void FileSystem::EnumerateDevices()
 		{
+#if defined ION_PLATFORM_WINDOWS
 			static const int stringBufferLength = 2048;
 			char stringBuffer[stringBufferLength] = {0};
 
@@ -133,6 +136,7 @@ namespace ion
 
 			//Restore default error mode
 			SetErrorMode(0);
+#endif
 		}
 
 		FileDevice* FileSystem::FindFileDevice(io::FileDevice::DeviceType, io::FileDevice::AccessType accessType)

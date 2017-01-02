@@ -34,7 +34,9 @@ namespace ion
 	{
 		Renderer::Renderer()
 		{
+#if defined ION_RENDERER_SHADER
 			m_shaderManager = NULL;
+#endif
 		}
 
 		Renderer::~Renderer()
