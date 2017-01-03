@@ -51,8 +51,6 @@ namespace ion
 
 		bool File::Open(const std::string& filename, File::OpenMode openMode)
 		{
-			return true;
-
 			std::ios::openmode mode = std::ios::binary;
 
 			if(openMode == eOpenRead)

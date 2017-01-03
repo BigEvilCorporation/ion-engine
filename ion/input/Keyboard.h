@@ -7,15 +7,20 @@
 
 #pragma once
 
+#if defined ION_PLATFORM_WINDOWS
 #include <dinput.h>
+#endif
+
 #include <vector>
 
 namespace ion
 {
 	namespace input
 	{
+#if defined ION_PLATFORM_WINDOWS
 		//TODO: Platform specific header
 		static LPDIRECTINPUT8 g_DirectInputInterface = NULL;
+#endif
 
 		class KeyboardHandler
 		{
@@ -50,9 +55,11 @@ namespace ion
 			char mCurrKeyStates[sMaxKeys];
 			char mPrevKeyStates[sMaxKeys];
 
-			LPDIRECTINPUTDEVICE8 mKeyboardDevice;
-
 			std::vector<KeyboardHandler*> m_handlers;
+
+#if defined ION_PLATFORM_WINDOWS
+			LPDIRECTINPUTDEVICE8 mKeyboardDevice;
+#endif
 		};
 	}
 }

@@ -15,19 +15,17 @@ if ( win32 in $(PLATFORM) )
 	;
 }
 
-ApplyIonDefines opengl ;
-ApplyIonIncludes opengl ;
-
-if ( win32 in $(PLATFORM) )
-{
-	# ApplyIonRenderer opengl : opengl sdl cggl ;
-	ApplyIonRenderer opengl : opengl sdl ;
-}
-
 if ( dreamcast in $(PLATFORM) )
 {
-	ApplyIonRenderer opengl : opengl sdl glut ;
+	SRC +=
+	../dreamcast/WindowDreamcast.cpp
+	../dreamcast/WindowDreamcast.h
+	;
 }
+
+ApplyIonDefines opengl ;
+ApplyIonIncludes opengl ;
+ApplyIonRenderer opengl ;
 
 AutoSourceGroup opengl : $(SRC) ;
 C.RuntimeType opengl : static ;

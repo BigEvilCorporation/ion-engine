@@ -42,12 +42,14 @@ namespace ion
 			void SetCooperativeWindow(CoopLevel coopLevel);
 
 		private:
-			LPDIRECTINPUTDEVICE8 mMouseDevice;
-			DIMOUSESTATE2 mMouseState;
-
 			s32 mAbsX;
 			s32 mAbsY;
 			s32 mWheelAbs;
+
+#if defined ION_PLATFORM_WINDOWS
+			LPDIRECTINPUTDEVICE8 mMouseDevice;
+			DIMOUSESTATE2 mMouseState;
+#endif
 		};
 	}
 }

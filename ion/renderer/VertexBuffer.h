@@ -15,7 +15,7 @@
 #pragma once
 
 #include "maths/Vector.h"
-#include "renderer/colour.h"
+#include "renderer/Colour.h"
 #include "renderer/Vertex.h"
 #include "renderer/Face.h"
 
@@ -33,11 +33,11 @@ namespace ion
 			VertexBuffer(Pattern pattern);
 			~VertexBuffer();
 
-			void AddVertex(const Vector3& position, const Vector3& normal, const TexCoord& texCoord);
+			void AddVertex(const Vector3& position, const Vector3& normal, const Colour& colour, const TexCoord& texCoord);
 			void AddFace(const Face& face);
 
 			void Reserve(int size);
-			void SetVertex(int vertexIdx, const Vector3& position, const Vector3& normal, const TexCoord& texCoord);
+			void SetVertex(int vertexIdx, const Vector3& position, const Vector3& normal, const Colour& colour, const TexCoord& texCoord);
 
 			Vertex GetVertex(int index) const;
 			Face GetFace(int index) const;
@@ -46,6 +46,7 @@ namespace ion
 			const float* GetVertexBuffer() const;
 			const float* GetNormalBuffer() const;
 			const float* GetTexCoordBuffer() const;
+			const float* GetColourBuffer() const;
 
 			void Clear();
 
@@ -60,16 +61,19 @@ namespace ion
 			int GetVertexSize() const { return s_positionSize; }
 			int GetNormalSize() const { return s_normalSize; }
 			int GetTexCoordSize() const { return s_texCoordSize; }
+			int GetColourSize() const { return s_colourSize; }
 
 			int GetFirstVertexOffset() const;
 			int GetFirstNormalOffset() const;
 			int GetFirstTexCoordOffset() const;
+			int GetFirstColourOffset() const;
 
 		protected:
 			//Size of one position, normal and texcoord
 			static const int s_positionSize = 3;
 			static const int s_normalSize = 3;
 			static const int s_texCoordSize = 2;
+			static const int s_colourSize = 3;
 
 			std::vector<float> m_buffer;
 

@@ -7,7 +7,7 @@ local SRC =
 
 ApplyIonDefines cggl ;
 ApplyIonIncludes cggl ;
-ApplyCgSDK cggl ;
+ApplyIonRenderer cggl ;
 
 AutoSourceGroup cggl : $(SRC) ;
 C.RuntimeType cggl : static ;

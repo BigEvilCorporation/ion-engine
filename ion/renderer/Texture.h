@@ -60,6 +60,7 @@ namespace ion
 			};
 
 			static Texture* Create();
+			static Texture* Create(u32 width, u32 height);
 			static Texture* Create(u32 width, u32 height, Format sourceFormat, Format destFormat, BitsPerPixel bitsPerPixel, bool generateMipmaps, const u8* data);
 
 			virtual ~Texture();
@@ -84,6 +85,7 @@ namespace ion
 
 		protected:
 			Texture();
+			Texture(u32 width, u32 height);
 			Texture(u32 width, u32 height, Format sourceFormat, Format destFormat, BitsPerPixel bitsPerPixel, bool generateMipmaps, const u8* data);
 
 			virtual bool Load() { return false; }

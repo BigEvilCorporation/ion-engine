@@ -13,8 +13,18 @@
 ///////////////////////////////////////////////////
 
 #include "Debug.h"
+#include "ion/core/Types.h"
 
 #include <iostream>
+
+#if defined ION_PLATFORM_DREAMCAST
+#include <kos.h>
+#include <malloc.h>
+extern unsigned long end;
+extern unsigned long start;
+#define _end end
+#define _start start
+#endif
 
 namespace ion
 {
@@ -50,6 +60,28 @@ namespace ion
 			#if defined ION_PLATFORM_WINDOWS
 			__debugbreak();
 			#endif
+		}
+
+		void PrintMemoryUsage()
+		{
+#if defined ION_PLATFORM_WINDOWS
+			printf("ion::debug::PrintMemoryUsage() - TODO\n");
+#elif defined ION_PLATFORM_DREAMCAST
+			malloc_stats();
+			pvr_mem_stats();
+
+			u32 systemRam = 0x8d000000 - 0x8c000000;
+			u32 elfOffset = 0x8c000000;
+			u32 stackSize = (int)&_end - (int)&_start + ((int)&_start - elfOffset);
+
+			struct mallinfo mi = mallinfo();
+			u32 systemRamFree = systemRam - (mi.usmblks + stackSize);
+
+			printf("Total system RAM: %i (%ikb)\n", systemRam, systemRam / 1024);
+			printf("Allocated system RAM: %i (%ikb)\n", mi.usmblks, mi.usmblks / 1024);
+			printf("Allocated stack size: %i (%ikb)\n", stackSize, stackSize / 1024);
+			printf("Free system RAM: %i (%ikb)\n", systemRamFree, systemRamFree / 1024);
+#endif
 		}
 	}
 }

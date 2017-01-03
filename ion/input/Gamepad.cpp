@@ -17,9 +17,12 @@ namespace ion
 		{
 			mControllerIndex = FindAvailableController();
 			mConnected = false;
-			memory::MemSet(&mInputState, 0, sizeof(XINPUT_STATE));
 			mDeadZone = 0.05f;
 			mOuterZone = 0.9f;
+
+#if defined ION_PLATFORM_WINDOWS
+			memory::MemSet(&mInputState, 0, sizeof(XINPUT_STATE));
+#endif
 		}
 
 		Gamepad::~Gamepad()
@@ -34,6 +37,8 @@ namespace ion
 		{
 			//Find a free, connected controller
 			int connectedControllerId = sInvalidIndex;
+
+#if !defined ION_PLATFORM_DREAMCAST
 			for(int i = 0; i < sMaxControllers; i++)
 			{
 				if(!sRegisteredControllers[i])
@@ -48,12 +53,14 @@ namespace ion
 					}
 				}
 			}
+#endif
 
 			return connectedControllerId;
 		}
 
 		void Gamepad::Update()
 		{
+#if !defined ION_PLATFORM_DREAMCAST
 			if(mControllerIndex != sInvalidIndex)
 			{
 				//Registered, update state
@@ -73,6 +80,7 @@ namespace ion
 					memory::MemSet(&mInputState, 0, sizeof(XINPUT_STATE));
 				}
 			}
+#endif
 		}
 
 		bool Gamepad::IsConnected()
@@ -88,6 +96,9 @@ namespace ion
 
 		ion::Vector2 Gamepad::GetLeftStick()
 		{
+#if defined ION_PLATFORM_DREAMCAST
+			return ion::Vector2();
+#else
 			float lx = (float)mInputState.Gamepad.sThumbLX;
 			float ly = (float)mInputState.Gamepad.sThumbLY;
 
@@ -104,10 +115,14 @@ namespace ion
 				ly = 0.0f;
 
 			return ion::Vector2(lx, ly);
+#endif
 		}
 
 		ion::Vector2 Gamepad::GetRightStick()
 		{
+#if defined ION_PLATFORM_DREAMCAST
+			return ion::Vector2();
+#else
 			float rx = (float)mInputState.Gamepad.sThumbRX;
 			float ry = (float)mInputState.Gamepad.sThumbRY;
 
@@ -124,18 +139,24 @@ namespace ion
 				ry = 0.0f;
 
 			return ion::Vector2(rx, ry);
+#endif
 		}
 
 		bool Gamepad::ButtonDown(Buttons button)
 		{
+#if defined ION_PLATFORM_DREAMCAST
+			return false;
+#else
 			int xInputButton = ToXInputButton(button);
 			return (mInputState.Gamepad.wButtons & xInputButton) != 0;
+#endif
 		}
 
 		int Gamepad::ToXInputButton(Buttons button)
 		{
 			int xInputButton = 0;
 
+#if !defined ION_PLATFORM_DREAMCAST
 			switch(button)
 			{
 				case DPAD_UP:	xInputButton = XINPUT_GAMEPAD_DPAD_UP; break;
@@ -154,6 +175,7 @@ namespace ion
 				case RIGHT_STICK_CLICK:	xInputButton = XINPUT_GAMEPAD_RIGHT_THUMB; break;
 				default: break;
 			}
+#endif
 
 			return xInputButton;
 		}

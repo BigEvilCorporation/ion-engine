@@ -42,7 +42,7 @@ namespace ion
 		{
 			for(int i = 0; i < points.size(); i++)
 			{
-				m_vertexBuffer.AddVertex(points[i], Vector3(0.0f, 0.0f, 1.0f), TexCoord(0.0f, 1.0f));
+				m_vertexBuffer.AddVertex(points[i], Vector3(0.0f, 0.0f, 1.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(0.0f, 1.0f));
 			}
 		}
 
@@ -51,7 +51,7 @@ namespace ion
 		{
 			for(int i = 0; i < points.size(); i++)
 			{
-				m_vertexBuffer.AddVertex(points[i], Vector3(0.0f, 0.0f, 1.0f), TexCoord(0.0f, 1.0f));
+				m_vertexBuffer.AddVertex(points[i], Vector3(0.0f, 0.0f, 1.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(0.0f, 1.0f));
 			}
 		}
 
@@ -62,20 +62,20 @@ namespace ion
 
 			if(axis == xy)
 			{
-				m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y + halfExtents.y, 0.0f), Vector3(0.0f, 0.0f, 1.0f), TexCoord(0.0f, 0.0f));
-				m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y - halfExtents.y, 0.0f), Vector3(0.0f, 0.0f, 1.0f), TexCoord(0.0f, 1.0f));
-				m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y - halfExtents.y, 0.0f), Vector3(0.0f, 0.0f, 1.0f), TexCoord(1.0f, 1.0f));
-				m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y + halfExtents.y, 0.0f), Vector3(0.0f, 0.0f, 1.0f), TexCoord(1.0f, 0.0f));
+				m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y + halfExtents.y, 0.0f), Vector3(0.0f, 0.0f, 1.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(0.0f, 0.0f));
+				m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y - halfExtents.y, 0.0f), Vector3(0.0f, 0.0f, 1.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(0.0f, 1.0f));
+				m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y - halfExtents.y, 0.0f), Vector3(0.0f, 0.0f, 1.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(1.0f, 1.0f));
+				m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y + halfExtents.y, 0.0f), Vector3(0.0f, 0.0f, 1.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(1.0f, 0.0f));
 
 				m_indexBuffer.Add(0, 1, 2);
 				m_indexBuffer.Add(0, 2, 3);
 			}
 			else if(axis == xz)
 			{
-				m_vertexBuffer.AddVertex(Vector3(offset.x + -halfExtents.x, offset.y, offset.z + -halfExtents.y), Vector3(0.0f, 1.0f, 0.0f), TexCoord(0.0f, 0.0f));
-				m_vertexBuffer.AddVertex(Vector3(offset.x + -halfExtents.x, offset.y, offset.z +  halfExtents.y), Vector3(0.0f, 1.0f, 0.0f), TexCoord(0.0f, 1.0f));
-				m_vertexBuffer.AddVertex(Vector3(offset.x +  halfExtents.x, offset.y, offset.z +  halfExtents.y), Vector3(0.0f, 1.0f, 0.0f), TexCoord(1.0f, 1.0f));
-				m_vertexBuffer.AddVertex(Vector3(offset.x +  halfExtents.x, offset.y, offset.z + -halfExtents.y), Vector3(0.0f, 1.0f, 0.0f), TexCoord(1.0f, 0.0f));
+				m_vertexBuffer.AddVertex(Vector3(offset.x + -halfExtents.x, offset.y, offset.z + -halfExtents.y), Vector3(0.0f, 1.0f, 0.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(0.0f, 0.0f));
+				m_vertexBuffer.AddVertex(Vector3(offset.x + -halfExtents.x, offset.y, offset.z +  halfExtents.y), Vector3(0.0f, 1.0f, 0.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(0.0f, 1.0f));
+				m_vertexBuffer.AddVertex(Vector3(offset.x +  halfExtents.x, offset.y, offset.z +  halfExtents.y), Vector3(0.0f, 1.0f, 0.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(1.0f, 1.0f));
+				m_vertexBuffer.AddVertex(Vector3(offset.x +  halfExtents.x, offset.y, offset.z + -halfExtents.y), Vector3(0.0f, 1.0f, 0.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(1.0f, 0.0f));
 
 				m_indexBuffer.Add(0, 1, 2);
 				m_indexBuffer.Add(2, 3, 0);
@@ -91,7 +91,7 @@ namespace ion
 			for(int i = 0; i < 4; i++)
 			{
 				Vertex pos = m_vertexBuffer.GetVertex(i);
-				m_vertexBuffer.SetVertex(i, pos, Vector3(0.0f, 0.0f, 1.0f), coords[i]);
+				m_vertexBuffer.SetVertex(i, pos, Vector3(0.0f, 0.0f, 1.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), coords[i]);
 			}
 		}
 
@@ -100,17 +100,17 @@ namespace ion
 		{
 			if(axis == xy)
 			{
-				m_vertexBuffer.AddVertex(Vector3(-halfExtents.x, -halfExtents.y, 0.0f), Vector3(), TexCoord());
-				m_vertexBuffer.AddVertex(Vector3( halfExtents.x, -halfExtents.y, 0.0f), Vector3(), TexCoord());
+				m_vertexBuffer.AddVertex(Vector3(-halfExtents.x, -halfExtents.y, 0.0f), Vector3(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord());
+				m_vertexBuffer.AddVertex(Vector3(halfExtents.x, -halfExtents.y, 0.0f), Vector3(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord());
 
-				m_vertexBuffer.AddVertex(Vector3(halfExtents.x, -halfExtents.y, 0.0f), Vector3(), TexCoord());
-				m_vertexBuffer.AddVertex(Vector3( halfExtents.x,  halfExtents.y, 0.0f), Vector3(), TexCoord());
+				m_vertexBuffer.AddVertex(Vector3(halfExtents.x, -halfExtents.y, 0.0f), Vector3(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord());
+				m_vertexBuffer.AddVertex(Vector3(halfExtents.x, halfExtents.y, 0.0f), Vector3(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord());
 
-				m_vertexBuffer.AddVertex(Vector3(halfExtents.x, halfExtents.y, 0.0f), Vector3(), TexCoord());
-				m_vertexBuffer.AddVertex(Vector3(-halfExtents.x,  halfExtents.y, 0.0f), Vector3(), TexCoord());
+				m_vertexBuffer.AddVertex(Vector3(halfExtents.x, halfExtents.y, 0.0f), Vector3(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord());
+				m_vertexBuffer.AddVertex(Vector3(-halfExtents.x, halfExtents.y, 0.0f), Vector3(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord());
 
-				m_vertexBuffer.AddVertex(Vector3(-halfExtents.x, halfExtents.y, 0.0f), Vector3(), TexCoord());
-				m_vertexBuffer.AddVertex(Vector3(-halfExtents.x, -halfExtents.y, 0.0f), Vector3(), TexCoord());
+				m_vertexBuffer.AddVertex(Vector3(-halfExtents.x, halfExtents.y, 0.0f), Vector3(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord());
+				m_vertexBuffer.AddVertex(Vector3(-halfExtents.x, -halfExtents.y, 0.0f), Vector3(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord());
 			}
 		}
 
@@ -124,14 +124,14 @@ namespace ion
 			{
 				for(int x = 0; x < widthCells+1; x++)
 				{
-					m_vertexBuffer.AddVertex(Vector3((cellSize.x * x) - halfExtents.x, -halfExtents.y, 0.0f), Vector3(), TexCoord());
-					m_vertexBuffer.AddVertex(Vector3((cellSize.x * x) - halfExtents.x, gridSize.y - halfExtents.y, 0.0f), Vector3(), TexCoord());
+					m_vertexBuffer.AddVertex(Vector3((cellSize.x * x) - halfExtents.x, -halfExtents.y, 0.0f), Vector3(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord());
+					m_vertexBuffer.AddVertex(Vector3((cellSize.x * x) - halfExtents.x, gridSize.y - halfExtents.y, 0.0f), Vector3(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord());
 				}
 
 				for(int y = 0; y < heightCells+1; y++)
 				{
-					m_vertexBuffer.AddVertex(Vector3(-halfExtents.x,				(cellSize.y * y) - halfExtents.y, 0.0f), Vector3(), TexCoord());
-					m_vertexBuffer.AddVertex(Vector3(gridSize.x - halfExtents.x,	(cellSize.y * y) - halfExtents.y, 0.0f), Vector3(), TexCoord());
+					m_vertexBuffer.AddVertex(Vector3(-halfExtents.x, (cellSize.y * y) - halfExtents.y, 0.0f), Vector3(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord());
+					m_vertexBuffer.AddVertex(Vector3(gridSize.x - halfExtents.x, (cellSize.y * y) - halfExtents.y, 0.0f), Vector3(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord());
 				}
 			}
 		}
@@ -152,10 +152,10 @@ namespace ion
 						{
 							//Create quad per cell
 							Vector2 cellPos((cellSize.x * x) - halfExtents.x, (cellSize.y * y) - halfExtents.y);
-							m_vertexBuffer.AddVertex(Vector3(             cellPos.x, cellPos.y + cellSize.y, 0.0f), Vector3(0.0f, 0.0f, 1.0f), TexCoord(0.0f, 1.0f));
-							m_vertexBuffer.AddVertex(Vector3(             cellPos.x, cellPos.y,              0.0f), Vector3(0.0f, 0.0f, 1.0f), TexCoord(1.0f, 1.0f));
-							m_vertexBuffer.AddVertex(Vector3(cellPos.x + cellSize.x, cellPos.y,              0.0f), Vector3(0.0f, 0.0f, 1.0f), TexCoord(1.0f, 0.0f));
-							m_vertexBuffer.AddVertex(Vector3(cellPos.x + cellSize.x, cellPos.y + cellSize.y, 0.0f), Vector3(0.0f, 0.0f, 1.0f), TexCoord(0.0f, 0.0f));
+							m_vertexBuffer.AddVertex(Vector3(             cellPos.x, cellPos.y + cellSize.y, 0.0f), Vector3(0.0f, 0.0f, 1.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(0.0f, 1.0f));
+							m_vertexBuffer.AddVertex(Vector3(             cellPos.x, cellPos.y,              0.0f), Vector3(0.0f, 0.0f, 1.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(1.0f, 1.0f));
+							m_vertexBuffer.AddVertex(Vector3(cellPos.x + cellSize.x, cellPos.y,              0.0f), Vector3(0.0f, 0.0f, 1.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(1.0f, 0.0f));
+							m_vertexBuffer.AddVertex(Vector3(cellPos.x + cellSize.x, cellPos.y + cellSize.y, 0.0f), Vector3(0.0f, 0.0f, 1.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(0.0f, 0.0f));
 
 							m_indexBuffer.Add(vertexCount, vertexCount + 1, vertexCount+2);
 							m_indexBuffer.Add(vertexCount, vertexCount + 2, vertexCount+3);
@@ -176,7 +176,7 @@ namespace ion
 			for(int i = 0; i < 4; i++)
 			{
 				Vertex pos = m_vertexBuffer.GetVertex((cellIndex * 4) + i);
-				m_vertexBuffer.SetVertex((cellIndex * 4) + i, pos, Vector3(0.0f, 0.0f, 1.0f), coords[i]);
+				m_vertexBuffer.SetVertex((cellIndex * 4) + i, pos, Vector3(0.0f, 0.0f, 1.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), coords[i]);
 			}
 		}
 
@@ -184,58 +184,58 @@ namespace ion
 			: Primitive(VertexBuffer::eTriangles)
 		{
 			//Top
-			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y + halfExtents.y, offset.z + halfExtents.z), Vector3(0.0f, 1.0f, 0.0f), TexCoord(0.0f, 1.0f));
-			m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y + halfExtents.y, offset.z + halfExtents.z), Vector3(0.0f, 1.0f, 0.0f), TexCoord(1.0f, 1.0f));
-			m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y + halfExtents.y, offset.z - halfExtents.z), Vector3(0.0f, 1.0f, 0.0f), TexCoord(1.0f, 0.0f));
+			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y + halfExtents.y, offset.z + halfExtents.z), Vector3(0.0f, 1.0f, 0.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(0.0f, 1.0f));
+			m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y + halfExtents.y, offset.z + halfExtents.z), Vector3(0.0f, 1.0f, 0.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(1.0f, 1.0f));
+			m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y + halfExtents.y, offset.z - halfExtents.z), Vector3(0.0f, 1.0f, 0.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(1.0f, 0.0f));
 
-			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y + halfExtents.y, offset.z + halfExtents.z), Vector3(0.0f, 1.0f, 0.0f), TexCoord(0.0f, 1.0f));
-			m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y + halfExtents.y, offset.z - halfExtents.z), Vector3(0.0f, 1.0f, 0.0f), TexCoord(1.0f, 0.0f));
-			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y + halfExtents.y, offset.z - halfExtents.z), Vector3(0.0f, 1.0f, 0.0f), TexCoord(0.0f, 0.0f));
+			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y + halfExtents.y, offset.z + halfExtents.z), Vector3(0.0f, 1.0f, 0.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(0.0f, 1.0f));
+			m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y + halfExtents.y, offset.z - halfExtents.z), Vector3(0.0f, 1.0f, 0.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(1.0f, 0.0f));
+			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y + halfExtents.y, offset.z - halfExtents.z), Vector3(0.0f, 1.0f, 0.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(0.0f, 0.0f));
 
 			//Bottom																															   
-			m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y - halfExtents.y, offset.z + halfExtents.z), Vector3(0.0f, -1.0f, 0.0f), TexCoord(0.0f, 1.0f));
-			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y - halfExtents.y, offset.z + halfExtents.z), Vector3(0.0f, -1.0f, 0.0f), TexCoord(1.0f, 1.0f));
-			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y - halfExtents.y, offset.z - halfExtents.z), Vector3(0.0f, -1.0f, 0.0f), TexCoord(1.0f, 0.0f));
+			m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y - halfExtents.y, offset.z + halfExtents.z), Vector3(0.0f, -1.0f, 0.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(0.0f, 1.0f));
+			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y - halfExtents.y, offset.z + halfExtents.z), Vector3(0.0f, -1.0f, 0.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(1.0f, 1.0f));
+			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y - halfExtents.y, offset.z - halfExtents.z), Vector3(0.0f, -1.0f, 0.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(1.0f, 0.0f));
 
-			m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y - halfExtents.y, offset.z + halfExtents.z), Vector3(0.0f, -1.0f, 0.0f), TexCoord(0.0f, 1.0f));
-			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y - halfExtents.y, offset.z - halfExtents.z), Vector3(0.0f, -1.0f, 0.0f), TexCoord(1.0f, 0.0f));
-			m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y - halfExtents.y, offset.z - halfExtents.z), Vector3(0.0f, -1.0f, 0.0f), TexCoord(0.0f, 0.0f));
+			m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y - halfExtents.y, offset.z + halfExtents.z), Vector3(0.0f, -1.0f, 0.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(0.0f, 1.0f));
+			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y - halfExtents.y, offset.z - halfExtents.z), Vector3(0.0f, -1.0f, 0.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(1.0f, 0.0f));
+			m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y - halfExtents.y, offset.z - halfExtents.z), Vector3(0.0f, -1.0f, 0.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(0.0f, 0.0f));
 
 			//Left
-			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y + halfExtents.y, offset.z + halfExtents.z), Vector3(-1.0f, 0.0f, 0.0f), TexCoord(0.0f, 1.0f));
-			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y + halfExtents.y, offset.z - halfExtents.z), Vector3(-1.0f, 0.0f, 0.0f), TexCoord(1.0f, 1.0f));
-			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y - halfExtents.y, offset.z - halfExtents.z), Vector3(-1.0f, 0.0f, 0.0f), TexCoord(1.0f, 0.0f));
+			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y + halfExtents.y, offset.z + halfExtents.z), Vector3(-1.0f, 0.0f, 0.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(0.0f, 1.0f));
+			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y + halfExtents.y, offset.z - halfExtents.z), Vector3(-1.0f, 0.0f, 0.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(1.0f, 1.0f));
+			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y - halfExtents.y, offset.z - halfExtents.z), Vector3(-1.0f, 0.0f, 0.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(1.0f, 0.0f));
 
-			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y + halfExtents.y, offset.z + halfExtents.z), Vector3(-1.0f, 0.0f, 0.0f), TexCoord(0.0f, 1.0f));
-			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y - halfExtents.y, offset.z - halfExtents.z), Vector3(-1.0f, 0.0f, 0.0f), TexCoord(1.0f, 0.0f));
-			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y - halfExtents.y, offset.z + halfExtents.z), Vector3(-1.0f, 0.0f, 0.0f), TexCoord(0.0f, 0.0f));
+			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y + halfExtents.y, offset.z + halfExtents.z), Vector3(-1.0f, 0.0f, 0.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(0.0f, 1.0f));
+			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y - halfExtents.y, offset.z - halfExtents.z), Vector3(-1.0f, 0.0f, 0.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(1.0f, 0.0f));
+			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y - halfExtents.y, offset.z + halfExtents.z), Vector3(-1.0f, 0.0f, 0.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(0.0f, 0.0f));
 
 			//Right
-			m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y + halfExtents.y, offset.z - halfExtents.z), Vector3(1.0f, 0.0f, 0.0f), TexCoord(0.0f, 1.0f));
-			m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y + halfExtents.y, offset.z + halfExtents.z), Vector3(1.0f, 0.0f, 0.0f), TexCoord(1.0f, 1.0f));
-			m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y - halfExtents.y, offset.z + halfExtents.z), Vector3(1.0f, 0.0f, 0.0f), TexCoord(1.0f, 0.0f));
+			m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y + halfExtents.y, offset.z - halfExtents.z), Vector3(1.0f, 0.0f, 0.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(0.0f, 1.0f));
+			m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y + halfExtents.y, offset.z + halfExtents.z), Vector3(1.0f, 0.0f, 0.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(1.0f, 1.0f));
+			m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y - halfExtents.y, offset.z + halfExtents.z), Vector3(1.0f, 0.0f, 0.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(1.0f, 0.0f));
 
-			m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y + halfExtents.y, offset.z - halfExtents.z), Vector3(1.0f, 0.0f, 0.0f), TexCoord(0.0f, 1.0f));
-			m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y - halfExtents.y, offset.z + halfExtents.z), Vector3(1.0f, 0.0f, 0.0f), TexCoord(1.0f, 0.0f));
-			m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y - halfExtents.y, offset.z - halfExtents.z), Vector3(1.0f, 0.0f, 0.0f), TexCoord(0.0f, 0.0f));
+			m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y + halfExtents.y, offset.z - halfExtents.z), Vector3(1.0f, 0.0f, 0.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(0.0f, 1.0f));
+			m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y - halfExtents.y, offset.z + halfExtents.z), Vector3(1.0f, 0.0f, 0.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(1.0f, 0.0f));
+			m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y - halfExtents.y, offset.z - halfExtents.z), Vector3(1.0f, 0.0f, 0.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(0.0f, 0.0f));
 
 			//Front
-			m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y + halfExtents.y, offset.z - halfExtents.z), Vector3(0.0f, 0.0f, -1.0f), TexCoord(0.0f, 1.0f));
-			m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y - halfExtents.y, offset.z - halfExtents.z), Vector3(0.0f, 0.0f, -1.0f), TexCoord(1.0f, 1.0f));
-			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y - halfExtents.y, offset.z - halfExtents.z), Vector3(0.0f, 0.0f, -1.0f), TexCoord(1.0f, 0.0f));
+			m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y + halfExtents.y, offset.z - halfExtents.z), Vector3(0.0f, 0.0f, -1.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(0.0f, 1.0f));
+			m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y - halfExtents.y, offset.z - halfExtents.z), Vector3(0.0f, 0.0f, -1.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(1.0f, 1.0f));
+			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y - halfExtents.y, offset.z - halfExtents.z), Vector3(0.0f, 0.0f, -1.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(1.0f, 0.0f));
 
-			m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y + halfExtents.y, offset.z - halfExtents.z), Vector3(0.0f, 0.0f, -1.0f), TexCoord(0.0f, 1.0f));
-			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y - halfExtents.y, offset.z - halfExtents.z), Vector3(0.0f, 0.0f, -1.0f), TexCoord(1.0f, 0.0f));
-			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y + halfExtents.y, offset.z - halfExtents.z), Vector3(0.0f, 0.0f, -1.0f), TexCoord(0.0f, 0.0f));
+			m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y + halfExtents.y, offset.z - halfExtents.z), Vector3(0.0f, 0.0f, -1.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(0.0f, 1.0f));
+			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y - halfExtents.y, offset.z - halfExtents.z), Vector3(0.0f, 0.0f, -1.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(1.0f, 0.0f));
+			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y + halfExtents.y, offset.z - halfExtents.z), Vector3(0.0f, 0.0f, -1.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(0.0f, 0.0f));
 
 			//Back
-			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y + halfExtents.y, offset.z + halfExtents.z), Vector3(0.0f, 0.0f, 1.0f), TexCoord(0.0f, 1.0f));
-			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y - halfExtents.y, offset.z + halfExtents.z), Vector3(0.0f, 0.0f, 1.0f), TexCoord(1.0f, 1.0f));
-			m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y - halfExtents.y, offset.z + halfExtents.z), Vector3(0.0f, 0.0f, 1.0f), TexCoord(1.0f, 0.0f));
+			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y + halfExtents.y, offset.z + halfExtents.z), Vector3(0.0f, 0.0f, 1.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(0.0f, 1.0f));
+			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y - halfExtents.y, offset.z + halfExtents.z), Vector3(0.0f, 0.0f, 1.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(1.0f, 1.0f));
+			m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y - halfExtents.y, offset.z + halfExtents.z), Vector3(0.0f, 0.0f, 1.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(1.0f, 0.0f));
 
-			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y + halfExtents.y, offset.z + halfExtents.z), Vector3(0.0f, 0.0f, 1.0f), TexCoord(0.0f, 1.0f));
-			m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y - halfExtents.y, offset.z + halfExtents.z), Vector3(0.0f, 0.0f, 1.0f), TexCoord(1.0f, 0.0f));
-			m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y + halfExtents.y, offset.z + halfExtents.z), Vector3(0.0f, 0.0f, 1.0f), TexCoord(0.0f, 0.0f));
+			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y + halfExtents.y, offset.z + halfExtents.z), Vector3(0.0f, 0.0f, 1.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(0.0f, 1.0f));
+			m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y - halfExtents.y, offset.z + halfExtents.z), Vector3(0.0f, 0.0f, 1.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(1.0f, 0.0f));
+			m_vertexBuffer.AddVertex(Vector3(offset.x + halfExtents.x, offset.y + halfExtents.y, offset.z + halfExtents.z), Vector3(0.0f, 0.0f, 1.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(0.0f, 0.0f));
 
 			for(int i = 0; i < 36; i += 3)
 			{
@@ -260,7 +260,7 @@ namespace ion
 					float x0 = r0 * maths::Sin(seg * deltaSegAngle);
 					float z0 = r0 * maths::Cos(seg * deltaSegAngle);
 
-					m_vertexBuffer.AddVertex(Vector3(x0, y0, z0), Vector3(x0, y0, z0).Normalise(), TexCoord((float)seg / (float)segments, (float)ring / (float)rings));
+					m_vertexBuffer.AddVertex(Vector3(x0, y0, z0), Vector3(x0, y0, z0).Normalise(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord((float)seg / (float)segments, (float)ring / (float)rings));
 
 					if(ring != rings)
 					{
@@ -285,8 +285,8 @@ namespace ion
 				float x = maths::Cos(a) * radius;
 				float z = maths::Sin(a) * radius;
 
-				m_vertexBuffer.AddVertex(Vector3(x, -halfHeight, z) + offset, Vector3(x, z, 0.0f).Normalise(), TexCoord(i%2==0 ? 0.0f : 1.0f, 1.0f));
-				m_vertexBuffer.AddVertex(Vector3(x,  halfHeight, z) + offset, Vector3(x, z, 0.0f).Normalise(), TexCoord(i%2==0 ? 0.0f : 1.0f, 0.0f));
+				m_vertexBuffer.AddVertex(Vector3(x, -halfHeight, z) + offset, Vector3(x, z, 0.0f).Normalise(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(i % 2 == 0 ? 0.0f : 1.0f, 1.0f));
+				m_vertexBuffer.AddVertex(Vector3(x, halfHeight, z) + offset, Vector3(x, z, 0.0f).Normalise(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(i % 2 == 0 ? 0.0f : 1.0f, 0.0f));
 				a += step;
 
 				m_indexBuffer.Add(i,   i+1, i+2);
@@ -294,8 +294,8 @@ namespace ion
 			}
 
 			//Caps
-			m_vertexBuffer.AddVertex(Vector3(0.0f, 0.0f, -halfHeight), Vector3(0.0f, -1.0f, 0.0f).Normalise(), TexCoord(0.5f, 0.5f));
-			m_vertexBuffer.AddVertex(Vector3(0.0f, 0.0f,  halfHeight), Vector3(0.0f,  1.0f, 0.0f).Normalise(), TexCoord(0.5f, 0.5f));
+			m_vertexBuffer.AddVertex(Vector3(0.0f, 0.0f, -halfHeight), Vector3(0.0f, -1.0f, 0.0f).Normalise(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(0.5f, 0.5f));
+			m_vertexBuffer.AddVertex(Vector3(0.0f, 0.0f, halfHeight), Vector3(0.0f, 1.0f, 0.0f).Normalise(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(0.5f, 0.5f));
 
 			for(int i = 0; i < steps; i++)
 			{

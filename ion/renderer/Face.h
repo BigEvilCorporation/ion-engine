@@ -15,7 +15,7 @@
 #pragma once
 
 #include "maths/Vector.h"
-#include "renderer/colour.h"
+#include "renderer/Colour.h"
 #include "renderer/Vertex.h"
 #include "renderer/TexCoord.h"
 
@@ -36,7 +36,8 @@ namespace ion
 
 			Face(const Vertex& vertexA, const Vertex& vertexB, const Vertex& vertexC,
 				const Vector3& normalA, const Vector3& normalB, const Vector3& normalC,
-				const TexCoord& texCoordA, const TexCoord& texCoordB, const TexCoord& texCoordC)
+				const TexCoord& texCoordA, const TexCoord& texCoordB, const TexCoord& texCoordC,
+				const Colour& colourA, const Colour& colourB, const Colour& colourC)
 			{
 				m_vertices[0] = vertexA;
 				m_vertices[1] = vertexB;
@@ -47,11 +48,15 @@ namespace ion
 				m_texCoords[0] = texCoordA;
 				m_texCoords[1] = texCoordB;
 				m_texCoords[2] = texCoordC;
+				m_colours[0] = colourA;
+				m_colours[1] = colourB;
+				m_colours[2] = colourC;
 			}
 
 			Vertex	m_vertices[3];
 			Vector3 m_normals[3];
 			TexCoord m_texCoords[3];
+			Colour m_colours[3];
 			Vector3 m_faceNormal;
 		};
 	}

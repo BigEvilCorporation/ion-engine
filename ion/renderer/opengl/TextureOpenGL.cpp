@@ -34,6 +34,11 @@ namespace ion
 			return new TextureOpenGL();
 		}
 
+		Texture* Texture::Create(u32 width, u32 height)
+		{
+			return new TextureOpenGL(width, height);
+		}
+
 		Texture* Texture::Create(u32 width, u32 height, Format sourceFormat, Format destFormat, BitsPerPixel bitsPerPixel, bool generateMipmaps, const u8* data)
 		{
 			return new TextureOpenGL(width, height, sourceFormat, destFormat, bitsPerPixel, generateMipmaps, data);
@@ -48,12 +53,31 @@ namespace ion
 		{
 			m_glTextureId = 0;
 			m_bitsPerPixel = eBPP8;
+
+			//Generate texture
+			glGenTextures(1, &m_glTextureId);
 		}
 
-		TextureOpenGL::TextureOpenGL(u32 width, u32 height, Format sourceFormat, Format destFormat, BitsPerPixel bitsPerPixel, bool generateMipmaps, const u8* data)
+		TextureOpenGL::TextureOpenGL(u32 width, u32 height)
+			: Texture(width, height)
 		{
 			m_glTextureId = 0;
 			m_bitsPerPixel = eBPP8;
+
+			//Generate texture
+			glGenTextures(1, &m_glTextureId);
+		}
+
+		TextureOpenGL::TextureOpenGL(u32 width, u32 height, Format sourceFormat, Format destFormat, BitsPerPixel bitsPerPixel,  bool generateMipmaps, const u8* data)
+			: TextureOpenGL(width, height)
+		{
+			m_glTextureId = 0;
+			m_bitsPerPixel = eBPP8;
+
+			//Generate texture
+			glGenTextures(1, &m_glTextureId);
+
+			//Load from data
 			Load(width, height, sourceFormat, destFormat, bitsPerPixel, generateMipmaps, data);
 		}
 
@@ -105,19 +129,19 @@ namespace ion
 
 		bool TextureOpenGL::Load(u32 width, u32 height, Format sourceFormat, Format destFormat, BitsPerPixel bitsPerPixel, bool generateMipmaps, const u8* data)
 		{
-			//Destroy existing texture
-			if(m_glTextureId)
-			{
-				Unload();
-			}
+			debug::Assert(data != NULL, "TextureOpenGL::Load() - NULL texture data");
 
-			//Generate texture
-			glGenTextures(1, &m_glTextureId);
+			if(!m_glTextureId)
+			{
+				//Generate texture
+				glGenTextures(1, &m_glTextureId);
+			}
 
 			debug::Assert(m_glTextureId != 0, "Could not create OpenGL texture");
 
 			//Get GL format
-			m_glFormat = GetOpenGLMode(destFormat, bitsPerPixel);
+			int glByteFormat = 0;
+			GetOpenGLMode(destFormat, bitsPerPixel, m_glFormat, glByteFormat);
 			m_bitsPerPixel = bitsPerPixel;
 
 			//Bind the texture
@@ -125,7 +149,10 @@ namespace ion
 
 			//Generate mipmaps
 #if defined ION_RENDERER_KGL && defined ION_RENDER_SUPPORTS_GLUT
-			gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGB, width, height, m_glFormat, 0, data);
+			if(generateMipmaps)
+			{
+				gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGB, width, height, m_glFormat, 0, data);
+			}
 #else
 			glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, generateMipmaps ? GL_TRUE : GL_FALSE);
 #endif
@@ -141,30 +168,23 @@ namespace ion
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, generateMipmaps ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
 #endif
 
-			bool blankTexture = (data == NULL);
-
-			if(blankTexture)
+			//Copy all pixels in surface to GL texture
+			if(width == m_width && height == m_height)
 			{
-				data = new u8[width * height * 4];
-				ion::memory::MemSet((void*)data, 0xFF, width * height * 4);
+				glTexImage2D(GL_TEXTURE_2D, 0, m_glFormat, width, height, 0, m_glFormat, glByteFormat, data);
 			}
-			
-			//Copy all pixels in SDL surface to GL texture
-			glTexImage2D(GL_TEXTURE_2D, 0, m_glFormat, width, height, 0, m_glFormat, GL_UNSIGNED_BYTE, data);
-
-			if(blankTexture)
+#if !defined ION_RENDERER_KGL
+			else
 			{
-				delete data;
+				glTexImage2D(GL_TEXTURE_2D, 0, m_glFormat, m_width, m_height, 0, m_glFormat, glByteFormat, NULL);
+				glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, m_glFormat, glByteFormat, data);
 			}
+#endif
 
 			//Unbind texture
 			glBindTexture(GL_TEXTURE_2D, 0);
 
 			RendererOpenGL::CheckGLError();
-
-			//Set dimensions
-			m_width = width;
-			m_height = height;
 
 			return m_glTextureId != 0;
 		}
@@ -175,8 +195,6 @@ namespace ion
 			{
 				glDeleteTextures(1, &m_glTextureId);
 				m_glTextureId = 0;
-				m_width = 0;
-				m_height = 0;
 			}
 		}
 
@@ -206,9 +224,11 @@ namespace ion
 		void TextureOpenGL::SetPixels(Format sourceFormat, u8* data)
 		{
 #if !defined ION_RENDERER_KGL
-			GLint glFormat = GetOpenGLMode(sourceFormat, m_bitsPerPixel);
+			GLint glMode;
+			GLint glByteFormat;
+			GetOpenGLMode(sourceFormat, m_bitsPerPixel, glMode, glByteFormat);
 			glBindTexture(GL_TEXTURE_2D, m_glTextureId);
-			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_width, m_height, glFormat, GL_UNSIGNED_BYTE, data);
+			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_width, m_height, glMode, glByteFormat, data);
 			glBindTexture(GL_TEXTURE_2D, 0);
 
 			RendererOpenGL::CheckGLError();
@@ -224,8 +244,12 @@ namespace ion
 			u8* dest = data;
 			u32 lineSize = size.x * bytesPerPixel;
 
+			GLint glMode;
+			GLint glByteFormat;
+			GetOpenGLMode(format, m_bitsPerPixel, glMode, glByteFormat);
+
 			glBindTexture(GL_TEXTURE_2D, m_glTextureId);
-			glGetTexImage(GL_TEXTURE_2D, 0, GetOpenGLMode(format, bitsPerPixel), GL_UNSIGNED_BYTE, buffer);
+			glGetTexImage(GL_TEXTURE_2D, 0, glMode, glByteFormat, buffer);
 			glBindTexture(GL_TEXTURE_2D, 0);
 
 			RendererOpenGL::CheckGLError();
@@ -323,47 +347,81 @@ namespace ion
 			RendererOpenGL::CheckGLError();
 		}
 
-		int TextureOpenGL::GetOpenGLMode(Format format, BitsPerPixel bitsPerPixel)
+		void TextureOpenGL::GetOpenGLMode(Format format, BitsPerPixel bitsPerPixel, int& mode, int& byteFormat)
 		{
 			switch(bitsPerPixel)
 			{
-#if !defined ION_RENDERER_KGL
 			case eBPP8:
 				switch(format)
 				{
-				case eRGB: return GL_RGB8;
-				case eRGBA: return GL_RGBA8;
-				default: break;
+#if !defined ION_RENDERER_KGL
+				case eRGB:
+					mode = GL_RGB8;
+					byteFormat = GL_UNSIGNED_BYTE;
+					break;
+				case eRGBA:
+					mode = GL_RGBA8;
+					byteFormat = GL_UNSIGNED_BYTE;
+					break;
+#endif
+				default:
+					break;
 				}
 				break;
 			case eBPP16:
 				switch(format)
 				{
-				case eRGB: return GL_RGB16;
-				case eRGBA: return GL_RGBA16;
-				default: break;
+				case eRGB:
+					mode = GL_RGB;
+					byteFormat = GL_UNSIGNED_SHORT_4_4_4_4;
+					break;
+				case eRGBA:
+					mode = GL_RGBA;
+					byteFormat = GL_UNSIGNED_SHORT_4_4_4_4;
+					break;
+				default:
+					break;
 				}
 				break;
-#endif
 			case eBPP24:
 				switch(format)
 				{
-				case eRGB: return GL_RGB;
-				case eRGBA: return GL_RGBA;
+				case eRGB:
+					mode = GL_RGB;
+					byteFormat = GL_UNSIGNED_BYTE;
+					break;
+				case eRGBA:
+					mode = GL_RGBA;
+					byteFormat = GL_UNSIGNED_BYTE;
+					break;
 #if !defined ION_RENDERER_KGL
-				case eBGRA: return GL_BGRA;
-				case eRGBA_DXT5: return GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+				case eBGRA:
+					mode = GL_BGRA;
+					byteFormat = GL_UNSIGNED_BYTE;
+					break;
+				case eRGBA_DXT5:
+					mode = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+					byteFormat = GL_UNSIGNED_BYTE;
+					break;
 #endif
-				default: break;
+				default:
+					break;
 				}
 				break;
 #if !defined ION_RENDERER_KGL
 			case eBPP32:
 				switch(format)
 				{
-				case eRGB: return GL_RGB32I;
-				case eRGBA: return GL_RGBA32I;
-				default: break;
+				case eRGB:
+					mode = GL_RGB32I;
+					byteFormat = GL_UNSIGNED_BYTE;
+					break;
+				case eRGBA:
+					mode = GL_RGBA32I;
+					byteFormat = GL_UNSIGNED_BYTE;
+					break;
+				default:
+					break;
 				}
 				break;
 #endif
@@ -371,8 +429,6 @@ namespace ion
 				ion::debug::Error("Unsupported texture data format");
 				break;
 			}
-
-			return 0;
 		}
 	}
 }

@@ -40,6 +40,7 @@ namespace ion
 		{
 		public:
 			TextureOpenGL();
+			TextureOpenGL(u32 width, u32 height);
 			TextureOpenGL(u32 width, u32 height, Format sourceFormat, Format destFormat, BitsPerPixel bitsPerPixel, bool generateMipmaps, const u8* data);
 			virtual ~TextureOpenGL();
 
@@ -57,7 +58,7 @@ namespace ion
 		protected:
 			virtual bool Load();
 			virtual void Unload();
-			static int GetOpenGLMode(Format format, BitsPerPixel bitsPerPixel);
+			static void GetOpenGLMode(Format format, BitsPerPixel bitsPerPixel, int& mode, int& byteFormat);
 
 			GLuint m_glTextureId;
 			int m_glFormat;

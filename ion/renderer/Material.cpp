@@ -17,6 +17,11 @@
 
 #include <algorithm>
 
+//TODO: Renderer::BindMaterial()
+#if defined ION_RENDERER_FIXED
+#include <ion/renderer/opengl/TextureOpenGL.h>
+#endif
+
 namespace ion
 {
 	namespace render
@@ -48,8 +53,17 @@ namespace ion
 			{
 				m_pixelShader->Bind();
 			}
-#elif ION_RENDERER_FIXED
+#elif defined ION_RENDERER_FIXED
 			//TODO: Fixed function material params
+			if(m_diffuseMaps.size() > 0)
+			{
+				glEnable(GL_TEXTURE_2D);
+				glBindTexture(GL_TEXTURE_2D, ((TextureOpenGL*)m_diffuseMaps[0])->GetTextureId());
+			}
+
+			glMaterialfv(GL_FRONT, GL_AMBIENT, (float*)&m_ambientColour.r);
+			glMaterialfv(GL_FRONT, GL_DIFFUSE, (float*)&m_diffuseColour.r);
+			glMaterialfv(GL_FRONT, GL_SPECULAR, (float*)&m_specularColour.r);
 #endif
 		}
 
@@ -65,6 +79,9 @@ namespace ion
 			{
 				m_pixelShader->Unbind();
 			}
+#elif defined ION_RENDERER_FIXED
+			glBindTexture(GL_TEXTURE_2D, 0);
+			glDisable(GL_TEXTURE_2D);
 #endif
 		}
 

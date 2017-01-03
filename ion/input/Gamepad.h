@@ -10,9 +10,11 @@
 #include "core/memory/Memory.h"
 #include "maths/Vector.h"
 
+#if defined ION_PLATFORM_WINDOWS
 //TODO: Windows headers in platform header
 #include <windows.h>
 #include <XInput.h>
+#endif
 
 namespace ion
 {
@@ -72,9 +74,12 @@ namespace ion
 
 			int mControllerIndex;
 			bool mConnected;
-			XINPUT_STATE mInputState;
 			float mDeadZone;
 			float mOuterZone;
+
+#if defined ION_PLATFORM_WINDOWS
+			XINPUT_STATE mInputState;
+#endif
 
 			static const int sInvalidIndex = -1;
 			static const int sMaxControllers = 4;

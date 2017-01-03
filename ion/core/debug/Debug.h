@@ -23,5 +23,7 @@ namespace ion
 		void Error(const char* message);
 		void Assert(bool condition, const char* message);
 		void Break();
+
+		void PrintMemoryUsage();
 	}
 }

@@ -12,8 +12,12 @@ local SRC =
 
 ApplyIonDefines input ;
 ApplyIonIncludes input ;
-ApplyWin32SDK input ;
-ApplyXInputSDK input ;
+
+if ( win32 in $PLATFORM) )
+{
+	ApplyWin32SDK input ;
+	ApplyXInputSDK input ;
+}
 
 AutoSourceGroup input : $(SRC) ;
 C.RuntimeType input : static ;

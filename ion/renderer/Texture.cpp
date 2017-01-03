@@ -24,6 +24,12 @@ namespace ion
 			m_height = 0;
 		}
 
+		Texture::Texture(u32 width, u32 height)
+			: m_width(width)
+			, m_height(height)
+		{
+		}
+
 		Texture::Texture(u32 width, u32 height, Format sourceFormat, Format destFormat, BitsPerPixel bitsPerPixel, bool generateMipmaps, const u8* data)
 		{
 			Load(width, height, sourceFormat, destFormat, bitsPerPixel, generateMipmaps, data);

@@ -17,9 +17,9 @@
 #include "core/debug/Debug.h"
 #include "io/File.h"
 #include "io/Archive.h"
-#include "renderer/opengl/ShaderCgGL.h"
 #include "renderer/opengl/TextureOpenGL.h"
 #include "renderer/opengl/RendererOpenGL.h"
+#include "renderer/cggl/ShaderCgGL.h"
 
 namespace ion
 {

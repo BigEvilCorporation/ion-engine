@@ -21,7 +21,7 @@
 #include "renderer/opengl/RendererOpenGL.h"
 
 #if defined ION_RENDER_SUPPORTS_CGGL
-#include "renderer/opengl/ShaderCgGL.h"
+#include "renderer/cggl/ShaderCgGL.h"
 #endif
 
 #if defined ION_PLATFORM_WINDOWS
@@ -109,8 +109,14 @@ namespace ion
 #endif
 
 #if defined ION_RENDERER_KGL
+			ion::debug::Log("\n\nINIT KOS\n\n");
+			ion::debug::PrintMemoryUsage();
+
 			//Init KOS GL
 			glKosInit();
+
+			ion::debug::Log("\n\nFINISHED INIT KOS\n\n");
+			ion::debug::PrintMemoryUsage();
 #endif
 
 			//Background colour
@@ -182,7 +188,7 @@ namespace ion
 			{
 			case Viewport::ePerspective3D:
 				//TODO: Expose FOV and near/far
-				gluPerspective(45.0f, aspectRatio, 0.1f, 10000.0f);
+				gluPerspective(45.0f, aspectRatio, 0.1f, 1000.0f);
 				break;
 
 			case Viewport::eOrtho2DNormalised:
@@ -199,6 +205,14 @@ namespace ion
 
 			//Reset the modelview matrix
 			glLoadIdentity();
+
+			//Setup default lighting
+			float ambient[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+			float diffuse[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+			glLightfv(GL_LIGHT0, GL_AMBIENT, ambient);
+			glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse);
+			glEnable(GL_LIGHT0);
+			glEnable(GL_LIGHTING);
 
 			//Set clear colour
 			SetClearColour(viewport.GetClearColour());
@@ -256,19 +270,16 @@ namespace ion
 
 		bool RendererOpenGL::CheckGLError()
 		{
-#if defined ION_PLATFORM_DREAMCAST
-			//TODO
-			return true;
-#else
 			GLenum error = glGetError();
 
 			if(error != GL_NO_ERROR)
 			{
-				debug::Error("OpenGL error");
+				const char* errString = (const char*)gluErrorString(error);
+				debug::Log("OpenGL error");
+				debug::Error(errString);
 			}
 
 			return error == GL_NO_ERROR;
-#endif
 		}
 
 		bool RendererOpenGL::Update(float deltaTime)
@@ -429,11 +440,13 @@ namespace ion
 			glEnableClientState(GL_VERTEX_ARRAY);
 			glEnableClientState(GL_NORMAL_ARRAY);
 			glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+			glEnableClientState(GL_COLOR_ARRAY);
 
 			//Set element pointers
 			glVertexPointer(vertexBuffer.GetVertexSize(), GL_FLOAT, vertexBuffer.GetStrideBytes(), vertexBuffer.GetVertexBuffer());
 			glNormalPointer(GL_FLOAT, vertexBuffer.GetStrideBytes(), vertexBuffer.GetNormalBuffer());
 			glTexCoordPointer(vertexBuffer.GetTexCoordSize(), GL_FLOAT, vertexBuffer.GetStrideBytes(), vertexBuffer.GetTexCoordBuffer());
+			glColorPointer(vertexBuffer.GetColourSize(), GL_FLOAT, vertexBuffer.GetStrideBytes(), vertexBuffer.GetColourBuffer());
 
 			//Determine pattern type
 			int drawPattern = 0;
@@ -468,6 +481,7 @@ namespace ion
 			glDisableClientState(GL_VERTEX_ARRAY);
 			glDisableClientState(GL_NORMAL_ARRAY);
 			glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+			glDisableClientState(GL_COLOR_ARRAY);
 
 			if(!CheckGLError())
 			{
@@ -483,11 +497,13 @@ namespace ion
 			glEnableClientState(GL_VERTEX_ARRAY);
 			glEnableClientState(GL_NORMAL_ARRAY);
 			glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+			glEnableClientState(GL_COLOR_ARRAY);
 
 			//Set element pointers
 			glVertexPointer(vertexBuffer.GetVertexSize(), GL_FLOAT, vertexBuffer.GetStrideBytes(), vertexBuffer.GetVertexBuffer());
 			glNormalPointer(GL_FLOAT, vertexBuffer.GetStrideBytes(), vertexBuffer.GetNormalBuffer());
 			glTexCoordPointer(vertexBuffer.GetTexCoordSize(), GL_FLOAT, vertexBuffer.GetStrideBytes(), vertexBuffer.GetTexCoordBuffer());
+			glColorPointer(vertexBuffer.GetColourSize(), GL_FLOAT, vertexBuffer.GetStrideBytes(), vertexBuffer.GetColourBuffer());
 
 			//Determine pattern type
 			int drawPattern = 0;
@@ -514,6 +530,7 @@ namespace ion
 			glDisableClientState(GL_VERTEX_ARRAY);
 			glDisableClientState(GL_NORMAL_ARRAY);
 			glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+			glDisableClientState(GL_COLOR_ARRAY);
 
 			CheckGLError();
 		}

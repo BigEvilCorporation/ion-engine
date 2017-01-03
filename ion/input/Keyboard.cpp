@@ -9,12 +9,15 @@
 #include "core/memory/Memory.h"
 #include "core/debug/Debug.h"
 
+#include <algorithm>
+
 namespace ion
 {
 	namespace input
 	{
 		Keyboard::Keyboard()
 		{
+#if defined ION_PLATFORM_WINDOWS
 			mKeyboardDevice = NULL;
 
 			if(!g_DirectInputInterface)
@@ -46,15 +49,18 @@ namespace ion
 				mCurrKeyStates[i] = false;
 				mPrevKeyStates[i] = false;
 			}
+#endif
 		}
 
 		Keyboard::~Keyboard()
 		{
+#if defined ION_PLATFORM_WINDOWS
 			if(mKeyboardDevice)
 			{
 				mKeyboardDevice->Unacquire();
 				mKeyboardDevice->Release();
 			}
+#endif
 		}
 
 		void Keyboard::RegisterHandler(KeyboardHandler& handler)
@@ -84,6 +90,7 @@ namespace ion
 			//Store prev key states
 			memory::MemCopy(mPrevKeyStates, mCurrKeyStates, sizeof(mCurrKeyStates));
 
+#if defined ION_PLATFORM_WINDOWS
 			if(mKeyboardDevice)
 			{
 				//Read key states
@@ -118,10 +125,12 @@ namespace ion
 					}
 				}
 			}
+#endif
 		}
 
 		void Keyboard::SetCooperativeWindow(CoopLevel coopLevel)
 		{
+#if defined ION_PLATFORM_WINDOWS
 			int windowsCoopLevel = 0;
 
 			switch(coopLevel)
@@ -140,6 +149,7 @@ namespace ion
 			}
 
 			mKeyboardDevice->SetCooperativeLevel(GetActiveWindow(), windowsCoopLevel);
+#endif
 		}
 	}
 }

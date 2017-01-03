@@ -18,6 +18,8 @@ namespace ion
 			mAbsX = 0;
 			mAbsY = 0;
 			mWheelAbs = 0;
+
+#if defined ION_PLATFORM_WINDOWS
 			mMouseDevice = NULL;
 			memory::MemSet(&mMouseState, 0, sizeof(DIMOUSESTATE));
 
@@ -44,19 +46,23 @@ namespace ion
 				mMouseDevice->SetDataFormat(&c_dfDIMouse2);
 				mMouseDevice->Acquire();
 			}
+#endif
 		}
 
 		Mouse::~Mouse()
 		{
+#if defined ION_PLATFORM_WINDOWS
 			if(mMouseDevice)
 			{
 				mMouseDevice->Unacquire();
 				mMouseDevice->Release();
 			}
+#endif
 		}
 
 		void Mouse::Update()
 		{
+#if defined ION_PLATFORM_WINDOWS
 			if(mMouseDevice)
 			{
 				//Get mouse state
@@ -80,21 +86,34 @@ namespace ion
 					}
 				}
 			}
+#endif
 		}
 
 		bool Mouse::ButtonDown(Buttons button)
 		{
+#if defined ION_PLATFORM_DREAMCAST
+			return false;
+#else
 			return (mMouseState.rgbButtons[button] & 0x80) != 0;
+#endif
 		}
 
 		s32 Mouse::GetDeltaX()
 		{
+#if defined ION_PLATFORM_DREAMCAST
+			return 0;
+#else
 			return mMouseState.lX;
+#endif
 		}
 
 		s32 Mouse::GetDeltaY()
 		{
+#if defined ION_PLATFORM_DREAMCAST
+			return 0;
+#else
 			return mMouseState.lY;
+#endif
 		}
 
 		s32 Mouse::GetAbsoluteX()
@@ -109,7 +128,11 @@ namespace ion
 
 		s32 Mouse::GetWheelDelta()
 		{
+#if defined ION_PLATFORM_DREAMCAST
+			return 0;
+#else
 			return mMouseState.lZ;
+#endif
 		}
 
 		s32 Mouse::GetWheelAbsolute()
@@ -119,11 +142,14 @@ namespace ion
 
 		void Mouse::ShowCursor(bool enabled)
 		{
+#if defined ION_PLATFORM_WINDOWS
 			::ShowCursor(enabled);
+#endif
 		}
 
 		void Mouse::SetCooperativeWindow(CoopLevel coopLevel)
 		{
+#if defined ION_PLATFORM_WINDOWS
 			int windowsCoopLevel = 0;
 
 			switch(coopLevel)
@@ -144,6 +170,7 @@ namespace ion
 			mMouseDevice->Unacquire();
 			mMouseDevice->SetCooperativeLevel(GetActiveWindow(), windowsCoopLevel);
 			mMouseDevice->Acquire();
+#endif
 		}
 	}
 }

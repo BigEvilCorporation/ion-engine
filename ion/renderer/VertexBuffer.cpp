@@ -31,10 +31,10 @@ namespace ion
 
 		int VertexBuffer::GetStrideBytes() const
 		{
-			return (s_positionSize + s_normalSize + s_texCoordSize) * sizeof(float);
+			return (s_positionSize + s_normalSize + s_texCoordSize + s_colourSize) * sizeof(float);
 		}
 
-		void VertexBuffer::AddVertex(const Vector3& position, const Vector3& normal, const TexCoord& texCoord)
+		void VertexBuffer::AddVertex(const Vector3& position, const Vector3& normal, const Colour& colour, const TexCoord& texCoord)
 		{
 			m_buffer.push_back(position.x);
 			m_buffer.push_back(position.y);
@@ -47,6 +47,10 @@ namespace ion
 			m_buffer.push_back(texCoord.x);
 			m_buffer.push_back(texCoord.y);
 
+			m_buffer.push_back(colour.r);
+			m_buffer.push_back(colour.g);
+			m_buffer.push_back(colour.b);
+
 			m_numVertices++;
 		}
 
@@ -54,7 +58,7 @@ namespace ion
 		{
 			for(int i = 0; i < 3; i++)
 			{
-				AddVertex(face.m_vertices[i], face.m_normals[i], face.m_texCoords[i]);
+				AddVertex(face.m_vertices[i], face.m_normals[i], face.m_colours[i], face.m_texCoords[i]);
 			}
 		}
 
@@ -65,7 +69,7 @@ namespace ion
 			m_numVertices = size;
 		}
 
-		void VertexBuffer::SetVertex(int vertexIdx, const Vector3& position, const Vector3& normal, const TexCoord& texCoord)
+		void VertexBuffer::SetVertex(int vertexIdx, const Vector3& position, const Vector3& normal, const Colour& colour, const TexCoord& texCoord)
 		{
 			debug::Assert(vertexIdx >= 0 && vertexIdx < m_numVertices, "Bad vertex id");
 
@@ -82,6 +86,10 @@ namespace ion
 
 			m_buffer[floatIdx+6] = (texCoord.x);
 			m_buffer[floatIdx+7] = (texCoord.y);
+
+			m_buffer[floatIdx+8] = (colour.r);
+			m_buffer[floatIdx+9] = (colour.g);
+			m_buffer[floatIdx+10] = (colour.b);
 		}
 
 		Vertex VertexBuffer::GetVertex(int index) const
@@ -127,6 +135,11 @@ namespace ion
 		const float* VertexBuffer::GetTexCoordBuffer() const
 		{
 			return &m_buffer[0] + s_positionSize + s_normalSize;
+		}
+
+		const float* VertexBuffer::GetColourBuffer() const
+		{
+			return &m_buffer[0] + s_positionSize + s_normalSize + s_texCoordSize;
 		}
 
 		bool VertexBuffer::Lock()

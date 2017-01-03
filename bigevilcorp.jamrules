@@ -10,7 +10,15 @@ rule ApplyIonIncludes TARGET
 
 rule ApplyIonDefines TARGET
 {
-	C.Defines $(TARGET) : ION_PLATFORM_WINDOWS ;
+	if ( win32 in $(PLATFORM) )
+	{
+		C.Defines $(TARGET) : ION_PLATFORM_WINDOWS ;
+	}
+
+	if ( dreamcast in $(PLATFORM) )
+	{
+		C.Defines $(TARGET) : ION_PLATFORM_DREAMCAST ION_TOOLCHAIN_GCCDC ;
+	}
 }
 
 rule ApplyIonLib TARGET : LIBNAME
@@ -26,7 +34,15 @@ rule ApplyIonCore TARGET
 	ApplyIonLib $(TARGET) : maths ;
 	ApplyIonLib $(TARGET) : io ;
 
-	ApplyWin32SDK $(TARGET) ;
+	if ( win32 in $(PLATFORM) )
+	{
+		ApplyWin32SDK $(TARGET) ;
+	}
+
+	if ( dreamcast in $(PLATFORM) )
+	{
+		ApplyKOSSDK $(TARGET) ;
+	}
 }
 
 rule ApplyIonEditor TARGET
@@ -56,8 +72,11 @@ rule ApplyIonInput TARGET
 {
 	ApplyIonLib $(TARGET) : input ;
 
-	ApplyWin32SDK $(TARGET) ;
-	ApplyXInputSDK $(TARGET) ;
+	if ( win32 in $(PLATFORM) )
+	{
+		ApplyWin32SDK $(TARGET) ;
+		ApplyXInputSDK $(TARGET) ;
+	}
 }
 
 rule ApplyIonIo TARGET
@@ -67,12 +86,24 @@ rule ApplyIonIo TARGET
 	ApplyTinyXMLSDK $(TARGET) ;
 }
 
-rule ApplyIonRenderer TARGET : RENDER_IMPL
+rule ApplyIonRenderer TARGET
 {
 	ApplyIonLib $(TARGET) : renderer ;
 
-	ApplyWin32SDK $(TARGET) ;
+	if ( win32 in $(PLATFORM) )
+	{
+		# ApplyRendererImpl $(TARGET) : opengl sdl cggl ;
+		ApplyRendererImpl $(TARGET) : opengl sdl ;
+	}
 
+	if ( dreamcast in $(PLATFORM) )
+	{
+		ApplyRendererImpl $(TARGET) : opengl sdl glut ;
+	}
+}
+
+rule ApplyRendererImpl TARGET : RENDER_IMPL
+{
 	if ( ogre3d in $(RENDER_IMPL) )
 	{
 		ApplyIonRendererOgre $(TARGET) ;
@@ -86,6 +117,34 @@ rule ApplyIonRenderer TARGET : RENDER_IMPL
 	if ( opengl in $(RENDER_IMPL) )
 	{
 		ApplyIonRendererOpenGL $(TARGET) ;
+
+		if ( cggl in $(RENDER_IMPL) )
+		{
+			ApplyIonRendererCGGL $(TARGET) ;
+
+			ApplyCgSDK $(TARGET) ;
+			ApplyGlewSDK $(TARGET) ;
+			ApplyGlfwSDK $(TARGET) ;
+		}
+		else
+		{
+			ApplyIonRendererFixed $(TARGET) ;
+		}
+
+		if ( glut in $(RENDER_IMPL) )
+		{
+			ApplyGlutSDK $(TARGET) ;
+		}
+	}
+
+	if ( sdl in $(RENDER_IMPL) )
+	{
+		ApplySDLSDK $(TARGET) ;
+
+		if ( sdlimage in $(RENDER_IMPL) )
+		{
+			ApplySDLImageSDK $(TARGET) ;
+		}
 	}
 }
 
@@ -134,12 +193,25 @@ rule ApplyIonRendererOpenGL TARGET
 
 	ApplyIonIncludes $(TARGET) ;
 	ApplyOpenGLSDK $(TARGET) ;
-	ApplySDLSDK $(TARGET) ;
-	ApplyCgSDK $(TARGET) ;
-	ApplyGlewSDK $(TARGET) ;
-	ApplyGlfwSDK $(TARGET) ;
 
 	C.LinkLibraries $(TARGET) : opengl ;
+}
+
+rule ApplyIonRendererCGGL TARGET
+{
+	SubInclude bigevilcorp ion renderer cggl : cggl ;
+
+	C.Defines $(TARGET) : ION_RENDERER_SHADER ;
+
+	ApplyIonIncludes $(TARGET) ;
+	ApplyCgSDK $(TARGET) ;
+
+	C.LinkLibraries $(TARGET) : cggl ;
+}
+
+rule ApplyIonRendererFixed TARGET
+{
+	C.Defines $(TARGET) : ION_RENDERER_FIXED ;
 }
 
 #################################################
@@ -208,15 +280,29 @@ rule ApplyDirectXSDK TARGET
 
 rule ApplyOpenGLSDK TARGET
 {
-	C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/OpenGL/include ;
-	C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/OpenGL/lib ;
+	if ( win32 in $(PLATFORM) )
+	{
+		C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/OpenGL/include ;
+		C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/OpenGL/lib ;
 
-	local OPENGL_LIBS =
-		OpenGL32.lib
-		glu32.lib
-		;
+		local OPENGL_LIBS =
+			OpenGL32.lib
+			glu32.lib
+			;
 
-	C.LinkPrebuiltLibraries $(TARGET) : $(OPENGL_LIBS) ;
+		C.LinkPrebuiltLibraries $(TARGET) : $(OPENGL_LIBS) ;
+	}
+	
+	if ( dreamcast in $(PLATFORM) )
+	{
+		C.Defines $(TARGET) : ION_RENDERER_KGL ;
+
+		local OPENGL_LIBS =
+			libgl.a
+			;
+
+		C.LinkPrebuiltLibraries $(TARGET) : $(OPENGL_LIBS) ;
+	}
 }
 
 rule ApplyOpenALSDK TARGET
@@ -236,6 +322,8 @@ rule ApplyGlewSDK TARGET
 	C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/glew/include ;
 	C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/glew/lib ;
 
+	C.Defines $(TARGET) : ION_RENDER_SUPPORTS_GLEW ;
+
 	local GLEW_LIBS =
 		glew32.lib
 		glew32s.lib
@@ -244,10 +332,17 @@ rule ApplyGlewSDK TARGET
 	C.LinkPrebuiltLibraries $(TARGET) : $(GLEW_LIBS) ;
 }
 
+rule ApplyGlutSDK TARGET
+{
+	C.Defines $(TARGET) : ION_RENDER_SUPPORTS_GLUT ;
+}
+
 rule ApplyGlfwSDK TARGET
 {
 	C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/glfw/include ;
 	C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/glfw/lib ;
+
+	C.Defines $(TARGET) : ION_RENDER_SUPPORTS_GLFW ;
 
 	local GLFW_LIBS =
 		#glfw3.lib
@@ -259,31 +354,66 @@ rule ApplyGlfwSDK TARGET
 
 rule ApplySDLSDK TARGET
 {
-	C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDL/include ;
-	C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDL/include/SDL ;
-	C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDLImage/include ;
-	C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDL/lib ;
+	C.Defines $(TARGET) : ION_RENDER_SUPPORTS_SDL ;
 
-	local SDL_LIBS =
-		SDL2main_d.lib
-		SDL2_d.lib
-		SDL2_image_d.lib
-		;
+	if ( win32 in $(PLATFORM) )
+	{
+		C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDL/include ;
+		C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDL/include/SDL ;
+		C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDL/lib ;
+
+		local SDL_LIBS =
+			SDL2main_d.lib
+			SDL2_d.lib
+			SDL2_image_d.lib
+			;
 
 
-	C.LinkFlags $(TARGET) :
-		/DelayLoad:SDL2.dll
-		/DelayLoad:SDL2main.dll
-		/DelayLoad:SDL2_image.dll
-		;
+		C.LinkFlags $(TARGET) :
+			/DelayLoad:SDL2.dll
+			/DelayLoad:SDL2main.dll
+			;
 
-	C.LinkPrebuiltLibraries $(TARGET) : $(SDL_LIBS) ;
+		C.LinkPrebuiltLibraries $(TARGET) : $(SDL_LIBS) ;
+	}
+
+	if ( dreamcast in $(PLATFORM) )
+	{
+		local SDL_LIBS =
+			libSDL.a
+			;
+
+		C.LinkPrebuiltLibraries $(TARGET) : $(SDL_LIBS) ;
+	}
+}
+
+rule ApplySDLImageSDK TARGET
+{
+	C.Defines $(TARGET) : ION_RENDER_SUPPORTS_SDLIMAGE ;
+
+	if ( win32 in $(PLATFORM) )
+	{
+		C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDLImage/include ;
+
+		local SDL_LIBS =
+			SDL2_image_d.lib
+			;
+
+
+		C.LinkFlags $(TARGET) :
+			/DelayLoad:SDL2_image.dll
+			;
+
+		C.LinkPrebuiltLibraries $(TARGET) : $(SDL_LIBS) ;
+	}
 }
 
 rule ApplyCgSDK TARGET
 {
 	C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/Cg/include ;
 	C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/Cg/lib ;
+
+	C.Defines $(TARGET) : ION_RENDER_SUPPORTS_CGGL ;
 
 	local CG_LIBS =
 		cg.lib
@@ -337,6 +467,30 @@ rule ApplyBulletSDK TARGET
 	if ( release in $(CONFIG) )
 	{
 		C.LinkPrebuiltLibraries $(TARGET) : $(BULLET_LIBS_RELEASE) : release ;
+	}
+}
+
+rule ApplyFreeTypeSDK TARGET
+{
+	C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/freetype/include ;
+	C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/freetype/lib/vc120/Win32 ;
+
+	FT_LIBS_DEBUG =
+		freetype27MT.lib
+		;
+
+	FT_LIBS_RELEASE =
+		freetype27d.lib
+		;
+
+	if ( debug in $(CONFIG) )
+	{
+		C.LinkPrebuiltLibraries $(TARGET) : $(FT_LIBS_DEBUG) ;
+	}
+
+	if ( release in $(CONFIG) )
+	{
+		C.LinkPrebuiltLibraries $(TARGET) : $(FT_LIBS_RELEASE) ;
 	}
 }
 
@@ -433,6 +587,11 @@ rule ApplyWxSDK TARGET
 	{
 		C.LinkPrebuiltLibraries $(TARGET) : $(WX_LIBS_RELEASE) ;
 	}
+}
+
+rule ApplyKOSSDK TARGET
+{
+	C.IncludeDirectories $(TARGET) : C:/msys32/opt/toolchains/dc/kos/include ;
 }
 
 #################################################
