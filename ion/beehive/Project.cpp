@@ -19,10 +19,10 @@
 #include "Project.h"
 #include "BMPReader.h"
 
-#define HEX1(val) std::hex << std::setfill('0') << std::setw(1) << std::uppercase << (int)##val
-#define HEX2(val) std::hex << std::setfill('0') << std::setw(2) << std::uppercase << (int)##val
-#define HEX4(val) std::hex << std::setfill('0') << std::setw(4) << std::uppercase << (int)##val
-#define HEX8(val) std::hex << std::setfill('0') << std::setw(8) << std::uppercase << (int)##val
+#define HEX1(val) std::hex << std::setfill('0') << std::setw(1) << std::uppercase << (int)val
+#define HEX2(val) std::hex << std::setfill('0') << std::setw(2) << std::uppercase << (int)val
+#define HEX4(val) std::hex << std::setfill('0') << std::setw(4) << std::uppercase << (int)val
+#define HEX8(val) std::hex << std::setfill('0') << std::setw(8) << std::uppercase << (int)val
 
 Project::Project(PlatformConfig& defaultPatformConfig)
 	: m_platformConfig(defaultPatformConfig)
@@ -1888,8 +1888,8 @@ bool Project::ImportBitmap(const std::string& filename, u32 importFlags, u32 pal
 		if(importFlags & eBMPImportDrawToMap)
 		{
 			//Grow map if necessary
-			map.Resize(max(mapWidth, tilesWidth), max(mapHeight, tilesHeight), false, false);
-			collisionMap.Resize(max(collisionMap.GetWidth(), tilesWidth), max(collisionMap.GetHeight(), tilesHeight), false, false);
+			map.Resize(ion::maths::Max(mapWidth, tilesWidth), ion::maths::Max(mapHeight, tilesHeight), false, false);
+			collisionMap.Resize(ion::maths::Max(collisionMap.GetWidth(), tilesWidth), ion::maths::Max(collisionMap.GetHeight(), tilesHeight), false, false);
 		}
 
 		if(importFlags & eBMPImportToStamp)

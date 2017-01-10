@@ -29,7 +29,7 @@ typedef ion::render::Keyframe<ion::Vector2i> AnimKeyframeSpritePosition;
 class AnimTrackSpriteFrame : public ion::render::AnimationTrack<u32>
 {
 public:
-	const u32 AnimTrackSpriteFrame::GetValue(float time) const;
+	const u32 GetValue(float time) const;
 	void Export(std::stringstream& stream) const;
 	void Export(ion::io::File& file) const;
 };

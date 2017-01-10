@@ -22,16 +22,16 @@ struct Colour
 	Colour();
 	Colour(u8 red, u8 green, u8 blue);
 
-	inline u8 GetRed() const;
-	inline u8 GetGreen() const;
-	inline u8 GetBlue() const;
+	u8 GetRed() const;
+	u8 GetGreen() const;
+	u8 GetBlue() const;
 
-	inline void SetRed(u8 r);
-	inline void SetGreen(u8 g);
-	inline void SetBlue(u8 b);
+	void SetRed(u8 r);
+	void SetGreen(u8 g);
+	void SetBlue(u8 b);
 
-	inline bool operator == (const Colour& rhs) const;
-	inline bool operator != (const Colour& rhs) const { return !(*this == rhs); }
+	bool operator == (const Colour& rhs) const;
+	bool operator != (const Colour& rhs) const { return !(*this == rhs); }
 
 	u16 ToVDPFormat() const;
 	void Serialise(ion::io::Archive& archive)

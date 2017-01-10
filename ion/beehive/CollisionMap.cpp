@@ -80,9 +80,9 @@ void CollisionMap::Resize(int width, int height, bool shiftRight, bool shiftDown
 	std::fill(terrainTiles.begin(), terrainTiles.end(), InvalidTerrainTileId);
 
 	//Copy tiles
-	for(int x = 0; x < min(width, m_width); x++)
+	for(int x = 0; x < ion::maths::Min(width, m_width); x++)
 	{
-		for(int y = 0; y < min(height, m_height); y++)
+		for(int y = 0; y < ion::maths::Min(height, m_height); y++)
 		{
 			int destTileIdx = (y * width) + x;
 			if(shiftRight && width > m_width)

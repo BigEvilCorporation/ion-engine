@@ -1,8 +1,8 @@
 #include "Actor.h"
 
-#define HEX1(val) std::hex << std::setfill('0') << std::setw(1) << std::uppercase << (int)##val
-#define HEX2(val) std::hex << std::setfill('0') << std::setw(2) << std::uppercase << (int)##val
-#define HEX4(val) std::hex << std::setfill('0') << std::setw(4) << std::uppercase << (int)##val
+#define HEX1(val) std::hex << std::setfill('0') << std::setw(1) << std::uppercase << (int)val
+#define HEX2(val) std::hex << std::setfill('0') << std::setw(2) << std::uppercase << (int)val
+#define HEX4(val) std::hex << std::setfill('0') << std::setw(4) << std::uppercase << (int)val
 
 Actor::Actor()
 {

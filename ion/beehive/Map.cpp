@@ -15,10 +15,10 @@
 
 #include <ion/core/memory/Memory.h>
 
-#define HEX1(val) std::hex << std::setfill('0') << std::setw(1) << std::uppercase << (int)##val
-#define HEX2(val) std::hex << std::setfill('0') << std::setw(2) << std::uppercase << (int)##val
-#define HEX4(val) std::hex << std::setfill('0') << std::setw(4) << std::uppercase << (int)##val
-#define HEX8(val) std::hex << std::setfill('0') << std::setw(8) << std::uppercase << (int)##val
+#define HEX1(val) std::hex << std::setfill('0') << std::setw(1) << std::uppercase << (int)val
+#define HEX2(val) std::hex << std::setfill('0') << std::setw(2) << std::uppercase << (int)val
+#define HEX4(val) std::hex << std::setfill('0') << std::setw(4) << std::uppercase << (int)val
+#define HEX8(val) std::hex << std::setfill('0') << std::setw(8) << std::uppercase << (int)val
 
 Map::Map()
 	: m_platformConfig(PlatformPresets::s_configs[PlatformPresets::ePresetMegaDrive])
@@ -96,9 +96,9 @@ void Map::Resize(int width, int height, bool shiftRight, bool shiftDown)
 	std::fill(tiles.begin(), tiles.end(), blankTile);
 
 	//Copy tiles
-	for(int x = 0; x < min(width, m_width); x++)
+	for(int x = 0; x < ion::maths::Min(width, m_width); x++)
 	{
-		for(int y = 0; y < min(height, m_height); y++)
+		for(int y = 0; y < ion::maths::Min(height, m_height); y++)
 		{
 			int destTileIdx = (y * width) + x;
 			if(shiftRight && width > m_width)
@@ -630,8 +630,8 @@ void Map::ExportStampMap(const Project& project, std::stringstream& stream) cons
 		}
 	}
 
-	std::sort(sortedX.begin(), sortedX.end(), [](const std::pair<const StampMapEntry*, s32>& lhs, std::pair<const StampMapEntry*, s32>& rhs) { return lhs.second < rhs.second; });
-	std::sort(sortedY.begin(), sortedY.end(), [](const std::pair<const StampMapEntry*, s32>& lhs, std::pair<const StampMapEntry*, s32>& rhs) { return lhs.second < rhs.second; });
+	std::sort(sortedX.begin(), sortedX.end(), [](const std::pair<const StampMapEntry*, s32>& lhs, const std::pair<const StampMapEntry*, s32>& rhs) { return lhs.second < rhs.second; });
+	std::sort(sortedY.begin(), sortedY.end(), [](const std::pair<const StampMapEntry*, s32>& lhs, const std::pair<const StampMapEntry*, s32>& rhs) { return lhs.second < rhs.second; });
 
 	//Export count
 	stream << "stampmap_" << project.GetName() << "_count equ 0x" << HEX4((int)sortedX.size()) << std::endl;

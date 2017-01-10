@@ -120,7 +120,7 @@ rule C.AutoDetect
 		;
 
 	C.Flags * : CC	: -x c -fomit-frame-pointer -ml -m4-single-only -ffunction-sections -fdata-sections -Wall -g -fno-builtin -fno-strict-aliasing ;
-	C.Flags * : C++	: -x c++ -fomit-frame-pointer -ml -m4-single-only -ffunction-sections -fdata-sections -fno-operator-names -fno-exceptions ;
+	C.Flags * : C++	: -x c++ -std=c++11 -fomit-frame-pointer -ml -m4-single-only -ffunction-sections -fdata-sections -fno-operator-names -fno-exceptions ;
 	C.LibFlags * : ru ;
 	C.LinkFlags * : -T$(KOS_PATH)/utils/ldscripts/shlelf.xc -Wl,-Ttext=0x8c010000 -Wl,--gc-sections ;
 	

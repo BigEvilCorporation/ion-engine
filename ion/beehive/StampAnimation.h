@@ -25,7 +25,7 @@ typedef ion::render::Keyframe<u32> AnimKeyframeTileFrame;
 class AnimTrackTileFrame : public ion::render::AnimationTrack<u32>
 {
 public:
-	const u32 AnimTrackTileFrame::GetValue(float time) const;
+	const u32 GetValue(float time) const;
 	void Export(std::stringstream& stream) const;
 	void Export(ion::io::File& file) const;
 };
@@ -35,12 +35,12 @@ class TileFrame
 public:
 	TileFrame();
 	TileFrame(const TileFrame& rhs);
-	TileFrame(const std::vector<std::pair<TileId, Tile*>>& tiles, int width, int height);
+	TileFrame(const std::vector< std::pair<TileId, Tile*> >& tiles, int width, int height);
 
 	bool Import(const std::string filename, Project& project);
 	void Serialise(ion::io::Archive& archive);
 
-	std::vector<std::pair<TileId, Tile>> m_tiles;
+	std::vector< std::pair<TileId, Tile> > m_tiles;
 	int m_width;
 	int m_height;
 };
