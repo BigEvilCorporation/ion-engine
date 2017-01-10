@@ -14,6 +14,7 @@
 #include <algorithm>
 
 #include <ion/core/memory/Memory.h>
+#include <ion/core/memory/Endian.h>
 
 #define HEX1(val) std::hex << std::setfill('0') << std::setw(1) << std::uppercase << (int)val
 #define HEX2(val) std::hex << std::setfill('0') << std::setw(2) << std::uppercase << (int)val

@@ -14,6 +14,7 @@
 #include <algorithm>
 
 #include <ion/core/memory/Memory.h>
+#include <ion/core/memory/Endian.h>
 
 CollisionMap::CollisionMap()
 {

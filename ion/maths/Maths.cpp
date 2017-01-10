@@ -32,8 +32,14 @@ namespace ion
 
 		int NextPowerOfTwo(int x)
 		{
-			float logbase2 = logf(x) / logf(2.0f);
-			return Round(powf(2.0f, ceilf(logbase2)));
+			x--;
+			x |= x >> 1;
+			x |= x >> 2;
+			x |= x >> 4;
+			x |= x >> 8;
+			x |= x >> 16;
+			x++;
+			return x;
 		}
 
 		float Sqrt(float value)

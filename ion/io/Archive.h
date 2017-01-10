@@ -310,11 +310,7 @@ namespace ion
 					Serialise(resourceName, "name");
 
 					//Request resource
-#if defined ION_TOOLCHAIN_GCCDC
-					handle = m_resourceManager->template GetResource<T>(resourceName);
-#else
 					handle = m_resourceManager->GetResource<T>(resourceName);
-#endif
 				}
 				else
 				{

@@ -15,6 +15,7 @@
 #include <set>
 #include <vector>
 #include <algorithm>
+#include <cctype>
 
 #include "Project.h"
 #include "BMPReader.h"
@@ -789,6 +790,26 @@ const Actor* Project::GetActor(ActorId actorId) const
 	}
 
 	return actor;
+}
+
+const Actor* Project::FindActor(const std::string& name) const
+{
+	//std::string lowerName = name;
+	//std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), std::tolower);
+
+	for(TActorMap::const_iterator it = m_actors.begin(), end = m_actors.end(); it != end; ++it)
+	{
+		//std::string actorName = it->second.GetName();
+		//std::transform(actorName.begin(), actorName.end(), actorName.begin(), std::tolower);
+
+		//if(actorName == lowerName)
+		if(it->second.GetName() == name)
+		{
+			return &it->second;
+		}
+	}
+
+	return NULL;
 }
 
 const TActorMap::const_iterator Project::ActorsBegin() const

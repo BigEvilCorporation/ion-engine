@@ -97,11 +97,7 @@ namespace ion
 		template <class T> bool ResourceT<T>::Load()
 		{
 			//Prepend directory
-#if defined ION_TOOLCHAIN_GCCDC
-			std::string fullPath = m_resourceManager.template GetResourceDirectory<T>();
-#else
 			std::string fullPath = m_resourceManager.GetResourceDirectory<T>();
-#endif
 
 			fullPath += "/";
 			fullPath += m_filename;

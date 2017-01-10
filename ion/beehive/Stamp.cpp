@@ -13,6 +13,7 @@
 #include "Project.h"
 
 #include <core/memory/Memory.h>
+#include <core/memory/Endian.h>
 #include <core/cryptography/Hash.h>
 
 Stamp::Stamp()

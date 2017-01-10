@@ -141,6 +141,7 @@ public:
 	void DeleteActor(ActorId actorId);
 	Actor* GetActor(ActorId actorId);
 	const Actor* GetActor(ActorId actorId) const;
+	const Actor* FindActor(const std::string& name) const;
 	const TActorMap::const_iterator ActorsBegin() const;
 	const TActorMap::const_iterator ActorsEnd() const;
 	int GetActorCount() const;

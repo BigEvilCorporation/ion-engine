@@ -28,6 +28,7 @@ public:
 	void DeleteSpriteSheet(SpriteSheetId spriteSheetId);
 	SpriteSheet* GetSpriteSheet(SpriteSheetId spriteSheetId);
 	const SpriteSheet* GetSpriteSheet(SpriteSheetId SpriteSheetId) const;
+	const SpriteSheet* FindSpriteSheet(const std::string& name) const;
 	const TSpriteSheetMap::const_iterator SpriteSheetsBegin() const;
 	const TSpriteSheetMap::const_iterator SpriteSheetsEnd() const;
 	int GetSpriteSheetCount() const;

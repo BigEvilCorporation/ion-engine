@@ -61,6 +61,19 @@ const SpriteSheet* Actor::GetSpriteSheet(SpriteSheetId spriteSheetId) const
 	return spriteSheet;
 }
 
+const SpriteSheet* Actor::FindSpriteSheet(const std::string& name) const
+{
+	for(TSpriteSheetMap::const_iterator it = m_spriteSheets.begin(), end = m_spriteSheets.end(); it != end; ++it)
+	{
+		if(it->second.GetName() == name)
+		{
+			return &it->second;
+		}
+	}
+
+	return NULL;
+}
+
 const TSpriteSheetMap::const_iterator Actor::SpriteSheetsBegin() const
 {
 	return m_spriteSheets.begin();

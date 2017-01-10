@@ -12,12 +12,19 @@ rule ApplyIonDefines TARGET
 {
 	if ( win32 in $(PLATFORM) )
 	{
-		C.Defines $(TARGET) : ION_PLATFORM_WINDOWS ;
+		C.Defines $(TARGET) :
+			ION_PLATFORM_WINDOWS
+			ION_ENDIAN_LITTLE
+			;
 	}
 
 	if ( dreamcast in $(PLATFORM) )
 	{
-		C.Defines $(TARGET) : ION_PLATFORM_DREAMCAST ION_TOOLCHAIN_GCCDC ;
+		C.Defines $(TARGET) :
+			ION_PLATFORM_DREAMCAST
+			ION_TOOLCHAIN_KOS
+			ION_ENDIAN_LITTLE
+			;
 	}
 }
 
