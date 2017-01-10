@@ -99,8 +99,8 @@ rule ApplyIonRenderer TARGET
 
 	if ( win32 in $(PLATFORM) )
 	{
-		# ApplyRendererImpl $(TARGET) : opengl sdl cggl ;
-		ApplyRendererImpl $(TARGET) : opengl sdl ;
+		ApplyRendererImpl $(TARGET) : opengl sdl cggl ;
+		# ApplyRendererImpl $(TARGET) : opengl sdl ;
 	}
 
 	if ( dreamcast in $(PLATFORM) )
