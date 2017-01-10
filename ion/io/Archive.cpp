@@ -300,6 +300,51 @@ namespace ion
 			}
 		}
 
+		void Archive::Serialise(std::vector<u8>& data)
+		{
+			SerialisePODVector(data);
+		}
+
+		void Archive::Serialise(std::vector<s8>& data)
+		{
+			SerialisePODVector(data);
+		}
+
+		void Archive::Serialise(std::vector<u16>& data)
+		{
+			SerialisePODVector(data);
+		}
+
+		void Archive::Serialise(std::vector<s16>& data)
+		{
+			SerialisePODVector(data);
+		}
+
+		void Archive::Serialise(std::vector<u32>& data)
+		{
+			SerialisePODVector(data);
+		}
+
+		void Archive::Serialise(std::vector<s32>& data)
+		{
+			SerialisePODVector(data);
+		}
+
+		void Archive::Serialise(std::vector<u64>& data)
+		{
+			SerialisePODVector(data);
+		}
+
+		void Archive::Serialise(std::vector<s64>& data)
+		{
+			SerialisePODVector(data);
+		}
+
+		void Archive::Serialise(std::vector<float>& data)
+		{
+			SerialisePODVector(data);
+		}
+
 		void Archive::Serialise(std::string& string)
 		{
 			if(GetDirection() == eIn)

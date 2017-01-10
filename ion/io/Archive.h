@@ -101,6 +101,19 @@ namespace ion
 			void Serialise(float& data);
 			void Serialise(bool& data);
 
+			//Raw serialisation of vectors of basic types
+			void Serialise(std::vector<u8>& data);
+			void Serialise(std::vector<s8>& data);
+			void Serialise(std::vector<u16>& data);
+			void Serialise(std::vector<s16>& data);
+			void Serialise(std::vector<u32>& data);
+			void Serialise(std::vector<s32>& data);
+			void Serialise(std::vector<u64>& data);
+			void Serialise(std::vector<s64>& data);
+			void Serialise(std::vector<float>& data);
+
+			template <typename T> void SerialisePODVector(std::vector<T>& data);
+
 			//Serialise STL string
 			void Serialise(std::string& string);
 
@@ -363,6 +376,36 @@ namespace ion
 				{
 					Serialise(objects[i], "object");
 				}
+			}
+		}
+
+		template <typename T> void Archive::SerialisePODVector(std::vector<T>& data)
+		{
+			if(GetDirection() == eIn)
+			{
+				//Serialise in num objects
+				int numObjects = 0;
+				Serialise(numObjects, "count");
+
+				//Clear and reserve vector
+				data.clear();
+				data.resize(numObjects);
+
+				//Serialise data
+				Serialise(&data[0], sizeof(T) * numObjects);
+				//for(int i = 0; i < numObjects; i++)
+				//{
+				//	Serialise(data[i], "object");
+				//}
+			}
+			else
+			{
+				//Serialise out num objects
+				int numObjects = data.size();
+				Serialise(numObjects, "count");
+
+				//Serialise data
+				Serialise(&data[0], sizeof(T) * numObjects);
 			}
 		}
 

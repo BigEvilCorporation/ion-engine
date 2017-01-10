@@ -9,6 +9,7 @@
 
 #include "io/File.h"
 #include "core/debug/Debug.h"
+#include "core/memory/Memory.h"
 #include <algorithm>
 
 namespace ion
@@ -30,6 +31,8 @@ namespace ion
 			m_openMode = eOpenRead;
 			m_currentPosition = 0;
 			m_size = 0;
+			m_readBufferStart = 0;
+			m_readBufferEnd = 0;
 			m_open = false;
 		}
 
@@ -38,6 +41,8 @@ namespace ion
 			m_openMode = openMode;
 			m_currentPosition = 0;
 			m_size = 0;
+			m_readBufferStart = 0;
+			m_readBufferEnd = 0;
 			m_open = false;
 
 			Open(filename, openMode);
@@ -65,11 +70,6 @@ namespace ion
 
 			if(m_open)
 			{
-#if defined ION_PLATFORM_WINDOWS
-				//Use buffer
-				m_stream.rdbuf()->pubsetbuf((char*)m_buffer, s_bufferSize);
-#endif
-
 				//Get size (seek to end, get pos, seek back)
 				m_stream.seekg(0, std::ios::end);
 				m_size = (s64)m_stream.tellg();
@@ -106,12 +106,24 @@ namespace ion
 					m_currentPosition += position;
 				}
 			
-				m_stream.seekg(position, direction);
+				if(m_openMode == eOpenRead)
+				{
+					if(m_currentPosition < m_readBufferStart || m_currentPosition >= m_readBufferEnd)
+					{
+						//Cache miss, invalidate buffer
+						m_readBufferStart = 0;
+						m_readBufferEnd = 0;
+					}
+				}
+				else
+				{
+					m_stream.seekg(position, direction);
 
 #if !defined _RELEASE
-				s64 currPos = (s64)m_stream.tellg();
-				debug::Assert(m_currentPosition == currPos, "File::Seek() - Seek failed");
+					s64 currPos = (s64)m_stream.tellg();
+					debug::Assert(m_currentPosition == currPos, "File::Seek() - Seek failed");
 #endif
+				}
 			}
 		
 			return m_currentPosition;
@@ -124,14 +136,31 @@ namespace ion
 			if(m_open)
 			{
 				size = std::min(size, m_size - m_currentPosition);
-				m_stream.read((char*)data, size);
+
+				if(size > s_bufferSize)
+				{
+					//Read size too big for buffer, read directly
+					m_stream.seekg(m_currentPosition, std::ios::beg);
+					m_stream.read((char*)data, size);
+
+					//Invalidate buffer
+					m_readBufferStart = 0;
+					m_readBufferEnd = 0;
+				}
+				else
+				{
+					if(m_currentPosition < m_readBufferStart || (m_currentPosition + size) > m_readBufferEnd)
+					{
+						//Cache miss
+						FillBuffer(m_currentPosition);
+					}
+
+					//Read from buffer
+					ion::memory::MemCopy(data, m_readBuffer + (m_currentPosition - m_readBufferStart), size);
+				}
+				
 				m_currentPosition += size;
 				bytesRead = size;
-
-#if !defined _RELEASE
-				s64 currPos = (s64)m_stream.tellg();
-				debug::Assert(m_currentPosition == currPos, "File::Read() - Read failed");
-#endif
 			}
 
 			return bytesRead;
@@ -176,6 +205,15 @@ namespace ion
 		bool File::IsOpen() const
 		{
 			return m_open;
+		}
+
+		void File::FillBuffer(s64 position)
+		{
+			int size = std::min((s64)s_bufferSize, m_size - m_currentPosition);
+			m_stream.seekg(position, std::ios::beg);
+			m_stream.read((char*)m_readBuffer, s_bufferSize);
+			m_readBufferStart = position;
+			m_readBufferEnd = position + size;
 		}
 	}
 } //Namespace
