@@ -14,6 +14,10 @@
 
 #pragma once
 
+#include "core/Types.h"
+#include <sstream>
+#include <string>
+
 namespace ion
 {
 	namespace debug
@@ -25,5 +29,29 @@ namespace ion
 		void Break();
 
 		void PrintMemoryUsage();
+
+		struct LogTokenEnd {};
+
+		class LogStream
+		{
+		public:
+			LogStream& operator << (const char* text);
+			LogStream& operator << (const std::string& text);
+			LogStream& operator << (u8 number);
+			LogStream& operator << (s8 number);
+			LogStream& operator << (u16 number);
+			LogStream& operator << (s16 number);
+			LogStream& operator << (u32 number);
+			LogStream& operator << (s32 number);
+			LogStream& operator << (float number);
+			LogStream& operator << (LogTokenEnd token);
+
+		private:
+			//TODO: Store one per thread in TLS
+			std::stringstream m_stream;
+		};
+
+		static LogStream log;
+		static LogTokenEnd end;
 	}
 }

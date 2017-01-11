@@ -83,5 +83,66 @@ namespace ion
 			printf("Free system RAM: %i (%ikb)\n", systemRamFree, systemRamFree / 1024);
 #endif
 		}
+
+		LogStream& LogStream::operator << (const char* text)
+		{
+			m_stream << text;
+			return *this;
+		}
+
+		LogStream& LogStream::operator << (const std::string& text)
+		{
+			m_stream << text;
+			return *this;
+		}
+
+		LogStream& LogStream::operator << (u8 number)
+		{
+			m_stream << (int)number;
+			return *this;
+		}
+
+		LogStream& LogStream::operator << (s8 number)
+		{
+			m_stream << (int)number;
+			return *this;
+		}
+
+		LogStream& LogStream::operator << (u16 number)
+		{
+			m_stream << (int)number;
+			return *this;
+		}
+
+		LogStream& LogStream::operator << (s16 number)
+		{
+			m_stream << (int)number;
+			return *this;
+		}
+
+		LogStream& LogStream::operator << (u32 number)
+		{
+			m_stream << (int)number;
+			return *this;
+		}
+
+		LogStream& LogStream::operator << (s32 number)
+		{
+			m_stream << (int)number;
+			return *this;
+		}
+
+		LogStream& LogStream::operator << (float number)
+		{
+			m_stream << (int)number;
+			return *this;
+		}
+
+		LogStream& LogStream::operator << (LogTokenEnd token)
+		{
+			Log(m_stream.str().c_str());
+			m_stream.clear();
+			return *this;
+		}
 	}
 }

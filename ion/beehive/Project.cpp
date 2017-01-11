@@ -1888,6 +1888,7 @@ bool Project::ImportBitmap(const std::string& filename, u32 importFlags, u32 pal
 			//TODO: wx message handler in ion::debug
 			//if(wxMessageBox("Bitmap width/height is not multiple of target platform tile width/height, image will be truncated", "Warning", wxOK | wxCANCEL | wxICON_WARNING) == wxCANCEL)
 			{
+				ion::debug::log << "Bitmap width / height " << reader.GetWidth() << "x" << reader.GetHeight() << " is not multiple of target platform tile width / height, image will be truncated: " << filename << ion::debug::end;
 				return false;
 			}
 		}
