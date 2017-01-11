@@ -21,6 +21,6 @@ namespace ion
 	namespace time
 	{
 		u64 GetSystemTicks();
-		double TicksToSeconds(u64 ticks);
+		float TicksToSeconds(u64 ticks);
 	}
 }

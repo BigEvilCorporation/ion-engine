@@ -40,6 +40,7 @@ public:
 	SpriteAnimId AddAnimation();
 	void DeleteAnimation(SpriteAnimId animId);
 	SpriteAnimation* GetAnimation(SpriteAnimId animId);
+	SpriteAnimation* FindAnimation(const std::string name);
 	int GetNumAnimations() const;
 	TSpriteAnimMap::const_iterator AnimationsBegin() const;
 	TSpriteAnimMap::const_iterator AnimationsEnd() const;

@@ -792,12 +792,12 @@ const Actor* Project::GetActor(ActorId actorId) const
 	return actor;
 }
 
-const Actor* Project::FindActor(const std::string& name) const
+Actor* Project::FindActor(const std::string& name)
 {
 	//std::string lowerName = name;
 	//std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), std::tolower);
 
-	for(TActorMap::const_iterator it = m_actors.begin(), end = m_actors.end(); it != end; ++it)
+	for(TActorMap::iterator it = m_actors.begin(), end = m_actors.end(); it != end; ++it)
 	{
 		//std::string actorName = it->second.GetName();
 		//std::transform(actorName.begin(), actorName.end(), actorName.begin(), std::tolower);

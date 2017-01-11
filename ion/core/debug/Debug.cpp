@@ -132,6 +132,18 @@ namespace ion
 			return *this;
 		}
 
+		LogStream& LogStream::operator << (u64 number)
+		{
+			m_stream << (long long)number;
+			return *this;
+		}
+
+		LogStream& LogStream::operator << (s64 number)
+		{
+			m_stream << (long long)number;
+			return *this;
+		}
+
 		LogStream& LogStream::operator << (float number)
 		{
 			m_stream << (int)number;
@@ -140,7 +152,16 @@ namespace ion
 
 		LogStream& LogStream::operator << (LogTokenEnd token)
 		{
-			Log(m_stream.str().c_str());
+			if(m_type == eLog)
+			{
+				Log(m_stream.str().c_str());
+			}
+			else if(m_type == eError)
+			{
+				Error(m_stream.str().c_str());
+			}
+
+			Flush();
 			m_stream.clear();
 			return *this;
 		}

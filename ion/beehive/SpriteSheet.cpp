@@ -144,6 +144,19 @@ SpriteAnimation* SpriteSheet::GetAnimation(SpriteAnimId animId)
 	return anim;
 }
 
+SpriteAnimation* SpriteSheet::FindAnimation(const std::string name)
+{
+	for(TSpriteAnimMap::iterator it = m_animations.begin(), end = m_animations.end(); it != end; ++it)
+	{
+		if(it->second.GetName() == name)
+		{
+			return &it->second;
+		}
+	}
+
+	return NULL;
+}
+
 int SpriteSheet::GetNumAnimations() const
 {
 	return m_animations.size();

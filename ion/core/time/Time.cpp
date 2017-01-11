@@ -14,8 +14,12 @@
 
 #include "Time.h"
 
+#include "core/debug/Debug.h"
+
 #if defined ION_PLATFORM_WINDOWS
 #include <Windows.h>
+#elif defined ION_PLATFORM_DREAMCAST
+#include <time.h>
 #endif
 
 namespace ion
@@ -29,24 +33,26 @@ namespace ion
 			QueryPerformanceCounter(&ticks);
 			return (u64)ticks.QuadPart;
 #elif defined ION_PLATFORM_DREAMCAST
-			return 0;
+			return timer_us_gettime64();
 #endif
 		}
 
-		double TicksToSeconds(u64 ticks)
+		float TicksToSeconds(u64 ticks)
 		{
-			static double timerFrequency = 0.0;
+#if defined ION_PLATFORM_WINDOWS
+			static float timerFrequency = 0.0;
 
 			if(timerFrequency == 0)
 			{
-#if defined ION_PLATFORM_WINDOWS
 				LARGE_INTEGER freq = {0};
 				QueryPerformanceFrequency(&freq);
 				timerFrequency = (double)freq.QuadPart;
-#endif
 			}
 
-			return (double)ticks / timerFrequency;
+			return (float)ticks / timerFrequency;
+#elif defined ION_PLATFORM_DREAMCAST
+			return (float)ticks / 1000000.0f;
+#endif
 		}
 	}
 }

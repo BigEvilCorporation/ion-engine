@@ -35,6 +35,14 @@ namespace ion
 		class LogStream
 		{
 		public:
+			enum Type
+			{
+				eLog,
+				eError
+			};
+
+			LogStream(Type type) { m_type = type; }
+
 			LogStream& operator << (const char* text);
 			LogStream& operator << (const std::string& text);
 			LogStream& operator << (u8 number);
@@ -43,15 +51,19 @@ namespace ion
 			LogStream& operator << (s16 number);
 			LogStream& operator << (u32 number);
 			LogStream& operator << (s32 number);
+			LogStream& operator << (u64 number);
+			LogStream& operator << (s64 number);
 			LogStream& operator << (float number);
 			LogStream& operator << (LogTokenEnd token);
 
 		private:
 			//TODO: Store one per thread in TLS
 			std::stringstream m_stream;
+			Type m_type;
 		};
 
-		static LogStream log;
+		static LogStream log(LogStream::eLog);
+		static LogStream error(LogStream::eError);
 		static LogTokenEnd end;
 	}
 }

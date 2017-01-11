@@ -61,9 +61,9 @@ const SpriteSheet* Actor::GetSpriteSheet(SpriteSheetId spriteSheetId) const
 	return spriteSheet;
 }
 
-const SpriteSheet* Actor::FindSpriteSheet(const std::string& name) const
+SpriteSheet* Actor::FindSpriteSheet(const std::string& name)
 {
-	for(TSpriteSheetMap::const_iterator it = m_spriteSheets.begin(), end = m_spriteSheets.end(); it != end; ++it)
+	for(TSpriteSheetMap::iterator it = m_spriteSheets.begin(), end = m_spriteSheets.end(); it != end; ++it)
 	{
 		if(it->second.GetName() == name)
 		{
