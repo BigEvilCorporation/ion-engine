@@ -524,7 +524,11 @@ namespace ion
 			}
 
 			//Draw
+#if defined ION_PLATFORM_WINDOWS
+			glDrawElements(drawPattern, indexBuffer.GetSize(), GL_UNSIGNED_INT, indexBuffer.GetAddress());
+#elif defined ION_PLATFORM_DREAMCAST
 			glDrawElements(drawPattern, indexBuffer.GetSize(), GL_UNSIGNED_SHORT, indexBuffer.GetAddress());
+#endif
 
 			//Disable client states
 			glDisableClientState(GL_VERTEX_ARRAY);

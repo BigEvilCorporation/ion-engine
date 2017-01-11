@@ -22,24 +22,30 @@ namespace ion
 {
 	namespace render
 	{
+#if defined ION_PLATFORM_WINDOWS
+		typedef u32 TIndex;
+#elif defined ION_PLATFORM_DREAMCAST
+		typedef u16 TIndex;
+#endif
+
 		class IndexBuffer
 		{
 		public:
-			void Add(u16 index) { m_indices.push_back(index); }
-			void Add(u16 face0, u16 face1, u16 face2)
+			void Add(TIndex index) { m_indices.push_back(index); }
+			void Add(TIndex face0, TIndex face1, TIndex face2)
 			{
 				m_indices.push_back(face0);
 				m_indices.push_back(face1);
 				m_indices.push_back(face2);
 			}
 
-			u16 Get(int index) const { return m_indices[index]; }
+			TIndex Get(int index) const { return m_indices[index]; }
 
 			int GetSize() const { return m_indices.size(); }
-			const u16* GetAddress() const { return &m_indices[0]; }
+			const TIndex* GetAddress() const { return &m_indices[0]; }
 
 		private:
-			std::vector<u16> m_indices;
+			std::vector<TIndex> m_indices;
 		};
 	}
 }
