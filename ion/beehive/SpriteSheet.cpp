@@ -172,6 +172,16 @@ TSpriteAnimMap::const_iterator SpriteSheet::AnimationsEnd() const
 	return m_animations.end();
 }
 
+TSpriteAnimMap::iterator SpriteSheet::AnimationsBegin()
+{
+	return m_animations.begin();
+}
+
+TSpriteAnimMap::iterator SpriteSheet::AnimationsEnd()
+{
+	return m_animations.end();
+}
+
 u8 SpriteSheet::GetWidthTiles() const
 {
 	return m_widthTiles;

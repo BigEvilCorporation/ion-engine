@@ -31,6 +31,8 @@ public:
 	SpriteSheet* FindSpriteSheet(const std::string& name);
 	const TSpriteSheetMap::const_iterator SpriteSheetsBegin() const;
 	const TSpriteSheetMap::const_iterator SpriteSheetsEnd() const;
+	TSpriteSheetMap::iterator SpriteSheetsBegin();
+	TSpriteSheetMap::iterator SpriteSheetsEnd();
 	int GetSpriteSheetCount() const;
 
 	void SetMasterPalette(SpriteSheetId spriteSheetId);

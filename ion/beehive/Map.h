@@ -122,6 +122,7 @@ public:
 	GameObjectId PlaceGameObject(int x, int y, const GameObjectType& objectType);
 	GameObjectId PlaceGameObject(int x, int y, const GameObject& object, const GameObjectType& objectType);
 	GameObjectId FindGameObject(int x, int y, ion::Vector2i& topLeft) const;
+	GameObject* FindGameObject(const std::string& name);
 	GameObject* GetGameObject(GameObjectId gameObjectId);
 	void MoveGameObject(GameObjectId gameObjectId, int x, int y);
 	void RemoveGameObject(int x, int y);

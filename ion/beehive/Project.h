@@ -83,6 +83,7 @@ public:
 	void DeleteMap(MapId mapId);
 	Map& GetMap(MapId mapId);
 	const Map& GetMap(MapId mapId) const;
+	Map* FindMap(const std::string name);
 	Map& GetEditingMap();
 	MapId GetEditingMapId() const;
 	void SetEditingMap(MapId mapId);

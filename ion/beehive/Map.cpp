@@ -368,6 +368,22 @@ GameObjectId Map::FindGameObject(int x, int y, ion::Vector2i& topLeft) const
 	return gameObjectId;
 }
 
+GameObject* Map::FindGameObject(const std::string& name)
+{
+	for(TGameObjectPosMap::iterator itMap = m_gameObjects.begin(), endMap = m_gameObjects.end(); itMap != endMap; ++itMap)
+	{
+		for(std::vector<GameObjectMapEntry>::reverse_iterator itVec = itMap->second.rbegin(), endVec = itMap->second.rend(); itVec != endVec; ++itVec)
+		{
+			if(itVec->m_gameObject.GetName() == name)
+			{
+				return &itVec->m_gameObject;
+			}
+		}
+	}
+
+	return NULL;
+}
+
 GameObject* Map::GetGameObject(GameObjectId gameObjectId)
 {
 	if(gameObjectId != InvalidGameObjectId)

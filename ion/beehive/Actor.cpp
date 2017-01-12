@@ -84,6 +84,16 @@ const TSpriteSheetMap::const_iterator Actor::SpriteSheetsEnd() const
 	return m_spriteSheets.end();
 }
 
+TSpriteSheetMap::iterator Actor::SpriteSheetsBegin()
+{
+	return m_spriteSheets.begin();
+}
+
+TSpriteSheetMap::iterator Actor::SpriteSheetsEnd()
+{
+	return m_spriteSheets.end();
+}
+
 int Actor::GetSpriteSheetCount() const
 {
 	return m_spriteSheets.size();

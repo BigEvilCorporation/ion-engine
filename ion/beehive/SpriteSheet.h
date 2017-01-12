@@ -44,6 +44,8 @@ public:
 	int GetNumAnimations() const;
 	TSpriteAnimMap::const_iterator AnimationsBegin() const;
 	TSpriteAnimMap::const_iterator AnimationsEnd() const;
+	TSpriteAnimMap::iterator AnimationsBegin();
+	TSpriteAnimMap::iterator AnimationsEnd();
 
 	u8 GetWidthTiles() const;
 	u8 GetHeightTiles() const;

@@ -229,6 +229,19 @@ const Map& Project::GetMap(MapId mapId) const
 	return it->second;
 }
 
+Map* Project::FindMap(const std::string name)
+{
+	for(TMapMap::iterator it = m_maps.begin(), end = m_maps.end(); it != end; ++it)
+	{
+		if(it->second.GetName() == name)
+		{
+			return &it->second;
+		}
+	}
+
+	return NULL;
+}
+
 Map& Project::GetEditingMap()
 {
 	return GetMap(m_editingMapId);
