@@ -14,6 +14,8 @@
 //TODO: Windows headers in platform header
 #include <windows.h>
 #include <XInput.h>
+#elif defined ION_PLATFORM_DREAMCAST
+#include <kos.h>
 #endif
 
 namespace ion
@@ -52,15 +54,15 @@ namespace ion
 			void Update();
 			
 			//Test if connected
-			bool IsConnected();
+			bool IsConnected() const;
 
 			//Find available gamepads
 			bool FindConnectedGamepad();
 
-			ion::Vector2 GetLeftStick();
-			ion::Vector2 GetRightStick();
+			ion::Vector2 GetLeftStick() const;
+			ion::Vector2 GetRightStick() const;
 
-			bool ButtonDown(Buttons button);
+			bool ButtonDown(Buttons button) const;
 
 			void SetDeadZone(float deadZone);
 			float GetDeadZone() const;
@@ -70,7 +72,7 @@ namespace ion
 
 		private:
 			static int FindAvailableController();
-			static int ToXInputButton(Buttons button);
+			static int ToPlatformButton(Buttons button);
 
 			int mControllerIndex;
 			bool mConnected;
@@ -79,6 +81,8 @@ namespace ion
 
 #if defined ION_PLATFORM_WINDOWS
 			XINPUT_STATE mInputState;
+#elif defined ION_PLATFORM_DREAMCAST
+			cont_state_t m_mapleState;
 #endif
 
 			static const int sInvalidIndex = -1;
