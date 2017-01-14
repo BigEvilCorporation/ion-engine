@@ -1912,6 +1912,7 @@ bool Project::ImportBitmap(const std::string& filename, u32 importFlags, u32 pal
 			{
 				//TODO: wx message handler in ion::debug
 				//wxMessageBox("Bitmap width/height does not match stamp to be replaced, cannot import", "Warning", wxOK | wxICON_WARNING);
+				ion::debug::log << "Bitmap width/height does not match stamp to be replaced, cannot import: " << filename << ion::debug::end;
 				return false;
 			}
 		}
@@ -1932,6 +1933,24 @@ bool Project::ImportBitmap(const std::string& filename, u32 importFlags, u32 pal
 			//Create new stamp
 			StampId stampId = AddStamp(tilesWidth, tilesHeight);
 			stamp = GetStamp(stampId);
+
+			//Set name
+			std::string stampName = filename;
+
+			const size_t lastSlash = stampName.find_last_of('\\');
+			if(std::string::npos != lastSlash)
+			{
+				stampName.erase(0, lastSlash + 1);
+			}
+
+			// Remove extension if present.
+			const size_t period = stampName.rfind('.');
+			if(std::string::npos != period)
+			{
+				stampName.erase(period);
+			}
+
+			stamp->SetName(stampName);
 		}
 
 		int paletteIndex = -1;
@@ -2024,6 +2043,7 @@ bool Project::ImportBitmap(const std::string& filename, u32 importFlags, u32 pal
 						{
 							//TODO: wx message handler in ion::debug
 							//wxMessageBox("Too many colours in tile, bailing out", "Error", wxOK | wxICON_ERROR);
+							ion::debug::log << "Too many colours in tile, bailing out: " << filename << ion::debug::end;
 							return false;
 						}
 
@@ -2079,6 +2099,7 @@ bool Project::ImportBitmap(const std::string& filename, u32 importFlags, u32 pal
 							{
 								//TODO: wx message handler in ion::debug
 								//wxMessageBox("Exceeded palette count, bailing out", "Error", wxOK | wxICON_ERROR);
+								ion::debug::log << "Exceeded palette count, bailing out: " << filename << ion::debug::end;
 								return false;
 							}
 
@@ -2101,6 +2122,7 @@ bool Project::ImportBitmap(const std::string& filename, u32 importFlags, u32 pal
 								//Shouldn't reach here - palette should have been validated
 								//TODO: wx message handler in ion::debug
 								//wxMessageBox("Error mapping colour indices", "Error", wxOK | wxICON_ERROR);
+								ion::debug::log << "Error mapping colour indices, bailing out: " << filename << ion::debug::end;
 								return false;
 							}
 
@@ -2153,6 +2175,7 @@ bool Project::ImportBitmap(const std::string& filename, u32 importFlags, u32 pal
 	{
 		//TODO: wx message handler in ion::debug
 		//wxMessageBox("Error reading bitmap", "Error", wxOK);
+		ion::debug::log << "Error reading bitmap: " << filename << ion::debug::end;
 	}
 
 	return true;
