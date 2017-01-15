@@ -112,8 +112,8 @@ namespace ion
 					//Make sure values aren't cached
 					memory::MemSet(&m_mapleState, 0, sizeof(cont_state_t));
 				}
-			}
 #endif
+			}
 		}
 
 		bool Gamepad::IsConnected() const
