@@ -20,6 +20,7 @@
 #if defined ION_PLATFORM_DREAMCAST
 #include <kos.h>
 #include <malloc.h>
+#include <assert.h>
 extern unsigned long end;
 extern unsigned long start;
 #define _end end
@@ -30,6 +31,26 @@ namespace ion
 {
 	namespace debug
 	{
+#if defined ION_PLATFORM_DREAMCAST
+		void HandleKOSException(const char * file, int line, const char * expr, const char * msg, const char * func)
+		{
+			error << "ASSERT: \n"
+				<< "file: " << file << "\n"
+				<< "line: " << line << "\n"
+				<< "expr: " << expr << "\n"
+				<< "msg: " << msg << "\n"
+				<< "func: " << func << "\n"
+				<< end;
+		}
+#endif
+
+		void InitExceptionHandling()
+		{
+#if defined ION_PLATFORM_DREAMCAST
+			assert_set_handler(HandleKOSException);
+#endif
+		}
+
 		void Log(const char* message)
 		{
 			std::cout << message << "\n";
@@ -44,7 +65,12 @@ namespace ion
 		{
 			Log(message);
 			Flush();
+
+#if defined ION_PLATFORM_DREAMCAST
+			assert_msg(0, message);
+#else
 			Break();
+#endif
 		}
 
 		void Assert(bool condition, const char* message)

@@ -22,6 +22,9 @@ namespace ion
 {
 	namespace debug
 	{
+		//Init exception handling, set default assert handlers
+		void InitExceptionHandling();
+
 		void Log(const char* message);
 		void Flush();
 		void Error(const char* message);
