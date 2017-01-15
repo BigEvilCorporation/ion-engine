@@ -51,14 +51,14 @@ u32 Tile::GetIndex() const
 void Tile::SetPixelColour(int x, int y, u8 colourIdx)
 {
 	int pixelIdx = (y * m_height) + x;
-	ion::debug::Assert(pixelIdx < (m_width * m_height), "eOut of range");
+	ion::debug::Assert(pixelIdx < (m_width * m_height), "Tile::SetPixelColour() - Out of range");
 	m_pixels[pixelIdx] = colourIdx;
 }
 
 u8 Tile::GetPixelColour(int x, int y) const
 {
 	int pixelIdx = (y * m_height) + x;
-	ion::debug::Assert(pixelIdx < (m_width * m_height), "eOut of range");
+	ion::debug::Assert(pixelIdx < (m_width * m_height), "Tile::GetPixelColour() - Out of range");
 	return m_pixels[pixelIdx];
 }
 

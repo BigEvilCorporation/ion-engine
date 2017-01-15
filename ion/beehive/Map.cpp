@@ -159,7 +159,7 @@ void Map::Resize(int width, int height, bool shiftRight, bool shiftDown)
 void Map::SetTile(int x, int y, TileId tile)
 {
 	int tileIdx = (y * m_width) + x;
-	ion::debug::Assert(tileIdx < (m_width * m_height), "eOut of range");
+	ion::debug::Assert(tileIdx < (m_width * m_height), "Map::SetTile() - Out of range");
 	m_tiles[tileIdx].m_id = tile;
 	m_tiles[tileIdx].m_flags = 0;
 }
@@ -167,21 +167,21 @@ void Map::SetTile(int x, int y, TileId tile)
 TileId Map::GetTile(int x, int y) const
 {
 	int tileIdx = (y * m_width) + x;
-	ion::debug::Assert(tileIdx < (m_width * m_height), "eOut of range");
+	ion::debug::Assert(tileIdx < (m_width * m_height), "Map::GetTile() - Out of range");
 	return m_tiles[tileIdx].m_id;
 }
 
 void Map::SetTileFlags(int x, int y, u32 flags)
 {
 	int tileIdx = (y * m_width) + x;
-	ion::debug::Assert(tileIdx < (m_width * m_height), "eOut of range");
+	ion::debug::Assert(tileIdx < (m_width * m_height), "Map::SetTileFlags() - Out of range");
 	m_tiles[tileIdx].m_flags = flags;
 }
 
 u32 Map::GetTileFlags(int x, int y) const
 {
 	int tileIdx = (y * m_width) + x;
-	ion::debug::Assert(tileIdx < (m_width * m_height), "eOut of range");
+	ion::debug::Assert(tileIdx < (m_width * m_height), "Map::GetTileFlags() - Out of range");
 	return m_tiles[tileIdx].m_flags;
 }
 

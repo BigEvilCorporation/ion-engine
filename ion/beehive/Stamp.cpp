@@ -64,7 +64,7 @@ int Stamp::GetHeight() const
 void Stamp::SetTile(int x, int y, TileId tile)
 {
 	int tileIdx = (y * m_width) + x;
-	ion::debug::Assert(tileIdx < (m_width * m_height), "eOut of range");
+	ion::debug::Assert(tileIdx < (m_width * m_height), "Stamp::SetTile() - Out of range");
 	m_tiles[tileIdx].m_id = tile;
 	m_tiles[tileIdx].m_flags = 0;
 }
@@ -72,21 +72,21 @@ void Stamp::SetTile(int x, int y, TileId tile)
 TileId Stamp::GetTile(int x, int y) const
 {
 	int tileIdx = (y * m_width) + x;
-	ion::debug::Assert(tileIdx < (m_width * m_height), "eOut of range");
+	ion::debug::Assert(tileIdx < (m_width * m_height), "Stamp::GetTile() - Out of range");
 	return m_tiles[tileIdx].m_id;
 }
 
 void Stamp::SetTileFlags(int x, int y, u32 flags)
 {
 	int tileIdx = (y * m_width) + x;
-	ion::debug::Assert(tileIdx < (m_width * m_height), "eOut of range");
+	ion::debug::Assert(tileIdx < (m_width * m_height), "Stamp::SetTileFlags() - Out of range");
 	m_tiles[tileIdx].m_flags = flags;
 }
 
 u32 Stamp::GetTileFlags(int x, int y) const
 {
 	int tileIdx = (y * m_width) + x;
-	ion::debug::Assert(tileIdx < (m_width * m_height), "eOut of range");
+	ion::debug::Assert(tileIdx < (m_width * m_height), "Stamp::GetTileFlags() - Out of range");
 	return m_tiles[tileIdx].m_flags;
 }
 

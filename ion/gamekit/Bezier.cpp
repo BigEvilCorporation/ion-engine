@@ -30,14 +30,14 @@ namespace ion
 
 		void BezierPath::RemovePoint(int index)
 		{
-			ion::debug::Assert(index < GetNumPoints(), "eOut of range");
+			ion::debug::Assert(index < GetNumPoints(), "BezierPath::RemovePoint() - Out of range");
 			m_controlPoints.erase(m_controlPoints.begin() + (index * 3), m_controlPoints.begin() + (index * 3) + 3);
 			CalculateBounds();
 		}
 
 		void BezierPath::SetPoint(int index, const Vector2& position, const Vector2& controlA, const Vector2& controlB)
 		{
-			ion::debug::Assert(index < GetNumPoints(), "eOut of range");
+			ion::debug::Assert(index < GetNumPoints(), "BezierPath::SetPoint() - Out of range");
 			m_controlPoints[(index * 3) + 0] = position + controlA;
 			m_controlPoints[(index * 3) + 1] = position;
 			m_controlPoints[(index * 3) + 2] = position + controlB;
@@ -46,7 +46,7 @@ namespace ion
 
 		void BezierPath::GetPoint(int index, Vector2& position, Vector2& controlA, Vector2& controlB) const
 		{
-			ion::debug::Assert(index < GetNumPoints(), "eOut of range");
+			ion::debug::Assert(index < GetNumPoints(), "BezierPath::GetPoint() - Out of range");
 			controlA = m_controlPoints[(index * 3) + 0];
 			position = m_controlPoints[(index * 3) + 1];
 			controlB = m_controlPoints[(index * 3) + 2];
@@ -83,7 +83,7 @@ namespace ion
 			}
 			else
 			{
-				ion::debug::Assert(time >= 0.0f && time <= 1.0f, "eOut of range");
+				ion::debug::Assert(time >= 0.0f && time <= 1.0f, "BezierPath::GetPosition() - Out of range");
 
 				//Get curve index (points in groups of 3, skipping first)
 				int curveIndex = maths::Floor(((float)(m_controlPoints.size() - 3) / 3.0f) * time);

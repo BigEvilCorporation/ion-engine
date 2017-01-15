@@ -49,20 +49,20 @@ void TerrainTile::GetHeights(std::vector<s8>& heights) const
 
 void TerrainTile::SetHeight(int x, s8 height)
 {
-	ion::debug::Assert(x < m_width, "eOut of range");
-	ion::debug::Assert(height >= -m_height && height <= m_height, "eOut of range");
+	ion::debug::Assert(x < m_width, "TerrainTile::SetHeight() - Out of range");
+	ion::debug::Assert(height >= -m_height && height <= m_height, "TerrainTile::SetHeight() - Out of range");
 	m_heightmap[x] = height;
 }
 
 void TerrainTile::ClearHeight(int x)
 {
-	ion::debug::Assert(x < m_width, "eOut of range");
+	ion::debug::Assert(x < m_width, "TerrainTile::ClearHeight() - Out of range");
 	m_heightmap[x] = 0;
 }
 
 s8 TerrainTile::GetHeight(int x) const
 {
-	ion::debug::Assert(x < m_width, "eOut of range");
+	ion::debug::Assert(x < m_width, "TerrainTile::GetHeight() - Out of range");
 	return m_heightmap[x];
 }
 
