@@ -1,4 +1,4 @@
-rule C.UseMFC TARGET : OPTIONS {
+rule C.MFC TARGET : OPTIONS {
 	C.ActiveTarget $(TARGET) ;
 
 	if shared in $(OPTIONS) {
@@ -14,7 +14,7 @@ rule C.UseMFC TARGET : OPTIONS {
 			C.LinkDirectories : $(MSVCNT)/mfc/Lib ;
 		}
 
-		C.RcIncludeDirectories : $(MSVCNT)/mfc/Include $(MSVCNT)/atl/Include ;
+		C.Rc.IncludeDirectories : $(MSVCNT)/mfc/Include $(MSVCNT)/atl/Include ;
 	} else {
 		C.IncludeDirectories : $(MSVCNT)/atlmfc/include ;
 
@@ -26,6 +26,6 @@ rule C.UseMFC TARGET : OPTIONS {
 			}
 		}
 
-		C.RcIncludeDirectories : $(MSVCNT)/atlmfc/include ;
+		C.Rc.IncludeDirectories : $(MSVCNT)/atlmfc/include ;
 	}
 }

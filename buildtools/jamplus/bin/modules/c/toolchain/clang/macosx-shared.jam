@@ -1,0 +1,568 @@
+rule C.Toolchain.clang.macosx-shared {
+}
+
+
+rule C.macosx.FrameworkDirectories TARGET : FRAMEWORKDIRS {
+	TARGET = [ ActiveTarget $(TARGET) ] ;
+	C.Flags $(TARGET) : CC C++ M MM : -F\"$(FRAMEWORKDIRS)\" ;
+	C.LinkFlags $(TARGET) : -F\"$(FRAMEWORKDIRS)\" ;
+}
+
+
+rule C.macosx.LinkFrameworks TARGET : FRAMEWORKS : OPTIONS {
+	C.ActiveTarget $(TARGET) ;
+	FRAMEWORKS on $(C.ACTIVE_TOOLCHAIN_TARGET) += $(FRAMEWORKS) ;
+	if public in $(OPTIONS) {
+		__PUBLIC on $(C.ACTIVE_TOOLCHAIN_TARGET) = true ;
+		PUBLIC_FRAMEWORKS on $(C.ACTIVE_TOOLCHAIN_TARGET) += $(FRAMEWORKS) ;
+	}
+}
+
+
+rule C.macosx.WeakLinkFrameworks TARGET : FRAMEWORKS {
+	TARGET = [ ActiveTarget $(TARGET) ] ;
+	C.LinkFlags $(TARGET) : "-weak_framework $(FRAMEWORKS)" ;
+}
+
+
+actions C.macosx.clang.Archive {
+	$(C.AR:C) -static $(LIBFLAGS) -o $(<:C) -filelist ^^^($(>:J=$(NEWLINE)))
+}
+
+
+actions C.macosx.clang.Link {
+	$(C.LINK:C) $(LINKFLAGS) -o $(<[1]:C) -filelist ^^^($(>:J=$(NEWLINE))) $(NEEDLIBS:TC) $(LINKLIBS:TC)
+}
+
+
+rule C.macosx.SDK SDK_VERSION {
+	local SDK_PLATFORM ;
+	SDK_PLATFORM ?= $(C.PLATFORM) ;
+
+	local COMPILER_BIN_PATH = $(COMPILER_BIN_PATH:Z=$(C.COMPILER_SUITE_SYMBOL)) ;
+	local developerRoot ;
+	local isysroot ;
+	local flags ;
+	local sdkroot ;
+	local architecture ;
+
+	developerRoot = /Developer/SDKs ;
+	SDK_VERSION ?= 10.12 ;
+	switch $(SDK_VERSION) {
+		case 10.4 :
+			isysroot = $(developerRoot)/MacOSX10.4u.sdk ;
+			sdkroot = macosx10.4 ;
+
+		case 10.4u :
+			isysroot = $(developerRoot)/MacOSX10.4u.sdk ;
+			sdkroot = macosx10.4 ;
+
+		case 10.5 :
+			isysroot = $(developerRoot)/MacOSX10.5.sdk ;
+			sdkroot = macosx10.5 ;
+
+		case 10.6 :
+			isysroot = $(developerRoot)/MacOSX10.6.sdk ;
+			sdkroot = macosx10.6 ;
+		
+		case 10.7 :
+			isysroot = $(developerRoot)/MacOSX10.7.sdk ;
+			sdkroot = macosx10.7 ;
+		
+		case 10.8 :
+			developerRoot = [ Match ([^$(NEWLINE)]*) : [ Shell "xcode-select --print-path" ] ] ;
+			isysroot = $(developerRoot)/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk ;
+			sdkroot = macosx10.8 ;
+
+		case 10.9 :
+			developerRoot = [ Match ([^$(NEWLINE)]*) : [ Shell "xcode-select --print-path" ] ] ;
+			isysroot = $(developerRoot)/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk ;
+			sdkroot = macosx10.9 ;
+
+		case 10.11 :
+			developerRoot = [ Match ([^$(NEWLINE)]*) : [ Shell "xcode-select --print-path" ] ] ;
+			isysroot = $(developerRoot)/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk ;
+			sdkroot = macosx ;
+
+		case 10.12 :
+			developerRoot = [ Match ([^$(NEWLINE)]*) : [ Shell "xcode-select --print-path" ] ] ;
+			isysroot = $(developerRoot)/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk ;
+			sdkroot = macosx ;
+
+		case * :		Exit "* C.macosx.SDK: Unsupported version $(SDK_VERSION) for SDK platform $(SDK_PLATFORM)." ;
+	}
+	developerRoot = $(isysroot) ;
+
+	C.AR on $(C.COMPILER_SUITE_SYMBOL) = $(COMPILER_BIN_PATH)/$(C.AR:BSZ=$(C.COMPILER_SUITE_SYMBOL)) ;
+	C.CC on $(C.COMPILER_SUITE_SYMBOL) = $(COMPILER_BIN_PATH)/$(C.CC:BSZ=$(C.COMPILER_SUITE_SYMBOL)) ;
+	C.C++ on $(C.COMPILER_SUITE_SYMBOL) = $(COMPILER_BIN_PATH)/$(C.C++:BSZ=$(C.COMPILER_SUITE_SYMBOL)) ;
+	C.LINK on $(C.COMPILER_SUITE_SYMBOL) = $(COMPILER_BIN_PATH)/$(C.LINK:BSZ=$(C.COMPILER_SUITE_SYMBOL)) ;
+	C.RANLIB on $(C.COMPILER_SUITE_SYMBOL) = ;
+
+	if ! $(architecture) {
+		switch $(C.PLATFORM) {
+			case macosx32 : architecture = i386 ;
+			case macosx64 : architecture = x86_64 ;
+		}
+	}
+	C.ARCHITECTURE on $(C.ACTIVE_TOOLCHAIN_*) = $(architecture) ;
+	ISYSROOT on $(C.ACTIVE_TOOLCHAIN_*) = $(isysroot) ;
+	IOS_SDK_VERSION_MIN on $(C.ACTIVE_TOOLCHAIN_*) ?= $(SDK_VERSION) ;
+	XCODE_SDKROOT on $(C.ACTIVE_TOOLCHAIN_*) = $(sdkroot) ;
+
+	#flags += -gdwarf-2 ;
+
+	if $(TARGETINFO_LOCATE) {
+		Contents += "Projects[ [[C.*]] ].XCODE_SDKROOT[ [[$(C.PLATFORM)]] ][ [[$(C.CONFIG)]] ] = [[$(sdkroot)]]
+Projects[ [[C.*]] ].XCODE_ARCHITECTURE[ [[$(C.PLATFORM)]] ][ [[$(C.CONFIG)]] ] = { [[$(architecture)]] }
+
+" ;
+	}
+}
+
+rule C.macosx.MinimumOSVersion TARGET : SDK_VERSION_MIN {
+	TARGET = [ ActiveTarget $(TARGET) ] ;
+
+	local SDK_PLATFORM ;
+	SDK_PLATFORM ?= $(C.PLATFORM) ;
+
+	IOS_SDK_VERSION_MIN on $(C.ACTIVE_TOOLCHAIN_TARGET) = $(SDK_VERSION_MIN) ;
+
+	if $(TARGETINFO_LOCATE) {
+		Contents += "Projects[ [[C.*]] ].OSX_SDK_VERSION_MIN[ [[$(C.PLATFORM)]] ][ [[$(C.CONFIG)]] ] = [[$(SDK_VERSION_MIN)]]
+
+" ;
+	}
+}
+
+
+rule C.macosx._BundleInfoArray KEY : VALUE {
+	if ! $(KEY) in $(INFO_PLIST_KEYS:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) {
+		INFO_PLIST_KEYS on $(C.ACTIVE_TOOLCHAIN_TARGET) += $(KEY) ;
+	}
+	INFO_PLIST_KEYS.$(KEY).TYPE on $(C.ACTIVE_TOOLCHAIN_TARGET) = ArrayString ;
+	INFO_PLIST_KEYS.$(KEY).VALUE on $(C.ACTIVE_TOOLCHAIN_TARGET) = $(VALUE) ;
+}
+
+
+rule C.macosx._BundleInfoIntegerArray KEY : VALUE {
+	if ! $(KEY) in $(INFO_PLIST_KEYS:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) {
+		INFO_PLIST_KEYS on $(C.ACTIVE_TOOLCHAIN_TARGET) += $(KEY) ;
+	}
+	INFO_PLIST_KEYS.$(KEY).TYPE on $(C.ACTIVE_TOOLCHAIN_TARGET) = ArrayInteger ;
+	INFO_PLIST_KEYS.$(KEY).VALUE on $(C.ACTIVE_TOOLCHAIN_TARGET) = $(VALUE) ;
+}
+
+
+rule C.macosx._BundleInfoBoolean KEY : VALUE {
+	if ! $(KEY) in $(INFO_PLIST_KEYS:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) {
+		INFO_PLIST_KEYS on $(C.ACTIVE_TOOLCHAIN_TARGET) += $(KEY) ;
+	}
+	INFO_PLIST_KEYS.$(KEY).TYPE on $(C.ACTIVE_TOOLCHAIN_TARGET) = Boolean ;
+	INFO_PLIST_KEYS.$(KEY).VALUE on $(C.ACTIVE_TOOLCHAIN_TARGET) = $(VALUE) ;
+}
+
+
+rule C.macosx._BundleInfoString KEY : VALUE {
+	if ! $(KEY) in $(INFO_PLIST_KEYS:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) {
+		INFO_PLIST_KEYS on $(C.ACTIVE_TOOLCHAIN_TARGET) += $(KEY) ;
+	}
+	INFO_PLIST_KEYS.$(KEY).TYPE on $(C.ACTIVE_TOOLCHAIN_TARGET) = String ;
+	INFO_PLIST_KEYS.$(KEY).VALUE on $(C.ACTIVE_TOOLCHAIN_TARGET) = $(VALUE) ;
+}
+
+
+rule C.macosx.BundleInfo TARGET : TYPE : VALUE {
+	TARGET = [ ActiveTarget $(TARGET) ] ;
+	on $(C.ACTIVE_TOOLCHAIN_TARGET) if ! $(INFO_PLIST_KEYS) {
+		IOS_SDK_VERSION_MIN ?= $(IOS_SDK_VERSION_MIN:Z=$(C.ACTIVE_TOOLCHAIN_*)) ;
+		C.macosx._BundleInfoString CFBundleDevelopmentRegion : en ;
+		C.macosx._BundleInfoString CFBundleExecutable : [ C._retrieveOutputName $(TARGET) ] ;
+		C.macosx._BundleInfoString CFBundleInfoDictionaryVersion : 6.0 ;
+		C.macosx._BundleInfoString CFBundlePackageType : APPL ;
+		C.macosx._BundleInfoString CFBundleSignature : ???? ;
+		C.macosx._BundleInfoString MinimumOSVersion : $(IOS_SDK_VERSION_MIN) ;
+		#C.macosx._BundleInfoString CFBundleResourceSpecification : ResourceRules.plist ;
+	}
+
+	switch $(TYPE:L) {
+		case info :					C.macosx._BundleInfoString CFBundleGetInfoString : $(VALUE) ;
+		case iconfile :				C.macosx._BundleInfoString CFBundleIconFile : $(VALUE) ;
+		case iconfiles :			C.macosx._BundleInfoArray CFBundleIconFiles : $(VALUE) ;
+		case longversion :			C.macosx._BundleInfoString CFBundleLongVersionString : $(VALUE) ;
+		case bundlename :
+			C.macosx._BundleInfoString CFBundleName : $(VALUE) ;
+			CFBundleName on $(C.ACTIVE_TOOLCHAIN_TARGET) = $(VALUE) ;
+		case displayname :
+			C.macosx._BundleInfoString CFBundleDisplayName : $(VALUE) ;
+			CFBundleDisplayName on $(C.ACTIVE_TOOLCHAIN_TARGET) = $(VALUE) ;
+		case executable :			C.macosx._BundleInfoString CFBundleExecutable : $(VALUE) ;
+		case identifier :
+			C.macosx._BundleInfoString CFBundleIdentifier : $(VALUE[1]) ;
+			CFBundleIdentifier on $(C.ACTIVE_TOOLCHAIN_TARGET) = $(VALUE[1]) ;
+			AppIdentifierPrefix on $(C.ACTIVE_TOOLCHAIN_TARGET) = $(VALUE[2]) ;
+		case shortversion :			C.macosx._BundleInfoString CFShortVersionString : $(VALUE) ;
+		case bundleversion :
+			C.macosx._BundleInfoString CFBundleVersion : $(VALUE) ;
+			CFBundleVersion on $(C.ACTIVE_TOOLCHAIN_TARGET) = $(VALUE) ;
+		case copyright :			C.macosx._BundleInfoString NSHumanReadableCopyright : $(VALUE) ;
+		case mainnibfile :			C.macosx._BundleInfoString NSMainNibFile : $(VALUE) ;
+		case nsprincipalclass :		C.macosx._BundleInfoString NSPrrincipalClass : $(VALUE) ;
+		case resourcespec :			C.macosx._BundleInfoString CFBundleResourceSpecification : $(VALUE) ;
+		case supportedplatforms :   C.macosx._BundleInfoArray CFBundleSupportedPlatforms : $(VALUE) ;
+		case minimumosversion :		C.macosx._BundleInfoString MinimumOSVersion : $(VALUE) ;
+		case uidevicefamily :		C.macosx._BundleInfoIntegerArray UIDeviceFamily : $(VALUE) ;
+		case uiprerenderedicon :	C.macosx._BundleInfoBoolean UIPrerenderedIcon : $(VALUE) ;
+		case uistatusbarhidden :	C.macosx._BundleInfoBoolean UIStatusBarHidden : $(VALUE) ;
+		case uiviewcontrollerbasedstatusbarappearance : C.macosx._BundleInfoBoolean UIViewControllerBasedStatusBarAppearance : $(VALUE) ;
+	}
+}
+
+
+actions C.macosx._GenerateDSYMFile {
+	@($(COMPILER_BIN_PATH)/dsymutil:C) $(2:C) -o $(OUTPUT_PATH:C)
+}
+
+
+rule C.macosx.GenerateDSYMFile TARGET {
+	TARGET = [ ActiveTarget $(TARGET) ] ;
+	local bundlePath = $(BUNDLE_PATH:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) ;
+	local dsymBundlePath = $(bundlePath).dSYM ;
+	local _t = $(LIPO_TARGET:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) ;
+	local _t.dsym = $(_t).DSYM ;
+	DSYM_NAME on $(C.ACTIVE_TOOLCHAIN_TARGET) = $(_t.dsym) ;
+	BINDING on $(_t.dsym) = $(BINDING:Z=$(_t)) ;
+	OUTPUT_PATH on $(_t.dsym) = $(dsymBundlePath) ;
+	MakeLocate $(_t.dsym) : $(dsymBundlePath)/Contents/Resources/DWARF ;
+	Depends $(C.ACTIVE_TOOLCHAIN_TARGET) : $(_t.dsym) : $(_t) ;
+	CleanTree $(CLEAN_BUNDLE_TARGET:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) : $(dsymBundlePath) ;
+	C.macosx._GenerateDSYMFile $(_t.dsym) : $(_t) : $(C.COMPILER_SUITE_SYMBOL) ;
+}
+
+
+actions C.macosx._Lipo {
+	$(C.LIPO:C) $(2:C) -output $(1:C) -create
+}
+
+rule C.macosx.Lipo TARGET : LINK_TARGETS : OUTPUT_PATH {
+	TARGET = [ ActiveTarget $(TARGET) ] ;
+	local C.__COLON = ":" ;
+	local _t = $(LINK_TARGETS[0]:G=$(C.ACTIVE_TOOLCHAIN_TARGET_GRIST)$(C.__COLON)lipo) ;
+	BINDING on $(_t) = $(BINDING:Z=$(LINK_TARGETS[0])) ;
+	Depends $(TARGET) : $(C.ACTIVE_TOOLCHAIN_TARGET) : $(_t) : $(LINK_TARGETS) ;
+	MakeLocate $(_t) : $(OUTPUT_PATH) ;
+	Clean $(C.ACTIVE_TOOLCHAIN_CLEAN_TARGET) : $(_t) ;
+	C.macosx._Lipo $(_t) : $(LINK_TARGETS) : $(C.COMPILER_SUITE_SYMBOL) ;
+	LIPO_TARGET on $(C.ACTIVE_TOOLCHAIN_TARGET) = $(_t) ;
+	return $(linkTargets) ;
+}
+
+
+rule C.macosx.Bundle TARGET : TOOLCHAINS {
+	TARGET = [ ActiveTarget $(TARGET) ] ;
+
+	local bundlePath = $(BUNDLE_PATH:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) ;
+	local bundleTarget = $(BUNDLE_TARGET:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) ;
+	local cleanBundleTarget = $(CLEAN_BUNDLE_TARGET:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) ;
+	Depends $(C.ACTIVE_TOOLCHAIN_TARGET) : $(bundleTarget) ;
+	NotFile $(bundleTarget) ;
+	Depends clean : clean:$(TARGET) : $(C.ACTIVE_TOOLCHAIN_CLEAN_TARGET) : $(cleanBundleTarget) ;
+	NotFile clean:$(TARGET) $(C.ACTIVE_TOOLCHAIN_CLEAN_TARGET) ;
+	Always clean:$(TARGET) $(C.ACTIVE_TOOLCHAIN_CLEAN_TARGET) ;
+	NotFile $(cleanBundleTarget) ;
+	Always $(cleanBundleTarget) ;
+
+	local linkTargets ;
+	local toolchain ;
+	for toolchain in $(TOOLCHAINS:E=$(C.ACTIVE_TOOLCHAIN)) {
+		linkTargets += [ C.GetLinkTargets $(TARGET) : $(toolchain) ] ;
+	}
+	C.macosx.Lipo $(TARGET) : $(linkTargets) : $(bundlePath)/MacOS ;
+
+	{
+		local isysroot = $(ISYSROOT:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) ;
+		isysroot ?= $(ISYSROOT:Z=$(C.ACTIVE_TOOLCHAIN_*)) ;
+
+		# Get task allow value - trying target first, if not set falling back to configuration, if not set defaulting to true.
+		local getTaskAllowValue = $(GET_TASK_ALLOW:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) ;
+		getTaskAllowValue ?= $(GET_TASK_ALLOW:Z=$(C.ACTIVE_TOOLCHAIN_*)) ;
+		getTaskAllowValue ?= true ;
+
+		local pkginfo = @(PkgInfo:G=$(C.ACTIVE_TOOLCHAIN_TARGET_GRIST)) ;
+		MakeLocate $(pkginfo) : $(bundlePath) ;
+		local contents = APPL???? ;
+		CONTENTS on $(pkginfo) = $(contents) ;
+		WriteFile $(pkginfo) ;
+		UseCommandLine $(pkginfo) : $(contents) ;
+		Depends $(bundleTarget) : $(pkginfo) ;
+		Clean $(cleanBundleTarget) : $(pkginfo) ;
+
+		if $(INFO_PLIST_KEYS:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) {
+
+			# Set up Info.plist file header.
+			local infoplistcontents = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">
+<plist version=\"1.0\">
+<dict>
+" ;
+			# Set up each key/value pair based on the type (Array/Boolean/String).
+			for _key in $(INFO_PLIST_KEYS:Z=$(C.ACTIVE_TOOLCHAIN_TARGET))
+			{
+				switch $(INFO_PLIST_KEYS.$(_key).TYPE:Z=$(C.ACTIVE_TOOLCHAIN_TARGET))
+				{
+					case ArrayInteger :
+						infoplistcontents += "$(TAB)<key>$(_key)</key>$(NEWLINE)$(TAB)<array>$(NEWLINE)" ;
+						for value in $(INFO_PLIST_KEYS.$(_key).VALUE:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) {
+							infoplistcontents += "$(TAB)$(TAB)<integer>$(value)</integer>$(NEWLINE)" ;
+						}
+						infoplistcontents += "$(TAB)</array>$(NEWLINE)" ;
+					case ArrayString :
+						infoplistcontents += "$(TAB)<key>$(_key)</key>$(NEWLINE)$(TAB)<array>$(NEWLINE)" ;
+						for value in $(INFO_PLIST_KEYS.$(_key).VALUE:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) {
+							infoplistcontents += "$(TAB)$(TAB)<string>$(value)</string>$(NEWLINE)" ;
+						}
+						infoplistcontents += "$(TAB)</array>$(NEWLINE)" ;
+					case Boolean :
+						infoplistcontents += "$(TAB)<key>$(_key)</key>$(NEWLINE)$(TAB)" ;
+						if $(INFO_PLIST_KEYS.$(_key).VALUE:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) = true {
+							infoplistcontents += "<true/>$(NEWLINE)" ;
+						} else {
+							infoplistcontents += "<false/>$(NEWLINE)" ;
+						}
+					case String :
+						infoplistcontents += "$(TAB)<key>$(_key)</key>$(NEWLINE)$(TAB)<string>$(INFO_PLIST_KEYS.$(_key).VALUE:Z=$(C.ACTIVE_TOOLCHAIN_TARGET))</string>$(NEWLINE)" ;
+				}
+			}
+
+			# Set up Info.plist file footer.
+			infoplistcontents += "</dict>
+</plist>
+" ;
+			infoplistcontents = $(infoplistcontents:J="") ;
+
+			local infoplist = @(Info.plist:G=$(C.ACTIVE_TOOLCHAIN_TARGET_GRIST)) ;
+			MakeLocate $(infoplist) : $(bundlePath) ;
+			CONTENTS on $(infoplist) = $(infoplistcontents) ;
+			WriteFile $(infoplist) ;
+
+			UseCommandLine $(infoplist) : $(infoplistcontents) ;
+			Depends $(bundleTarget) : $(infoplist) ;
+			Clean $(cleanBundleTarget) : $(infoplist) ;
+		}
+
+		{
+			local provisionFileTarget = $(PROVISION_FILE_TARGET:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) ;
+			local embedded.mobileprovision = @(embedded.mobileprovision:G=$(C.ACTIVE_TOOLCHAIN_TARGET_GRIST)) ;
+			MakeLocate $(embedded.mobileprovision) : $(bundlePath) ;
+
+			# Copy provision into the bundle and name it embedded.mobileprovision
+			Depends $(bundleTarget) : $(embedded.mobileprovision) ;
+			#CopyFile $(TARGET) : $(embedded.mobileprovision) : $(provisionFileTarget) ;
+
+			# Without this, if we change between profiles, the copy will not always
+			# work due to destination time stamp being newer than source (despite
+			# coming from a different file).
+			UseCommandLine $(embedded.mobileprovision) : $(provisionFileTarget) ;
+		}
+	}
+
+	if $(C.PLATFORM) in macosx32 macosx64 {
+#		C.macosx.GenerateDSYMFile $(TARGET) ;
+	}
+}
+
+rule C.macosx._ApplicationFromObjects_PostBuild {
+	local outputName = [ C._retrieveOutputName ] ;
+	local outputPath = [ C._retrieveOutputPath ] ;
+	local bundlePath = $(outputPath)/$(outputName).app ;
+	BUNDLE_PATH on $(C.ACTIVE_TOOLCHAIN_TARGET) = $(bundlePath)/Contents ;
+
+	local bundleTarget = $(C.ACTIVE_TOOLCHAIN_TARGET_GRIST):bundle ;
+	local colon = ":" ;
+	local cleanBundleTarget = @(clean$(colon)$(TARGET)$(colon)bundle:G=$(C.ACTIVE_TOOLCHAIN_GRIST)) ;
+	BUNDLE_TARGET on $(C.ACTIVE_TOOLCHAIN_TARGET) = $(bundleTarget) ;
+	CLEAN_BUNDLE_TARGET on $(C.ACTIVE_TOOLCHAIN_TARGET) = $(cleanBundleTarget) ;
+
+	if bundle in $(OPTIONS) {
+		C.macosx.Bundle ;
+	}
+}
+
+
+rule C.macosx._Inherits {
+	local publicFrameworks = $(PUBLIC_FRAMEWORKS:Z=$(inheritsTarget)) ;
+	if $(publicFrameworks) {
+		FRAMEWORKS on $(C.ACTIVE_TOOLCHAIN_TARGET) += $(publicFrameworks) ;
+		if $(public) {
+			PUBLIC_FRAMEWORKS on $(C.ACTIVE_TOOLCHAIN_TARGET) += $(publicFrameworks) ;
+		}
+	}
+}
+
+
+rule C.macosx._MultiCppCompile_SetupFlags {
+	local isysroot = $(ISYSROOT:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) ;
+	isysroot ?= $(ISYSROOT:Z=$(C.ACTIVE_TOOLCHAIN_*)) ;
+
+	local sdkversion = $(IPHONEOS_SDK_VERSION:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) ;
+	sdkversion ?= $(IPHONEOS_SDK_VERSION:Z=$(C.ACTIVE_TOOLCHAIN_*)) ;
+
+	local minimumsdkversion = $(IOS_SDK_VERSION_MIN:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) ;
+	minimumsdkversion ?= $(IOS_SDK_VERSION_MIN:Z=$(C.ACTIVE_TOOLCHAIN_*)) ;
+
+	local architecture = $(C.ARCHITECTURE:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) ;
+	architecture ?= $(C.ARCHITECTURE:Z=$(C.ACTIVE_TOOLCHAIN_*)) ;
+
+	local extraflags ;
+	extraflags += "-isysroot $(isysroot:C)" ;
+	extraflags += "-arch $(architecture)" ;
+	switch $(C.PLATFORM) {
+		case macosx32 :
+			# 10.4, 10.5, 10.6, 10.7, 10.8 10.9
+			extraflags += -mmacosx-version-min=$(minimumsdkversion) ;
+
+		case macosx64 :
+			# 10.4, 10.5, 10.6, 10.7, 10.8 10.9
+			extraflags += -mmacosx-version-min=$(minimumsdkversion) ;
+	}
+
+	_flags = $(_flags[1-4]) $(extraflags) $(_flags[5-]) ;
+
+	C.clang._MultiCppCompile_SetupFlags ;
+}
+
+
+rule C.macosx._ApplicationFromObjects_LinkFlags {
+	linkRule = C.macosx.clang.Link ;
+
+	local isysroot = $(ISYSROOT:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) ;
+	isysroot ?= $(ISYSROOT:Z=$(C.ACTIVE_TOOLCHAIN_*)) ;
+
+	local architecture = $(C.ARCHITECTURE:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) ;
+	architecture ?= $(C.ARCHITECTURE:Z=$(C.ACTIVE_TOOLCHAIN_*)) ;
+
+	linkFlags += "-isysroot $(isysroot:C)" ;
+	linkFlags += "-arch $(architecture)" ;
+	switch $(C.PLATFORM) {
+		case macosx32 :
+			# 10.4, 10.5, 10.6, 10.7, 10.8 10.9
+			linkFlags += -mmacosx-version-min=$(minimumsdkversion) ;
+
+		case macosx64 :
+			# 10.4, 10.5, 10.6, 10.7, 10.8 10.9
+			linkFlags += -mmacosx-version-min=$(minimumsdkversion) ;
+	}
+
+	linkFlags += "-framework $(FRAMEWORKS:Z=$(C.ACTIVE_TOOLCHAIN_TARGET))" ;
+}
+
+
+rule C.macosx._LibraryFromObjects_LibFlags {
+	archiveRule = C.macosx.clang.Archive ;
+
+	local isysroot = $(ISYSROOT:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) ;
+	isysroot ?= $(ISYSROOT:Z=$(C.ACTIVE_TOOLCHAIN_*)) ;
+	if $(isysroot) {
+		#libFlags += -syslibroot $(isysroot:C) ;
+	}
+}
+
+
+rule C.macosx._SharedLibraryFromObjects_LinkFlags {
+	linkRule = C.macosx.clang.Link ;
+
+	local isysroot = $(ISYSROOT:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) ;
+	isysroot ?= $(ISYSROOT:Z=$(C.ACTIVE_TOOLCHAIN_*)) ;
+
+	local architecture = $(C.ARCHITECTURE:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) ;
+	architecture ?= $(C.ARCHITECTURE:Z=$(C.ACTIVE_TOOLCHAIN_*)) ;
+
+	linkFlags += "-isysroot $(isysroot:C)" ;
+	linkFlags += "-arch $(architecture)" ;
+
+	if module in $(OPTIONS) {
+		linkFlags += -bundle -undefined dynamic_lookup -fPIC ;
+	} else {
+		local installName =
+			$(INSTALL_NAME_PATH:Z=$(C.ACTIVE_TOOLCHAIN_TARGET))
+			$(INSTALL_NAME_PATH:Z=$(C.ACTIVE_TOOLCHAIN_*))
+		;
+		if ! $(installName) {
+			installName = $(_t:TD) ;
+		} else {
+			installName = $(installName[1]) ;
+		}
+		local outputName = [ C._retrieveOutputName : $(_t:S) ] ;
+		installName = $(outputName:BSR=$(installName)) ;
+		linkFlags += -dynamiclib -fPIC -install_name $(installName) ;
+	}
+
+	linkFlags += "-framework $(FRAMEWORKS:Z=$(C.ACTIVE_TOOLCHAIN_TARGET))" ;
+}
+
+
+rule C.macosx.SetTaskAllow TARGET : VALUE {
+	TARGET = [ ActiveTarget $(TARGET) ] ;
+
+	# If true/false isn't specific, assume true, as 'setting' could be thought of enabling.
+	VALUE ?= true ;
+
+	# Save value passed, we'll later check both $(TARGET) and C.* so we can have config defaults and support overrides.
+	GET_TASK_ALLOW on $(C.ACTIVE_TOOLCHAIN_TARGET) = $(VALUE) ;
+}
+
+
+if $(TARGETINFO_LOCATE) {
+
+rule C.macosx.XIB {
+
+}
+
+rule C.macosx.SetTaskAllow {
+}
+
+rule C.macosx.CodeSign TARGET : PROVISIONING_PROFILE {
+	Contents += "Projects[ [[C.*]] ].IOS_SIGNING_IDENTITY[ [[$(C.PLATFORM)]] ][ [[$(C.CONFIG)]] ] = [[$(PROVISIONING_PROFILE)]]
+
+" ;
+}
+
+
+rule C._ApplicationTargetInfo {
+}
+
+} else {
+
+rule C.macosx.XIB PARENT : SOURCES : TARGET_DIRECTORY {
+	PARENT = [ C.ActiveTarget $(PARENT) ] ;
+
+	SOURCES = $(SOURCES:G=$(C.ACTIVE_TOOLCHAIN_TARGET_GRIST)) ;
+	SEARCH on $(SOURCES) += $(SEARCH_SOURCE) ;
+
+	local targets = $(SOURCES:S=.nib) ;
+
+	MakeLocate $(targets) : $(TARGET_DIRECTORY) ;
+	Clean $(C.ACTIVE_TOOLCHAIN_CLEAN_TARGET) : $(targets) ;
+
+	Depends $(C.ACTIVE_TOOLCHAIN_TARGET) : $(targets) ;
+
+	local source ;
+	for source in $(SOURCES) {
+		local target = $(source:S=.nib) ;
+		Depends $(target) : $(source) ;
+
+		C.macosx._CompileXIB $(target) : $(source) : $(C.COMPILER_SUITE_SYMBOL) ;
+	}
+}
+
+
+	#/Developer/usr/bin/ibtool --errors --warnings --notices --output-format human-readable-text --compile $(1:C) $(2:C)
+actions C.macosx._CompileXIB
+{
+	PATH=$(MACOSX_SDK_DEVELOPER_ROOT)/usr/bin:$PATH
+	/Applications/Xcode.app/Contents/Developer/usr/bin/ibtool --errors --warnings --notices --output-format human-readable-text --compile $(1:C) $(2:C)
+}
+
+
+} # TARGETINFO_LOCATE
+

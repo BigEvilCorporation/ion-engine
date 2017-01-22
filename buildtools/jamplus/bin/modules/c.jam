@@ -1,3 +1,5 @@
+rule C {
+}
 
 SUBDIRRESET += ASFLAGS HDRS C++FLAGS CCFLAGS ;
 
@@ -12,7 +14,7 @@ rule C.ActiveTarget TARGET {
 	if ! $(TARGET)  &&  $(C.ACTIVE_TARGET) {
 		return $(C.ACTIVE_TARGET) ;
 	}
-	if $(C.LAST_ACTIVE_TARGET_INFO) = $(TARGET)*$(C.ACTIVE_TOOLCHAIN)*$(ALL_SUBDIR_TOKENS) {
+	if $(C.LAST_ACTIVE_TARGET_INFO) = $(TARGET)*$(C.ACTIVE_TOOLCHAIN_GRIST)*$(ALL_SUBDIR_TOKENS) {
 		return $(C.ACTIVE_TARGET) ;
 	}
 
@@ -23,43 +25,47 @@ rule C.ActiveTarget TARGET {
 	# C.ACTIVE_TARGET = ProjectName
 	C.ACTIVE_TARGET = $(TARGET) ;
 
-	# C.ACTIVE_TOOLCHAIN_TARGET = <win32!debug>ProjectName
-	C.ACTIVE_TOOLCHAIN_TARGET = $(TARGET:G=$(C.ACTIVE_TOOLCHAIN)) ;
+	# C.ACTIVE_TOOLCHAIN_TARGET = <win32/debug>ProjectName
+	C.ACTIVE_TOOLCHAIN_TARGET = $(TARGET:G=$(C.ACTIVE_TOOLCHAIN_GRIST)) ;
 
-	# C.ACTIVE_TOOLCHAIN_TARGET_GRIST = win32!debug:ProjectName
-	C.ACTIVE_TOOLCHAIN_TARGET_GRIST = $(C.ACTIVE_TOOLCHAIN):$(TARGET) ;
+	# C.ACTIVE_TOOLCHAIN_TARGET_GRIST = win32/debug:ProjectName
+	C.ACTIVE_TOOLCHAIN_TARGET_GRIST = $(C.ACTIVE_TOOLCHAIN_GRIST):$(TARGET) ;
 
-	# C.ACTIVE_TOOLCHAIN_CLEAN_TARGET = <win32!debug>clean:ProjectName
+	# C.ACTIVE_TOOLCHAIN_CLEAN_TARGET = <win32/debug>clean:ProjectName
 	local colon = ":" ;
-	C.ACTIVE_TOOLCHAIN_CLEAN_TARGET = @(clean$(colon)$(TARGET):G=$(C.ACTIVE_TOOLCHAIN)) ;
+	C.ACTIVE_TOOLCHAIN_CLEAN_TARGET = @(clean$(colon)$(TARGET):G=$(C.ACTIVE_TOOLCHAIN_GRIST)) ;
 
-	# C.ACTIVE_TOOLCHAIN_ALLCLEAN_TARGET = <win32!debug>allclean:ProjectName
-	C.ACTIVE_TOOLCHAIN_ALLCLEAN_TARGET = @(allclean$(colon)$(TARGET):G=$(C.ACTIVE_TOOLCHAIN)) ;
+	# C.ACTIVE_TOOLCHAIN_ALLCLEAN_TARGET = <win32/debug>allclean:ProjectName
+	C.ACTIVE_TOOLCHAIN_ALLCLEAN_TARGET = @(allclean$(colon)$(TARGET):G=$(C.ACTIVE_TOOLCHAIN_GRIST)) ;
 
-	# C.ACTIVE_TOOLCHAIN_* = <win32!debug>C.*
-	C.ACTIVE_TOOLCHAIN_* = @(C.*:G=$(C.ACTIVE_TOOLCHAIN)) ;
+	# C.ACTIVE_TOOLCHAIN_* = <win32/debug>C.*
+	C.ACTIVE_TOOLCHAIN_* = @(C.*:G=$(C.ACTIVE_TOOLCHAIN_GRIST)) ;
 
+#	if ! $(ALL_SUBDIR_TOKENS) {
+#		SubDir TOP ;
+#	}
+#
+#	if $(TARGET) != C.* {
 	if $(ALL_SUBDIR_TOKENS)  &&  $(TARGET) != C.* {
-		SubDir : $(C.ACTIVE_CONFIG_SPEC:J=-)/$(TARGET) ;
+		SubDir : $(C.ACTIVE_TOOLCHAIN_SPEC_PATH) $(TARGET) ;
 		LOCATE_TARGET = $(LOCATE_TARGET:Z=$(C.ACTIVE_TOOLCHAIN_TARGET):E=$(LOCATE_TARGET)) ;
 		LOCATE_SOURCE = $(LOCATE_SOURCE:Z=$(C.ACTIVE_TOOLCHAIN_TARGET):E=$(LOCATE_SOURCE)) ;
 	}
 
-	C.LAST_ACTIVE_TARGET_INFO = $(TARGET)*$(C.ACTIVE_TOOLCHAIN)*$(ALL_SUBDIR_TOKENS:E=_nosubdir_) ;
+	C.LAST_ACTIVE_TARGET_INFO = $(TARGET)*$(C.ACTIVE_TOOLCHAIN_GRIST)*$(ALL_SUBDIR_TOKENS:E=_nosubdir_) ;
 
 	return $(C.ACTIVE_TARGET) ;
 }
 
-rule C.GetLinkTargets TARGET : TOOLCHAIN_SPEC
-{
-	local toolChainGrist ;
-	if $(TOOLCHAIN_SPEC) {
-		toolChainGrist = $(TOOLCHAIN_SPEC:J=!) ;
-	} else {
-		toolChainGrist = $(C.ACTIVE_TOOLCHAIN) ;
-	}
-	local toolChainTarget = $(TARGET:G=$(toolChainGrist)) ;
+rule C.GetLinkTargets TARGET : TOOLCHAIN_SPEC {
+	TOOLCHAIN_SPEC ?= $(C.ACTIVE_TOOLCHAIN_GRIST) ;
+	local toolChainTarget = $(TARGET:G=$(TOOLCHAIN_SPEC)) ;
 	return $(LINKTARGETS:Z=$(toolChainTarget)) ;
+}
+
+rule C.GetArchitecture TOOLCHAIN_SPEC {
+	TOOLCHAIN_SPEC ?= $(C.ACTIVE_TOOLCHAIN_GRIST) ;
+	return $(C.ARCHITECTURE:Z=$(TOOLCHAIN_SPEC)) ;
 }
 
 rule C.Clean TARGET : FILES {
@@ -69,8 +75,8 @@ rule C.Clean TARGET : FILES {
 
 
 rule C.GristTarget TARGET {
-	C.ActiveTarget $(TARGET) ;
-	return $(C.ACTIVE_TOOLCHAIN_TARGET) ;
+	if $(TARGET) = * { TARGET = C.* ; }
+	return $(TARGET:G=$(C.ACTIVE_TOOLCHAIN_GRIST)) ;
 }
 
 
@@ -138,19 +144,6 @@ rule C.HdrRule SOURCE : HEADERS {
 	HDRGRIST on $(s) = $(HDRGRIST) ;
 }
 
-
-
-rule C.SubDirCcFlags {
-	SUBDIRCCFLAGS += $(<) ;
-}
-
-rule C.SubDirC++Flags {
-	SUBDIRC++FLAGS += $(<) ;
-}
-
-rule C.SubDirHdrs {
-	SUBDIRHDRS += [ FDirName $(<) ] ;
-}
 
 
 ########################################################################
@@ -223,15 +216,16 @@ rule C._MultiCppCompile_ObjName_Pass1 {
 
 
 rule C._MultiCppCompile SOURCES {
-	local TARGET = $(C.ACTIVE_TARGET) ;
+	local TARGET = $(C.ACTIVE_TOOLCHAIN_TARGET) ;
 	SOURCES = [ ExpandFileList $(SOURCES) ] ;
 
 	#
 	# Pass 1: Bind final flags to each file
 	#
 
-	if [ RuleExists C.$(C.COMPILER_SUITE)._MultiCppCompile_PreCompile ] {
-		C.$(C.COMPILER_SUITE)._MultiCppCompile_PreCompile ;
+	local theRule ;
+	for theRule in $(C._MultiCppCompile_PreCompile:Z=$(C.COMPILER_SUITE_SYMBOL)) {
+		$(theRule) ;
 	}
 
 	local postHDRS ;
@@ -243,8 +237,6 @@ rule C._MultiCppCompile SOURCES {
 	local preMMFLAGS ;
 	local flagsToRemove ;
 	local flagsToAdd ;
-
-	postHDRS += $(SUBDIRHDRS) ;
 
 	local forceIncludes ;
 	on $(C.ACTIVE_TOOLCHAIN_*) {
@@ -281,25 +273,7 @@ rule C._MultiCppCompile SOURCES {
 
 	preDEFINES = [ C.$(C.COMPILER_SUITE).FDefines $(preDEFINES) ] ;
 
-	# start with empty list of all generated objects
-	local _allobjs = ;
-
-	# for each file
-	local dollar = $ ;
-	local colon = ":" ;
-	local listIncludes = @(I=\\$(C.BUILD_EXTENSIONS)$:J=$(colon)) ;
-	local sources = @($(dollar)(SOURCES$(colon)$(listIncludes)):A:G=$(C.ACTIVE_TOOLCHAIN_TARGET_GRIST)) ;
-
-	# source needs to be scanned for header dependencies
-	HDRRULE on $(sources) = C.HdrRule ;
-	HDRSCAN on $(sources) = $(C.HDRPATTERN) ;
-	HDRGRIST on $(sources) = $(C.ACTIVE_TOOLCHAIN_TARGET_GRIST) ;
-
-	SEARCH on $(sources) = $(SEARCH_SOURCE) ;
-
-	local newsrcs ;
-	local _src ;
-
+	# choose the right output method
 	local makeobj_pass1 ;
 	if $(__MultiCppCompile_OutputAsTree) != 0 {
 		makeobj_pass1 = C._MultiCppCompile_ObjName_Pass1_OutputAsTree ;
@@ -309,7 +283,32 @@ rule C._MultiCppCompile SOURCES {
 		MkDir $(LOCATE_TARGET[1]:G=!dir!) ;
 	}
 
-	local FIncludes_dot = ; # [ C.$(C.COMPILER_SUITE).FIncludes . ] ;
+	# start with empty list of all generated objects
+	local _allobjs = ;
+
+	# for each file
+	local dollar = $ ;
+	local colon = ":" ;
+	local listIncludes = @(I=\\$(C.BUILD_EXTENSIONS)$:J=$(colon)) ;
+
+	local newsrcs ;
+
+	while 1 {
+	if ! $(SOURCES) {
+		break ;
+	}
+
+	local sources = @($(dollar)(SOURCES$(colon)$(listIncludes)):A:G=$(C.ACTIVE_TOOLCHAIN_TARGET_GRIST)) ;
+	SOURCES = ;
+
+	# source needs to be scanned for header dependencies
+	HDRRULE on $(sources) = C.HdrRule ;
+	HDRSCAN on $(sources) = $(C.HDRPATTERN) ;
+	HDRGRIST on $(sources) = $(C.ACTIVE_TOOLCHAIN_TARGET_GRIST) ;
+
+	SEARCH on $(sources) = $(SEARCH_SOURCE) ;
+
+	local _src ;
 
 	for _src in $(sources) {
 		local forceFileType ;
@@ -344,10 +343,11 @@ rule C._MultiCppCompile SOURCES {
 			_obj = $(_src)$(sufobj[2]) ;
 		}
 		BINDING on $(_obj) = $(_obj:BS) ;
+		ForceContentsOnly $(_obj) ;
 
 		$(makeobj_pass1) ;
 
-		local _hdrs = ; # $(SEARCH_SOURCE) ;
+		local collectHdrs = ;
 		local objectForceIncludes ;
 
 		local objflags ;
@@ -355,15 +355,23 @@ rule C._MultiCppCompile SOURCES {
 		local objectFlagsToRemove ;
 		local objectFlagsToAdd ;
 		on $(_obj) {
-			_hdrs += $(HDRS) ;
+			collectHdrs += $(HDRS) ;
 			objectForceIncludes = $(FORCE_INCLUDES) ;
 			objflags = $($($(BUILD_EXT).FLAGS)) ;
 			objdefines = $(DEFINES) ;
 			objectFlagsToRemove = $(FLAGS_TO_REMOVE) ;
 			objectFlagsToAdd = $(FLAGS_TO_ADD) ;
 		}
-		_hdrs += $(postHDRS) $(C.STDHDRS) ;
 		objectForceIncludes += $(forceIncludes) ;
+		collectHdrs += $(postHDRS) $(C.STDHDRS) ;
+
+		local _hdrs ;
+		local hdr ;
+		for hdr in $(collectHdrs) {
+			if ! $(hdr) in $(_hdrs) {
+				_hdrs += $(hdr) ;
+			}
+		}
 
 		HDRSEARCH on $(_src) = $(SEARCH_SOURCE) $(_hdrs) ;
 
@@ -386,10 +394,10 @@ rule C._MultiCppCompile SOURCES {
 
 		# if the source should create pch
 		if $(_pch[1]) {
-			_flags += [ C.$(C.COMPILER_SUITE).FIncludes $(LOCATE_SOURCE) ] ;
+			_flags += [ C.$(C.COMPILER_SUITE).FIncludes $(LOCATE_SOURCE) $(SEARCH_SOURCE) ] ;
 		}
 
-		_flags += $(FIncludes_dot) [ C.$(C.COMPILER_SUITE).FIncludes $(_hdrs) ] ;
+		_flags += [ C.$(C.COMPILER_SUITE).FIncludes $(_hdrs) ] ;
 		_hdrs = $(SEARCH_SOURCE) $(_hdrs) ;
 
 		_flags += $(preDEFINES) ;
@@ -411,13 +419,15 @@ rule C._MultiCppCompile SOURCES {
 			_flags += $(objectFlagsToAdd) ;
 		}
 
-		if [ RuleExists C.$(C.COMPILER_SUITE)._MultiCppCompile_SetupFlags ] {
-			C.$(C.COMPILER_SUITE)._MultiCppCompile_SetupFlags ;
+		local theRule ;
+		for theRule in $(C._MultiCppCompile_SetupFlags:Z=$(C.COMPILER_SUITE_SYMBOL)) {
+			$(theRule) ;
 		}
 
 		HDREXTRA on $(_src) += $(objectForceIncludes) ;
 
 		MFLAGS on $(_src) = $(_flags) ;
+	}
 	}
 
 	#
@@ -462,8 +472,9 @@ rule C._MultiCppCompile SOURCES {
 		}
 
 		# if this batch will also create a pch
-		if [ RuleExists C.$(C.COMPILER_SUITE)._MultiCppCompile_PchDeps ] {
-			C.$(C.COMPILER_SUITE)._MultiCppCompile_PchDeps ;
+		local theRule ;
+		for theRule in $(C._MultiCppCompile_PchDeps:Z=$(C.COMPILER_SUITE_SYMBOL)) {
+			$(theRule) ;
 		}
 
 		# mark all objects (and pch) for cleaning
@@ -472,8 +483,8 @@ rule C._MultiCppCompile SOURCES {
 		MFLAGS on $(objects) = $(flags) ;
 		UseCommandLine $(objects) : $(flags) ;
 
-		if [ RuleExists C.$(C.COMPILER_SUITE)._MultiCppCompile_PostCompile ] {
-			C.$(C.COMPILER_SUITE)._MultiCppCompile_PostCompile ;
+		for theRule in $(C._MultiCppCompile_PostCompile:Z=$(C.COMPILER_SUITE_SYMBOL)) {
+			$(theRule) ;
 		}
 
 		UseFileCache $(objects) : code ;
@@ -573,8 +584,8 @@ rule C.Application TARGET : SOURCES : OPTIONS {
 		local objects = [ C._MultiCppCompile $(SOURCES) ] ;
 		LINKED_OBJECTS on $(C.ACTIVE_TOOLCHAIN_TARGET) += $(objects) ;
 		linkTargets = [ C._ApplicationFromObjects $(objects) : $(OPTIONS) ] ;
+		C.ARCHITECTURE on $(linkTargets) = $(C.ARCHITECTURE) ;
 	}
-	C.ActiveTarget * ;
 	return $(linkTargets) ;
 }
 
@@ -582,8 +593,9 @@ rule C.Application TARGET : SOURCES : OPTIONS {
 rule C._ApplicationFromObjects OBJECTS : OPTIONS {
 	local TARGET = $(C.ACTIVE_TARGET) ;
 
-	if [ RuleExists C.$(C.COMPILER_SUITE)._ApplicationFromObjects_Setup ] {
-		C.$(C.COMPILER_SUITE)._ApplicationFromObjects_Setup ;
+	local theRule ;
+	for theRule in $(C._ApplicationFromObjects_Setup:Z=$(C.COMPILER_SUITE_SYMBOL)) {
+		$(theRule) ;
 	}
 
 	local _s = $(OBJECTS:G=$(C.ACTIVE_TOOLCHAIN_TARGET_GRIST)) ;
@@ -595,14 +607,56 @@ rule C._ApplicationFromObjects OBJECTS : OPTIONS {
 	_tBINDING = $(_tBINDING:G=$(C.ACTIVE_TOOLCHAIN_TARGET_GRIST)) ;
 
 	local _linkTargets = $(_t) ;
+	local _extraChecksumTargets ;
+
+	local linkDirectories ;
+	linkDirectories += $(LINKDIRECTORIES:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) ;
+	linkDirectories += $(LINKDIRECTORIES:Z=$(C.ACTIVE_TOOLCHAIN_*)) ;
+
+	local linkFlags =
+		[ C.$(C.COMPILER_SUITE).FLibraryPaths $(linkDirectories) $(C.STDLINKDIRECTORIES) ]
+		$(LINKFLAGS:Z=$(C.ACTIVE_TOOLCHAIN_*))
+		$(LINKFLAGS:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) ;
+
+	local _linkLibs =
+		$(LINKLIBS:Z=$(C.ACTIVE_TOOLCHAIN_TARGET))
+		$(LINKLIBS:Z=$(C.ACTIVE_TOOLCHAIN_*))
+	;
+	local linkLibs ;
+	local lib ;
+	for lib in $(_linkLibs) {
+		if ! $(lib) in $(linkLibs) {
+			linkLibs += $(lib) ;
+		}
+	}
+	local _needLibs =
+		$(NEEDLIBS:Z=$(C.ACTIVE_TOOLCHAIN_TARGET))
+		$(NEEDLIBS:Z=$(C.ACTIVE_TOOLCHAIN_*))
+	;
+	local needLibs ;
+	for lib in $(_needLibs) {
+		if ! $(lib) in $(needLibs) {
+			needLibs += $(lib) ;
+		}
+	}
+
+	local outputPath = [ C._retrieveOutputPath ] ;
+
+	local linkRule = C.$(C.COMPILER_SUITE).Link ;
+	MakeLocate $(_linkTargets) : $(outputPath) ;
+
+	local theRule ;
+	for theRule in $(C._ApplicationFromObjects_LinkFlags:Z=$(C.COMPILER_SUITE_SYMBOL)) {
+		$(theRule) ;
+	}
+	for theRule in $(C._ApplicationFromObjects_CleanIntermediates:Z=$(C.COMPILER_SUITE_SYMBOL)) {
+		$(theRule) ;
+	}
+
+	LINK_TARGET on $(C.ACTIVE_TOOLCHAIN_TARGET) = $(_linkTargets) ;
 
 	Depends all : $(TARGET) : $(C.ACTIVE_TOOLCHAIN_TARGET) : $(_linkTargets) : $(_s) ;
 	NotFile $(TARGET) $(C.ACTIVE_TOOLCHAIN_TARGET) ;
-
-	local outputPath = [ C._retrieveOutputPath ] ;
-	MakeLocate $(_linkTargets) : $(outputPath) ;
-
-	LINK_TARGET on $(C.ACTIVE_TOOLCHAIN_TARGET) = $(_linkTargets) ;
 
 	Depends clean : clean:$(TARGET) : $(C.ACTIVE_TOOLCHAIN_CLEAN_TARGET) ;
 	NotFile clean:$(TARGET) $(C.ACTIVE_TOOLCHAIN_CLEAN_TARGET) ;
@@ -615,33 +669,6 @@ rule C._ApplicationFromObjects OBJECTS : OPTIONS {
 	Always allclean:$(TARGET) $(allcleanActiveToolchainTarget) ;
 	Depends allclean:$(TARGET) : clean:$(TARGET) ;
 
-	local linkDirectories ;
-	linkDirectories += $(LINKDIRECTORIES:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) ;
-	linkDirectories += $(LINKDIRECTORIES:Z=$(C.ACTIVE_TOOLCHAIN_*)) ;
-
-	local linkFlags =
-		[ C.$(C.COMPILER_SUITE).FLibraryPaths $(linkDirectories) $(C.STDLINKDIRECTORIES) ]
-		$(LINKFLAGS:Z=$(C.ACTIVE_TOOLCHAIN_*))
-		$(LINKFLAGS:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) ;
-
-	local linkRule = C.$(C.COMPILER_SUITE).Link ;
-
-	if [ RuleExists C.$(C.COMPILER_SUITE)._ApplicationFromObjects_CleanIntermediates ] {
-		C.$(C.COMPILER_SUITE)._ApplicationFromObjects_CleanIntermediates ;
-	}
-	if [ RuleExists C.$(C.COMPILER_SUITE)._ApplicationFromObjects_LinkFlags ] {
-		C.$(C.COMPILER_SUITE)._ApplicationFromObjects_LinkFlags ;
-	}
-
-	local linkLibs =
-		$(LINKLIBS:Z=$(C.ACTIVE_TOOLCHAIN_TARGET))
-		$(LINKLIBS:Z=$(C.ACTIVE_TOOLCHAIN_*))
-	;
-	local needLibs =
-		$(NEEDLIBS:Z=$(C.ACTIVE_TOOLCHAIN_TARGET))
-		$(NEEDLIBS:Z=$(C.ACTIVE_TOOLCHAIN_*))
-	;
-
 	SEARCH on $(linkLibs) += $(linkDirectories) $(C.STDLINKDIRECTORIES) ;
 	LINKLIBS on $(_linkTargets) = $(linkLibs) ;
 	Depends $(_linkTargets) : $(linkLibs) ;
@@ -653,18 +680,17 @@ rule C._ApplicationFromObjects OBJECTS : OPTIONS {
 
 	UseCommandLine $(_linkTargets) : $(linkFlags) $(linkLibs) $(needLibs) $(_s) ;
 
+	ForceContentsOnly $(_linkTargets) ;
+
 	UseFileCache $(_linkTargets) : code ;
-	$(linkRule) $(_linkTargets) : $(_s) : $(C.COMPILER_SUITE_SYMBOL) ;
+	$(linkRule) $(_linkTargets) : $(_s) : $(C.COMPILER_SUITE_SYMBOL) : $(_extraChecksumTargets) ;
 
-	if [ RuleExists C.$(C.COMPILER_SUITE)._ApplicationFromObjects_PostBuild ] {
-		C.$(C.COMPILER_SUITE)._ApplicationFromObjects_PostBuild ;
+	LINKTARGETS on $(C.ACTIVE_TOOLCHAIN_TARGET) = $(_linkTargets) ;
+
+	local theRule ;
+	for theRule in $(C._ApplicationFromObjects_PostBuild:Z=$(C.COMPILER_SUITE_SYMBOL)) {
+		$(theRule) ;
 	}
-
-	if [ RuleExists C.$(C.COMPILER_SUITE)._ApplicationFromObjects_PostBuildUser ] {
-		C.$(C.COMPILER_SUITE)._ApplicationFromObjects_PostBuildUser ;
-	}
-
-	LINKTARGETS on $(C.ACTIVE_TOOLCHAIN_TARGET) = $(linkTargets) ;
 
 	return $(_linkTargets) ;
 }
@@ -691,7 +717,7 @@ rule C.Library TARGET : SOURCES : OPTIONS {
 			linkTargets = [ C._LibraryFromObjects $(objects) ] ;
 		}
 	}
-	C.ActiveTarget * ;
+	C.ARCHITECTURE on $(linkTargets) = $(C.ARCHITECTURE) ;
 	return $(linkTargets) ;
 }
 
@@ -706,7 +732,7 @@ rule C._LibraryFromObjects OBJECTS {
 
 	# library depends on its member objects
 
-	Depends $(TARGET) : $(C.ACTIVE_TOOLCHAIN_TARGET) : $(_linkTargets) : $(_s) ;
+	Depends $(TARGET) : $(C.ACTIVE_TOOLCHAIN_TARGET) : $(_l) : $(_s) ;
 	NotFile $(TARGET) $(C.ACTIVE_TOOLCHAIN_TARGET) ;
 	if $(KEEPOBJS) {
 		Depends $(TARGET) : $(C.ACTIVE_TOOLCHAIN_TARGET) : $(_s) ;
@@ -765,16 +791,26 @@ rule C._LibraryFromObjects OBJECTS {
 		$(LIBFLAGS:Z=$(C.ACTIVE_TOOLCHAIN_TARGET))
 		$(LIBFLAGS:Z=$(C.ACTIVE_TOOLCHAIN_*))
 	;
+	local archiveRule = C.$(C.COMPILER_SUITE).Archive ;
+	local theRule ;
+	for theRule in $(C._LibraryFromObjects_LibFlags:Z=$(C.COMPILER_SUITE_SYMBOL)) {
+		$(theRule) ;
+	}
+
 	LIBFLAGS on $(_l) = $(libFlags) ;
 
+	local needLibs =
+		$(NEEDLIBS:Z=$(C.ACTIVE_TOOLCHAIN_TARGET))
+		$(NEEDLIBS:Z=$(C.ACTIVE_TOOLCHAIN_*))
+	;
+	Depends $(_l) : $(needLibs) ;
+
+	ForceContentsOnly $(_l) ;
 	UseCommandLine $(_l) : $(libFlags) $(_s) ;
 
 	UseFileCache $(_l) : code ;
-	if $(USE_ARCHIVE2:Z=$(C.COMPILER_SUITE_SYMBOL)) {
-		C.$(C.COMPILER_SUITE).Archive2 $(_l) : $(_s) : $(C.COMPILER_SUITE_SYMBOL) ;
-	} else {
-		C.$(C.COMPILER_SUITE).Archive $(_l) : $(_s) : $(C.COMPILER_SUITE_SYMBOL) ;
-	}
+	$(archiveRule) $(_l) : $(_s) : $(C.COMPILER_SUITE_SYMBOL) ;
+	__BUILT_LIBRARY on $(_l) = true ;
 
 	if $(C.RANLIB) { C.$(C.COMPILER_SUITE).Ranlib $(_l) : : $(C.COMPILER_SUITE_SYMBOL) ; }
 
@@ -789,11 +825,13 @@ rule C._LibraryFromObjects OBJECTS {
 
 
 rule C._SharedLibraryFromObjects OBJECTS : OPTIONS {
-	if [ RuleExists C.$(C.COMPILER_SUITE)._SharedLibraryFromObjects_Setup ] {
-		C.$(C.COMPILER_SUITE)._SharedLibraryFromObjects_Setup ;
+	local TARGET = $(C.ACTIVE_TARGET) ;
+
+	local theRule ;
+	for theRule in $(C._SharedLibraryFromObjects_Setup:Z=$(C.COMPILER_SUITE_SYMBOL)) {
+		$(theRule) ;
 	}
 
-	local TARGET = $(C.ACTIVE_TARGET) ;
 	local _s = $(OBJECTS:G=$(C.ACTIVE_TOOLCHAIN_TARGET_GRIST)) ;
 
 	local suffixName = SUFSHAREDLIB ;
@@ -809,38 +847,26 @@ rule C._SharedLibraryFromObjects OBJECTS : OPTIONS {
 
 	local outputPath = [ C._retrieveOutputPath ] ;
 
+	local _extraChecksumTargets ;
 	local _linkTargets = $(_t) ;
+	MakeLocate $(_linkTargets) : $(outputPath) ;
 
 	if ! ( noexportlib in $(OPTIONS) ) {
 		local suflib = $(SUFLIB:Z=$(C.COMPILER_SUITE_SYMBOL)) ;
 		local _tlib = @($(TARGET)$(suflib):G=$(C.ACTIVE_TOOLCHAIN_TARGET_GRIST)) ;
-		if [ RuleExists C.$(C.COMPILER_SUITE)._SharedLibraryFromObjects_ExportLib ] {
-			C.$(C.COMPILER_SUITE)._SharedLibraryFromObjects_ExportLib ;
+		for theRule in $(C._SharedLibraryFromObjects_ExportLib:Z=$(C.COMPILER_SUITE_SYMBOL)) {
+			$(theRule) ;
 		}
 	} else {
 		Depends $(TARGET) : $(_t) ;
 	}
 
-	Depends $(TARGET) : $(C.ACTIVE_TOOLCHAIN_TARGET) : $(_t) : $(_s) ;
-	NotFile $(TARGET) $(C.ACTIVE_TOOLCHAIN_TARGET) ;
-
-	MakeLocate $(_linkTargets) : $(outputPath) ;
-
 	local regserver ;
-	if [ RuleExists C.$(C.COMPILER_SUITE)._SharedLibraryFromObjects_UnRegServer ] {
-		C.$(C.COMPILER_SUITE)._SharedLibraryFromObjects_UnRegServer ;
+	for theRule in $(C._SharedLibraryFromObjects_UnRegServer:Z=$(C.COMPILER_SUITE_SYMBOL)) {
+		$(theRule) ;
 	}
 
-	Depends clean : clean:$(TARGET) : $(C.ACTIVE_TOOLCHAIN_CLEAN_TARGET) ;
-	NotFile clean:$(TARGET) $(C.ACTIVE_TOOLCHAIN_CLEAN_TARGET) ;
-	Always clean:$(TARGET) $(C.ACTIVE_TOOLCHAIN_CLEAN_TARGET) ;
-	Clean $(C.ACTIVE_TOOLCHAIN_CLEAN_TARGET) : $(_linkTargets) ;
-
-	local allcleanActiveToolchainTarget = $(C.ACTIVE_TOOLCHAIN_TARGET:G)all$(C.ACTIVE_TOOLCHAIN_CLEAN_TARGET:G=) ;
-	Depends allclean : allclean:$(TARGET) : $(allcleanActiveToolchainTarget) ;
-	NotFile allclean:$(TARGET) $(allcleanActiveToolchainTarget) ;
-	Always allclean:$(TARGET) $(allcleanActiveToolchainTarget) ;
-	Depends allclean:$(TARGET) : clean:$(TARGET) ;
+	local linkRule = C.$(C.COMPILER_SUITE).Link ;
 
 	local linkDirectories ;
 	on $(C.ACTIVE_TOOLCHAIN_TARGET) linkDirectories += $(LINKDIRECTORIES) ;
@@ -853,25 +879,52 @@ rule C._SharedLibraryFromObjects OBJECTS : OPTIONS {
 		$(LINKFLAGS:Z=$(C.ACTIVE_TOOLCHAIN_TARGET))
 	;
 
-	local linkRule = C.$(C.COMPILER_SUITE).Link ;
-
-	if [ RuleExists C.$(C.COMPILER_SUITE)._SharedLibraryFromObjects_CleanIntermediates ] {
-		C.$(C.COMPILER_SUITE)._SharedLibraryFromObjects_CleanIntermediates ;
-	}
-	if [ RuleExists C.$(C.COMPILER_SUITE)._SharedLibraryFromObjects_LinkFlags ] {
-		C.$(C.COMPILER_SUITE)._SharedLibraryFromObjects_LinkFlags ;
+	local theRule ;
+	for theRule in $(C._SharedLibraryFromObjects_LinkFlags:Z=$(C.COMPILER_SUITE_SYMBOL)) {
+		$(theRule) ;
 	}
 
-	local linkLibs ;
-	local needLibs ;
+	for theRule in $(C._SharedLibraryFromObjects_CleanIntermediates:Z=$(C.COMPILER_SUITE_SYMBOL)) {
+		$(theRule) ;
+	}
+
+	Depends $(TARGET) : $(C.ACTIVE_TOOLCHAIN_TARGET) : $(_linkTargets) : $(_s) ;
+	NotFile $(TARGET) $(C.ACTIVE_TOOLCHAIN_TARGET) ;
+
+	Depends clean : clean:$(TARGET) : $(C.ACTIVE_TOOLCHAIN_CLEAN_TARGET) ;
+	NotFile clean:$(TARGET) $(C.ACTIVE_TOOLCHAIN_CLEAN_TARGET) ;
+	Always clean:$(TARGET) $(C.ACTIVE_TOOLCHAIN_CLEAN_TARGET) ;
+	Clean $(C.ACTIVE_TOOLCHAIN_CLEAN_TARGET) : $(_linkTargets) ;
+
+	local allcleanActiveToolchainTarget = $(C.ACTIVE_TOOLCHAIN_TARGET:G)all$(C.ACTIVE_TOOLCHAIN_CLEAN_TARGET:G=) ;
+	Depends allclean : allclean:$(TARGET) : $(allcleanActiveToolchainTarget) ;
+	NotFile allclean:$(TARGET) $(allcleanActiveToolchainTarget) ;
+	Always allclean:$(TARGET) $(allcleanActiveToolchainTarget) ;
+	Depends allclean:$(TARGET) : clean:$(TARGET) ;
+
+	local _linkLibs ;
+	local _needLibs ;
 
 	on $(C.ACTIVE_TOOLCHAIN_TARGET) {
-		linkLibs += $(LINKLIBS) ;
-		needLibs += $(NEEDLIBS) ;
+		_linkLibs += $(LINKLIBS) ;
+		_needLibs += $(NEEDLIBS) ;
 	}
 	on $(C.ACTIVE_TOOLCHAIN_*) {
-		linkLibs += $(LINKLIBS) ;
-		needLibs += $(NEEDLIBS) ;
+		_linkLibs += $(LINKLIBS) ;
+		_needLibs += $(NEEDLIBS) ;
+	}
+	local linkLibs ;
+	local lib ;
+	for lib in $(_linkLibs) {
+		if ! $(lib) in $(linkLibs) {
+			linkLibs += $(lib) ;
+		}
+	}
+	local needLibs ;
+	for lib in $(_needLibs) {
+		if ! $(lib) in $(needLibs) {
+			needLibs += $(lib) ;
+		}
 	}
 
 	SEARCH on $(linkLibs) += $(linkDirectories) $(C.STDLINKDIRECTORIES) ;
@@ -885,17 +938,21 @@ rule C._SharedLibraryFromObjects OBJECTS : OPTIONS {
 
 	UseCommandLine $(_linkTargets) : $(linkFlags) $(linkLibs) $(needLibs) $(_s) ;
 
-	UseFileCache $(_linkTargets) : code ;
-	$(linkRule) $(_linkTargets) : $(_s) : $(C.COMPILER_SUITE_SYMBOL) ;
+	ForceContentsOnly $(_linkTargets) ;
 
-	if [ RuleExists C.$(C.COMPILER_SUITE)._SharedLibraryFromObjects_RegServer ] {
-		C.$(C.COMPILER_SUITE)._SharedLibraryFromObjects_RegServer ;
+	UseFileCache $(_linkTargets) : code ;
+	$(linkRule) $(_linkTargets) : $(_s) : $(C.COMPILER_SUITE_SYMBOL) : $(_extraChecksumTargets) ;
+	__BUILT_LIBRARY on $(_linkTargets) = true ;
+
+	local theRule ;
+	for theRule in $(C._SharedLibraryFromObjects_RegServer:Z=$(C.COMPILER_SUITE_SYMBOL)) {
+		$(theRule) ;
 	}
 
 	LINK_TARGET on $(C.ACTIVE_TOOLCHAIN_TARGET) = $(_linkTargets) ;
 
-	if [ RuleExists C.$(C.COMPILER_SUITE)._SharedLibraryFromObjects_PostBuild ] {
-		C.$(C.COMPILER_SUITE)._SharedLibraryFromObjects_PostBuild ;
+	for theRule in $(C._SharedLibraryFromObjects_PostBuild:Z=$(C.COMPILER_SUITE_SYMBOL)) {
+		$(theRule) ;
 	}
 
 	LINKTARGETS on $(C.ACTIVE_TOOLCHAIN_TARGET) = $(_linkTargets) ;
@@ -906,6 +963,22 @@ rule C._SharedLibraryFromObjects OBJECTS : OPTIONS {
 
 ########################################################################
 ########################################################################
+
+rule C.ConfigureFile TARGET : DESTINATION : SOURCE : OPTIONS {
+	C.ActiveTarget $(TARGET) ;
+	SEARCH on $(SOURCE) ?= $(SEARCH_SOURCE) ;
+	LOCATE on $(DESTINATION) ?= $(LOCATE_SOURCE) ;
+
+	if addinclude in $(OPTIONS) {
+		C.IncludeDirectories $(TARGET) : $(LOCATE:Z=$(DESTINATION)) ;
+	} else if addpublicinclude in $(OPTIONS) {
+		C.IncludeDirectories $(TARGET) : $(LOCATE:Z=$(DESTINATION)) : public ;
+	}
+
+	Clean $(C.ACTIVE_TOOLCHAIN_CLEAN_TARGET) : $(DESTINATION) ;
+	ConfigureFileHelper $(DESTINATION) : $(SOURCE) : $(OPTIONS) ;
+}
+
 
 rule C.CreatePrecompiledHeader TARGET : NAME : HEADER {
 	C.ActiveTarget $(TARGET) ;
@@ -940,12 +1013,27 @@ rule C.UsePrecompiledHeader TARGET : NAME : HEADER : FILES {
 rule C.PrecompiledHeader TARGET : NAME : FILES {
 	C.ActiveTarget $(TARGET) ;
 
-	if ! $(NAME[1]:S) {
-		NAME[1] = $(NAME[1]:S=.cpp) ;
+	local buildExtensions =
+			$(C.C_STYLE_BUILD_EXTENSIONS:Z=$(C.COMPILER_SUITE_SYMBOL):X=.s)
+			$(C.CPP_STYLE_BUILD_EXTENSIONS:Z=$(C.COMPILER_SUITE_SYMBOL))
+	;
+
+	local SOURCE = $(NAME[1]) ;
+	if ! $(SOURCE:S) in $(buildExtensions) {
+		SOURCE = $(SOURCE:S=.cpp) ;
 	}
-	local header = $(NAME[2]:E=$(NAME[1]:S=.h)) ;
-	C.CreatePrecompiledHeader : $(NAME[1]) $(NAME[1]:S) : $(header) $(NAME[3]:E=$(header)) ;
-	C.UsePrecompiledHeader : $(NAME[1]) $(NAME[1]:S) : $(header) $(NAME[3]:E=$(header)) : $(FILES) ;
+	local HEADER = $(NAME[2]:E=$(SOURCE:S=.h)) ;
+	local PCH_STUFF = $(SOURCE) $(HEADER) $(NAME[3]:E=$(HEADER)) ;
+
+	local cppPchFilename = $(SOURCE:G=$(C.ACTIVE_TOOLCHAIN_TARGET_GRIST)) ;
+	PCH on $(cppPchFilename) = $(PCH_STUFF) 1 ;
+
+	local file ;
+	for file in $(FILES:G=$(C.ACTIVE_TOOLCHAIN_TARGET_GRIST)) {
+		if $(file:S) in $(buildExtensions)  &&  $(file) != $(cppPchFilename) {
+			PCH on $(file) = $(SOURCE) $(HEADER) $(NAME[3]:E=$(HEADER)) ;
+		}
+	}
 }
 
 
@@ -993,6 +1081,12 @@ rule C.ForceFileType TARGET : SOURCES : FILE_TYPE {
 }
 
 
+rule C.ForcePublic TARGET {
+    C.ActiveTarget $(TARGET) ;
+    __PUBLIC on $(C.ACTIVE_TOOLCHAIN_TARGET) = true ;
+}
+
+
 rule C.InstallNamePath TARGET : INSTALL_NAME_PATH {
 	C.ActiveTarget $(TARGET) ;
 	INSTALL_NAME_PATH on $(C.ACTIVE_TOOLCHAIN_TARGET) += $(INSTALL_NAME_PATH) ;
@@ -1011,44 +1105,36 @@ rule C.LinkDirectories TARGET : DIRECTORIES {
 }
 
 
-rule C.LinkFlags TARGET : FLAGS {
+rule C.LinkFlags TARGET : FLAGS : OPTIONS {
 	C.ActiveTarget $(TARGET) ;
 	LINKFLAGS on $(C.ACTIVE_TOOLCHAIN_TARGET) += $(FLAGS) ;
-}
-
-
-rule C.LinkLibraries TARGET : LIBRARIES {
-	TARGET = [ C.ActiveTarget $(TARGET) ] ;
-#	Depends $(TARGET) : $(LIBRARIES) ;
-	Depends allclean:$(TARGET) : allclean:$(LIBRARIES) ;
-	NotFile allclean:$(TARGET) ;
-	Always allclean:$(TARGET) ;
-
-	local suflib = $(SUFLIB:Z=$(C.COMPILER_SUITE_SYMBOL)) ;
-	local gristLibraries ;
-	local lib ;
-	for lib in $(LIBRARIES) {
-		local grist = $(C.ACTIVE_TOOLCHAIN):$(lib) ;
-		if $(lib:G) {
-			gristLibraries += $(lib) ;
-		} else {
-			gristLibraries += $(lib:G=$(grist))$(suflib) ;
-		}
+	if public in $(OPTIONS) {
+		__PUBLIC on $(C.ACTIVE_TOOLCHAIN_TARGET) = true ;
+		PUBLIC_LINKFLAGS on $(C.ACTIVE_TOOLCHAIN_TARGET) += $(FLAGS) ;
 	}
-	NEEDLIBS on $(C.ACTIVE_TOOLCHAIN_TARGET) += $(gristLibraries) ;
 }
 
 
-rule C.LinkPrebuiltLibraries TARGET : LIBRARIES {
+rule C.LinkLibraries TARGET : LIBRARIES : OPTIONS {
+    C.Inherits $(TARGET) : $(LIBRARIES) : $(OPTIONS) optional link ;
+}
+
+
+rule C.LinkPrebuiltLibraries TARGET : LIBRARIES : OPTIONS {
 	C.ActiveTarget $(TARGET) ;
 	local grist = $(C.ACTIVE_TOOLCHAIN_TARGET_GRIST):prebuiltlib ;
 	local gristedLibraries = $(LIBRARIES:G=$(grist)) ;
-	if [ RuleExists C.$(C.COMPILER_SUITE)._LinkPrebuiltLibraries ] {
-		C.$(C.COMPILER_SUITE)._LinkPrebuiltLibraries ;
+	local theRule ;
+	for theRule in $(C._LinkPrebuiltLibraries:Z=$(C.COMPILER_SUITE_SYMBOL)) {
+		$(theRule) ;
 	}
 	SEARCH on $(gristedLibraries) += $(SUBDIR) ;
 	SEARCH_EXTENSIONS on $(gristedLibraries) = $(SUFLINKLIBS:Z=$(C.COMPILER_SUITE_SYMBOL)) ;
 	LINKLIBS on $(C.ACTIVE_TOOLCHAIN_TARGET) += $(gristedLibraries) ;
+	if public in $(OPTIONS) {
+		__PUBLIC on $(C.ACTIVE_TOOLCHAIN_TARGET) = true ;
+		PUBLIC_LINKLIBS on $(C.ACTIVE_TOOLCHAIN_TARGET) += $(gristedLibraries) ;
+	}
 }
 
 
@@ -1080,34 +1166,24 @@ rule C.ObjectC++Flags TARGET : SOURCES : FLAGS {
 
 rule C.RuntimeType TARGET : TYPE {
 	C.ActiveTarget $(TARGET) ;
-	if [ RuleExists C.$(C.COMPILER_SUITE)._RuntimeTypeHelper ] {
-		C.$(C.COMPILER_SUITE)._RuntimeTypeHelper ;
+	local theRule ;
+	for theRule in $(C._RuntimeTypeHelper:Z=$(C.COMPILER_SUITE_SYMBOL)) {
+		$(theRule) ;
 	}
 }
 
 
-rule C.C++Exceptions TARGET : {
+rule C.C++Exceptions TARGET : TYPE {
 	C.ActiveTarget $(TARGET) ;
-	if [ RuleExists C.$(C.COMPILER_SUITE)._C++Exceptions ] {
-		C.$(C.COMPILER_SUITE)._C++Exceptions ;
+	local theRule ;
+	for theRule in $(C._C++Exceptions:Z=$(C.COMPILER_SUITE_SYMBOL)) {
+		$(theRule) ;
 	}
 }
 
 
 # TARGETINFO_LOCATE
 } else {
-
-
-rule C.SubDirCcFlags {
-}
-
-
-rule C.SubDirC++Flags {
-}
-
-
-rule C.SubDirHdrs {
-}
 
 
 rule C.BatchCompileGroupSize SIZE {
@@ -1139,15 +1215,36 @@ rule C.Application TARGET : SOURCES : OPTIONS {
 
 	C._ApplicationTargetInfo ;
 
+	LINKTARGETS on $(C.ACTIVE_TOOLCHAIN_TARGET) = $(_linkTargets) ;
+	C.ARCHITECTURE on $(linkTargets) = $(C.ARCHITECTURE) ;
+
 	DumpProjectInfo $(TARGET) : $(SOURCES) : app $(OPTIONS) ;
-	C.ActiveTarget * ;
 	Depends all : $(TARGET) ;
 }
 
 
 rule C.Library TARGET : SOURCES : OPTIONS {
 	TARGET = [ C.ActiveTarget $(TARGET) ] ;
+
 	if shared in $(OPTIONS) {
+		local suffixName = SUFSHAREDLIB ;
+		if module in $(OPTIONS) {
+			suffixName = SUFMODULE ;
+		}
+
+		local suffix = $($(suffixName):Z=$(C.COMPILER_SUITE_SYMBOL)) ;
+		local _t = @($(TARGET)$(suffix):G=$(C.ACTIVE_TOOLCHAIN_TARGET_GRIST)) ;
+		local _tBINDING = [ C._retrieveOutputName : $(suffix) ] ;
+		BINDING on $(_t) = $(_tBINDING) ;
+		_tBINDING = $(_tBINDING:G=$(C.ACTIVE_TOOLCHAIN_TARGET_GRIST)) ;
+
+		local outputPath = [ C._retrieveOutputPath ] ;
+
+		local _linkTargets = $(_t) ;
+		MakeLocate $(_linkTargets) : $(outputPath) ;
+		LINKTARGETS on $(C.ACTIVE_TOOLCHAIN_TARGET) = $(_linkTargets) ;
+		C.ARCHITECTURE on $(_linkTargets) = $(C.ARCHITECTURE) ;
+
 		DumpProjectInfo $(TARGET) : $(SOURCES) : $(OPTIONS) ;
 	} else {
 		DumpProjectInfo $(TARGET) : $(SOURCES) : lib $(OPTIONS) ;
@@ -1171,6 +1268,11 @@ rule C.PrecompiledHeader TARGET {
 
 
 rule C.NoPrecompiledHeader TARGET {
+	C.ActiveTarget $(TARGET) ;
+}
+
+
+rule C.Flags TARGET {
 	C.ActiveTarget $(TARGET) ;
 }
 
@@ -1200,11 +1302,6 @@ rule C.ForceFileType TARGET {
 }
 
 
-rule C.ForceInclude TARGET {
-	C.ActiveTarget $(TARGET) ;
-}
-
-
 rule C.IncludeDirectories TARGET {
 	C.ActiveTarget $(TARGET) ;
 }
@@ -1225,12 +1322,8 @@ rule C.LinkFlags TARGET {
 }
 
 
-rule C.LinkLibraries TARGET : LIBRARIES {
-	C.ActiveTarget $(TARGET) ;
-
-	local projectsString = "	'$(LIBRARIES)',$(NEWLINE)" ;
-	Contents += "Projects['$(C.ACTIVE_TARGET)'].Libraries = concat(Projects['$(C.ACTIVE_TARGET)'].Libraries,$(NEWLINE){$(NEWLINE)" ;
-	Contents += "$(projectsString:J=$(EMPTY))})$(NEWLINE)" ;
+rule C.LinkLibraries TARGET : LIBRARIES : OPTIONS {
+	C.Inherits $(TARGET) : $(LIBRARIES) : $(OPTIONS) optional ;
 }
 
 
@@ -1283,12 +1376,6 @@ rule C._retrieveOutputName TARGET : SUFFIX {
 
 	local presuffix = $(OUTPUTPOSTFIX:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) ;
 	presuffix ?= $(OUTPUTPOSTFIX:Z=$(C.ACTIVE_TOOLCHAIN_*)) ;
-	if ! $(presuffix) {
-		presuffix = $(C.CONFIG) ;
-		if $(presuffix) {
-			presuffix = .$(presuffix) ;
-		}
-	}
 	if $(presuffix) = *off* {
 		presuffix = ;
 	}
@@ -1319,9 +1406,104 @@ rule C.ForceInclude TARGET : INCLUDES {
 }
 
 
-rule C.IncludeDirectories TARGET : INCLUDEPATHS {
+rule C.IncludeDirectories TARGET : INCLUDEPATHS : OPTIONS {
 	C.ActiveTarget $(TARGET) ;
-	HDRS on $(C.ACTIVE_TOOLCHAIN_TARGET) += $(INCLUDEPATHS:R=$(SUBDIR:E="")) ;
+	local paths = $(INCLUDEPATHS:R=$(SUBDIR:E="")) ;
+	HDRS on $(C.ACTIVE_TOOLCHAIN_TARGET) += $(paths) ;
+	if public in $(OPTIONS) {
+		__PUBLIC on $(C.ACTIVE_TOOLCHAIN_TARGET) = true ;
+		PUBLIC_HDRS on $(C.ACTIVE_TOOLCHAIN_TARGET) += $(paths) ;
+	}
+}
+
+
+rule C.Inherits TARGET : INHERITS_TARGETS : OPTIONS {
+	TARGET = [ C.ActiveTarget $(TARGET) ] ;
+
+	__PUBLIC on $(C.ACTIVE_TOOLCHAIN_TARGET) = true ;
+
+	local public ;
+	if public in $(OPTIONS) {
+		public = public ;
+	}
+
+	local link ;
+	if link in $(OPTIONS) {
+	    link = 1 ;
+	}
+
+	if $(TARGETINFO_LOCATE) {
+		LINKLIBS on $(C.ACTIVE_TOOLCHAIN_TARGET) += $(INHERITS_TARGETS) ;
+		PUBLIC_LINKLIBS on $(C.ACTIVE_TOOLCHAIN_TARGET) += $(INHERITS_TARGETS) ;
+	}
+
+	local suflib = $(SUFLIB:Z=$(C.COMPILER_SUITE_SYMBOL)) ;
+	local gristLibraries ;
+	local lib ;
+	for lib in $(INHERITS_TARGETS) {
+		local grist = $(C.ACTIVE_TOOLCHAIN_GRIST):$(lib) ;
+		lib = $(lib:G=$(grist))$(suflib) ;
+		if $(link) ||  $(__BUILT_LIBRARY:Z=$(lib)) {
+			gristLibraries += $(lib) ;
+		}
+	}
+	NEEDLIBS on $(C.ACTIVE_TOOLCHAIN_TARGET) += $(gristLibraries) ;
+	PUBLIC_NEEDLIBS on $(C.ACTIVE_TOOLCHAIN_TARGET) += $(gristLibraries) ;
+
+	local optional ;
+	if optional in $(OPTIONS)  ||  $(C.PLATFORM) = *  ||  $(TARGETINFO_LOCATE) {
+	    optional = true ;
+	}
+
+	local inheritsTarget ;
+	for inheritsTarget in $(INHERITS_TARGETS) {
+		local originalInheritsTarget = $(inheritsTarget) ;
+		inheritsTarget = [ C.GristTarget $(inheritsTarget) ] ;
+		if ! $(optional)  &&  ! $(__PUBLIC:Z=$(inheritsTarget)) {
+			Echo * C.Inherits $(TARGET) \: $(originalInheritsTarget) ;
+			Echo "*     No public interfaces to $(originalInheritsTarget) have been defined yet." ;
+			Echo * ;
+			Echo "*     Does $(originalInheritsTarget) exist before $(TARGET) in the Jamfile chain?" ;
+			Exit ;
+		}
+		local publicHdrs = $(PUBLIC_HDRS:Z=$(inheritsTarget)) ;
+		if $(publicHdrs) {
+			HDRS on $(C.ACTIVE_TOOLCHAIN_TARGET) += $(publicHdrs) ;
+			if $(public) {
+				PUBLIC_HDRS on $(C.ACTIVE_TOOLCHAIN_TARGET) += $(publicHdrs) ;
+			}
+		}
+
+		local publicLinkLibs = $(PUBLIC_LINKLIBS:Z=$(inheritsTarget)) ;
+		if $(publicLinkLibs) {
+			LINKLIBS on $(C.ACTIVE_TOOLCHAIN_TARGET) += $(publicLinkLibs) ;
+			PUBLIC_LINKLIBS on $(C.ACTIVE_TOOLCHAIN_TARGET) += $(publicLinkLibs) ;
+		}
+
+		local publicNeedLibs = $(PUBLIC_NEEDLIBS:Z=$(inheritsTarget)) ;
+		if $(publicNeedLibs) {
+			NEEDLIBS on $(C.ACTIVE_TOOLCHAIN_TARGET) += $(publicNeedLibs) ;
+			PUBLIC_NEEDLIBS on $(C.ACTIVE_TOOLCHAIN_TARGET) += $(publicNeedLibs) ;
+		}
+
+		local publicLinkFlags = $(PUBLIC_LINKFLAGS:Z=$(inheritsTarget)) ;
+		if $(publicLinkFlags) {
+			LINKFLAGS on $(C.ACTIVE_TOOLCHAIN_TARGET) += $(publicLinkFlags) ;
+			PUBLIC_LINKFLAGS on $(C.ACTIVE_TOOLCHAIN_TARGET) += $(publicLinkFlags) ;
+		}
+
+		local theRule ;
+		for theRule in $(C._Inherits:Z=$(C.COMPILER_SUITE_SYMBOL)) {
+			$(theRule) ;
+		}
+
+	}
+
+	if $(TARGETINFO_LOCATE) {
+		local projectsString = "	'$(LINKLIBS:Z=$(C.ACTIVE_TOOLCHAIN_TARGET))',$(NEWLINE)" ;
+		Contents += "Projects['$(C.ACTIVE_TARGET)'].Libraries = concat(Projects['$(C.ACTIVE_TARGET)'].Libraries,$(NEWLINE){$(NEWLINE)" ;
+		Contents += "$(projectsString:J=$(EMPTY):E="")})$(NEWLINE)" ;
+	}
 }
 
 
@@ -1419,4 +1601,207 @@ rule C.OutputSuffix TARGET : SUFFIX {
 	OUTPUTSUFFIX on $(C.ACTIVE_TOOLCHAIN_TARGET) = $(SUFFIX) ;
 }
 
+
+
+rule C.ToolchainSpecKeys TOOLCHAIN_SPEC_KEYS {
+	if $(TOOLCHAIN_SPEC_KEYS)  &&  ! $(TOOLCHAIN_SPEC_OPTIONS:Z=$(C.ACTIVE_TOOLCHAIN_GRIST)) {
+		local newOptionsList ;
+
+		# First, convert the passed in TOOLCHAIN_SPEC_KEYS into the TOOLCHAIN_SPEC_OPTIONS
+		# format.
+		#
+		#     C.ACTIVE_TOOLCHAIN_SPEC_VALUES = win32 debug ;
+		#     TOOLCHAIN_SPEC_OPTIONS = C.COMPILER=vs2013 ;
+		#     C.ToolchainSpecKeys C.PLATFORM/PLATFORM C.CONFIG/CONFIG ;
+		#
+		# The converted form of the above will end up being:
+		#
+		#     TOOLCHAIN_SPEC_OPTIONS = C.PLATFORM=win32 PLATFORM=win32 C.CONFIG=debug CONFIG=debug C.COMPILER=vs2013 ;
+		local configKeyFull ;
+		local configIndex = 1 ;
+		for configKeyFull in $(TOOLCHAIN_SPEC_KEYS) {
+			local configKey ;
+			for configKey in [ Split $(configKeyFull) : "/" ] {
+				newOptionsList += $(configKey)=$(C.ACTIVE_TOOLCHAIN_SPEC_VALUES[$(configIndex)]) ;
+			}
+			configIndex = [ Math $(configIndex) + 1 ] ;
+		}
+
+		# Now, go through the passed in TOOLCHAIN_SPEC_OPTIONS, and add those to the newOptionsList.
+		# Allow TOOLCHAIN_SPEC_KEYS to override the TOOLCHAIN_SPEC_OPTIONS.  Perhaps this should be
+		# reported as an error to the user.
+		local keyValue ;
+		for keyValue in $(TOOLCHAIN_SPEC_OPTIONS) {
+			local info = [ Split $(keyValue) : "=" ] ;
+			for newKeyValue in $(newOptionsList) {
+				local newInfo = [ Split $(newKeyValue) : "=" ] ;
+				if $(info[1]) = $(newInfo[1]) {
+					newOptionsList -= $(newKeyValue) ;
+					break ;
+				}
+			}
+			newOptionsList += $(keyValue) ;
+		}
+
+		# Add C.COMPILER=thecompiler to the newOptionsList.
+		local found ;
+		for keyValue in $(newOptionsList) {
+			local info = [ Split $(keyValue) : "=" ] ;
+			if $(info[1]) = C.COMPILER {
+				found = true ;
+				break ;
+			}
+		}
+
+		if ! $(found) {
+			newOptionsList += C.COMPILER=$(C.COMPILER) ;
+		}
+		TOOLCHAIN_SPEC_OPTIONS on $(C.ACTIVE_TOOLCHAIN_GRIST) = $(newOptionsList) ;
+	}
+
+	local keyValue ;
+	for keyValue in $(TOOLCHAIN_SPEC_OPTIONS:Z=$(C.ACTIVE_TOOLCHAIN_GRIST)) {
+		local info = [ Split $(keyValue) : "=" ] ;
+		$(info[1]) = $(info[2]) ;
+	}
+
+	for keyValue in $(OVERRIDE_TOOLCHAIN_SPEC_OPTIONS:Z=$(C.ACTIVE_TOOLCHAIN_GRIST)) {
+		local info = [ Split $(keyValue) : "=" ] ;
+		$(info[1]) = $(info[2]) ;
+	}
+}
+
+
+rule C.OverrideToolchainSpec TOOLCHAIN_SPEC_OPTIONS : OPTIONS {
+	if remove in $(OPTIONS) {
+		OVERRIDE_TOOLCHAIN_SPEC_OPTIONS on $(C.ACTIVE_TOOLCHAIN_GRIST) -= $(TOOLCHAIN_SPEC_OPTIONS) ;
+	} else {
+		OVERRIDE_TOOLCHAIN_SPEC_OPTIONS on $(C.ACTIVE_TOOLCHAIN_GRIST) += $(TOOLCHAIN_SPEC_OPTIONS) ;
+	}
+}
+
+
+rule C.Toolchain TOOLCHAIN_SPEC {
+	# Null out any existing toolchain spec options.
+	local keyValue ;
+	for keyValue in $(TOOLCHAIN_SPEC_OPTIONS:Z=$(C.ACTIVE_TOOLCHAIN_GRIST)) {
+		local info = [ Split $(keyValue) : "=" ] ;
+		$(info[1]) = ;
+	}
+
+	local TOOLCHAIN_SPEC_VALUES = [ Split $(TOOLCHAIN_SPEC) : "@" ] ;
+	local TOOLCHAIN_SPEC_OPTIONS ;
+	local test = [ Split $(TOOLCHAIN_SPEC_VALUES[1] : "=" ] ;
+	if $(test[2]) {
+		TOOLCHAIN_SPEC_OPTIONS = $(TOOLCHAIN_SPEC_VALUES) ;
+		TOOLCHAIN_SPEC_VALUES = ;
+	} else {
+		TOOLCHAIN_SPEC_OPTIONS = $(TOOLCHAIN_SPEC_VALUES[2-]) ;
+		TOOLCHAIN_SPEC_VALUES = $(TOOLCHAIN_SPEC_VALUES[1]) ;
+		TOOLCHAIN_SPEC_VALUES = [ Split $(TOOLCHAIN_SPEC_VALUES) : / ] ;
+	}
+
+	# Go through the passed in TOOLCHAIN_SPEC_OPTIONS, and add those to the newSpecOptionsList,
+	# overriding any existing keys of the same name.
+	local newSpecOptionsList ;
+	local keyValue ;
+	for keyValue in $(TOOLCHAIN_SPEC_OPTIONS) {
+		local info = [ Split $(keyValue) : "=" ] ;
+		for newKeyValue in $(newSpecOptionsList) {
+			local newInfo = [ Split $(newKeyValue) : "=" ] ;
+			if $(info[1]) = $(newInfo[1]) {
+				newSpecOptionsList -= $(newKeyValue) ;
+				break ;
+			}
+		}
+		newSpecOptionsList += $(keyValue) ;
+	}
+	TOOLCHAIN_SPEC_OPTIONS = [ ListSort $(newSpecOptionsList) ] ;
+
+	local activeToolchainSpec = $(TOOLCHAIN_SPEC_VALUES) $(TOOLCHAIN_SPEC_OPTIONS) ;
+	C.ACTIVE_TOOLCHAIN_SPEC_PATH = [ Subst $(activeToolchainSpec:J=-) : "=" : "___" ] ;
+	activeToolchainSpec = $(TOOLCHAIN_SPEC_VALUES:J=/) $(TOOLCHAIN_SPEC_OPTIONS) ;
+	C.ACTIVE_TOOLCHAIN = $(activeToolchainSpec:J=@) ;
+	C.ACTIVE_TOOLCHAIN_SPEC = $(activeToolchainSpec:J=@) ;
+	C.ACTIVE_TOOLCHAIN_GRIST = $(activeToolchainSpec:J=@) ;
+	C.ACTIVE_TOOLCHAIN_SPEC_VALUES = $(TOOLCHAIN_SPEC_VALUES) ;
+
+	C.ActiveTarget * ;
+
+	local save_ALL_LOCATE_TARGET = $(ALL_LOCATE_TARGET) ;
+	ALL_LOCATE_TARGET = $(ALL_LOCATE_TARGET)/$(C.ACTIVE_TOOLCHAIN_SPEC_PATH) ;
+	if $(ALL_SUBDIR_TOKENS) {
+		SubDir ;
+	}
+	
+	C.COMPILER_SUITE_SYMBOL = !c.$(C.ACTIVE_TOOLCHAIN_GRIST).info! ;
+
+	if ! $(INITIALIZED:Z=$(C.ACTIVE_TOOLCHAIN_GRIST)) {
+		INITIALIZED on $(C.ACTIVE_TOOLCHAIN_GRIST) = 1 ;
+
+		local ruleToolchain = [ Subst $(TOOLCHAIN_SPEC_VALUES:J=.) : %* : _all_ ] ;
+		if ! [ C.Toolchain.$(ruleToolchain:E=*) ] {
+			if $(C.PLATFORM) != * {
+				Exit "* Requested toolchain [ $(TOOLCHAIN_SPEC) ] was not found!" ;
+			}
+		}
+
+		C.COMPILER_SUITE on $(C.ACTIVE_TOOLCHAIN_GRIST) = $(C.COMPILER_SUITE) ;
+		C.COMPILER_SUITE_SYMBOL on $(C.ACTIVE_TOOLCHAIN_GRIST) = $(C.COMPILER_SUITE_SYMBOL) ;
+		ALL_LOCATE_TARGET on $(C.COMPILER_SUITE_SYMBOL) = $(ALL_LOCATE_TARGET) ;
+	}
+	C.ToolchainSpecKeys ;
+
+	local compilerKey ;
+	for compilerKey in $(TOOLCHAIN_COMPILER_KEYS:Z=$(C.COMPILER_SUITE_SYMBOL)) {
+		$(compilerKey) = $($(compilerKey):Z=$(C.COMPILER_SUITE_SYMBOL)) ;
+	}	
+
+	ALL_LOCATE_TARGET = $(save_ALL_LOCATE_TARGET) ;
+
+	C.COMPILER_SUITE = $(C.COMPILER_SUITE:Z=$(C.ACTIVE_TOOLCHAIN_GRIST)) ;
+	C.COMPILER_SUITE_SYMBOL = $(C.COMPILER_SUITE_SYMBOL:Z=$(C.ACTIVE_TOOLCHAIN_GRIST)) ;
+
+	return $(C.ACTIVE_TOOLCHAIN_SPEC) ;
+}
+
+########################################################################
+########################################################################
+
+if ! $(C.ACTIVE_TOOLCHAIN_GRIST) {
+	VALID_CONFIGS ?= release releaseltcg debug ;
+
+	switch $(OS)
+	{
+		case NT :
+			VALID_PLATFORMS ?= win64 win32 ;
+
+		case MACOSX :
+			VALID_PLATFORMS ?= macosx64 macosx32 ;
+
+		case LINUX :
+			VALID_PLATFORMS ?= linux64 linux32 ;
+	}
+
+	if $(C.TOOLCHAIN) {
+		C.Toolchain $(C.TOOLCHAIN) ;
+	} else if $(c.toolchain) {
+		C.Toolchain $(c.toolchain) ;
+	} else {
+		CONFIG ?= $(C.CONFIG) ;
+		PLATFORM ?= $(C.PLATFORM) ;
+		COMPILER ?= $(C.COMPILER) ;
+
+		CONFIG ?= $(VALID_CONFIGS[1]) ;
+
+		if $(PLATFORM) = "" { PLATFORM = ; }
+		PLATFORM ?= $(VALID_PLATFORMS[1]) ;
+
+		C.CONFIG ?= $(CONFIG) ;
+		C.PLATFORM ?= $(PLATFORM) ;
+		C.COMPILER ?= $(COMPILER) ;
+
+		C.Toolchain $(C.PLATFORM)/$(C.CONFIG) ;
+	}
+}
 

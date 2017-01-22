@@ -2,9 +2,9 @@ if ! $(TARGETINFO_LOCATE)
 {
 
 # OPTIONS = proxy ;
-rule C.MidlFlags PARENT : BASE_NAME : OPTIONS
+rule C.Midl.Flags PARENT : BASE_NAME : OPTIONS
 {
-	ActiveTarget $(PARENT) ;
+	C.ActiveTarget $(PARENT) ;
 
 	BASE_NAME = $(BASE_NAME:L) ;
 	BASE_NAME = [ C.GristFiles $(PARENT) : $(BASE_NAME) ] ;
@@ -34,7 +34,7 @@ rule C.MidlFlags PARENT : BASE_NAME : OPTIONS
 
 		local flags ;
 #		on $(PARENT) flags += $(MIDLFLAGS:Z=$(C.COMPILER_SUITE_SYMBOL)) ;
-flags += $(MIDLFLAGS:Z=$(C.COMPILER_SUITE_SYMBOL)) ;
+		flags += $(MIDLFLAGS:Z=$(C.COMPILER_SUITE_SYMBOL)) ;
 #		on C.* flags += $(MIDLFLAGS.$(CONFIG)) $(MIDLFLAGS.*) ;
 
 		if $(C.COMPILER) = vc6 {
@@ -67,14 +67,14 @@ flags += $(MIDLFLAGS:Z=$(C.COMPILER_SUITE_SYMBOL)) ;
 	return $(targets) ;
 }
 
-rule C.MidlCompiler PARENT : SOURCE
+rule C.Midl.Compiler PARENT : SOURCE
 {
-	PARENT = [ ActiveTarget $(PARENT) ] ;
+	PARENT = [ C.ActiveTarget $(PARENT) ] ;
 
 	SOURCE = [ C.GristFiles $(PARENT) : $(SOURCE) ] ;
 	SearchSource $(SOURCE) ;
 
-	local targets = [ C.MidlFlags $(PARENT) : $(SOURCE) ] ;
+	local targets = [ C.Midl.Flags $(PARENT) : $(SOURCE) ] ;
 	Depends $(targets) : $(SOURCE) ;
 
 	local MIDL ;
@@ -131,6 +131,16 @@ rule C.MidlCompiler PARENT : SOURCE
 				case release :
 					MIDLFLAGS = /D "NDEBUG" /char signed /env win32 ;
 			}
+
+		case vs2015 :
+			LINK_PATHS += $(MSSDK_BINDIR) ;
+			MIDL = "$(MSSDK_BINDIR:Z=$(C.COMPILER_SUITE_SYMBOL))/midl" ;
+			switch $(CONFIG) {
+				case debug :
+					MIDLFLAGS = /D "_DEBUG" /char signed /env win32 /Oicf ;
+				case release :
+					MIDLFLAGS = /D "NDEBUG" /char signed /env win32 ;
+			}
 	}
 
 	MIDL on $(C.COMPILER_SUITE_SYMBOL) = $(MIDL) ;
@@ -150,11 +160,11 @@ actions C.Midl
 
 } else {
 
-rule C.MidlCompiler
+rule C.Midl.Compiler
 {
 }
 
-rule C.MidlFlags
+rule C.Midl.Flags
 {
 }
 

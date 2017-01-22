@@ -25,6 +25,10 @@ distribution.
 #ifndef TINYXML2_INCLUDED
 #define TINYXML2_INCLUDED
 
+#if !defined __STDC_VERSION__
+#define __STDC_VERSION__ __cplusplus
+#endif
+
 #if defined(ANDROID_NDK) || defined(__BORLANDC__)
 #   include <ctype.h>
 #   include <limits.h>

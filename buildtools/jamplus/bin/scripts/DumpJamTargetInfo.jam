@@ -1,11 +1,14 @@
+C ;
+
 JAM_MODULES_PATH += $(JAMFILE_ROOT) ;
 
-IncludeModule c-autodetect ;
+PLATFORM ?= $(C.PLATFORM) ;
+CONFIG ?= $(C.CONFIG) ;
 
 local platformName = $(PLATFORM) ;
-if $(PLATFORM) = * 	{ platformName = !all! ; }
+if $(platformName) = * 	{ platformName = _all_ ; }
 local configName = $(CONFIG) ;
-if $(CONFIG) = * 	{ configName = !all! ; }
+if $(configName) = * 	{ configName = _all_ ; }
 TargetInfoFile = targetinfo.$(platformName).$(configName).lua ;
 
 MakeLocate $(TargetInfoFile) : $(TARGETINFO_LOCATE) ;
@@ -23,7 +26,7 @@ rule DumpSources prefix : SOURCES
 
 rule ProjectGroup TARGET : FOLDERNAME : PROJECTS
 {
-	if $(PLATFORM) != *  ||  $(CONFIG) != *  {  return ;  }
+	#if $(PLATFORM) != *  ||  $(CONFIG) != *  {  return ;  }
 	if ! $(FOLDERNAME)  ||  ! $(PROJECTS)  {  return ;  }
 
 	local workspace ;
@@ -85,8 +88,23 @@ rule AutoSourceGroup TARGET : SOURCES
 }
 
 
+rule ExternalProject TARGET : PROJECT_PATH : OPTIONS {
+	local project = "Projects['$(TARGET)']" ;
+	Contents += "$(NEWLINE)$(NEWLINE)--------------------------------------------------------------------$(NEWLINE)" ;
+
+	Contents += "$(project).Name = '$(TARGET)'$(NEWLINE)" ;
+	Contents += "$(project).Path = [=[$(PROJECT_PATH)]=]$(NEWLINE)" ;
+	Contents += "$(project).RelativePath = [=[$(PROJECT_PATH)]=]$(NEWLINE)" ;
+	Contents += "$(project).ExternalProject = true$(NEWLINE)" ;
+	Contents += "$(project).Options['$(OPTIONS)'] = true$(NEWLINE)" ;
+
+	Depends all : $(TARGET) ;
+	Depends $(TARGET) : $(TargetInfoFile) ;
+}
+
+
 rule DumpProjectInfo TARGET : SOURCES : OPTIONS {
-	SOURCES = [ ExpandFileList $(SOURCES) ] ;
+	SOURCES = [ ExpandFileList $(SOURCES:T) ] ;
 
 	# Write initial Project information.
 	local subdir = $(SUBDIR[1]:R=$(CWD)) ;
@@ -133,18 +151,22 @@ rule DumpProjectInfo TARGET : SOURCES : OPTIONS {
 	on $(C.ACTIVE_TOOLCHAIN_TARGET) {
 		defines += $(DEFINES) ;
 		hdrs = $(HDRS) $(hdrs) ;
-		forceIncludes = $(FORCE_INCLUDES) ;
+		forceIncludes = $(FORCE_INCLUDES:T) ;
 	}
 
-	local definesString = "'$(defines)'," ;
+	local definesString = "[[$(defines)]]," ;
 	definesString ?= "" ;
 	Contents += "$(project).Defines['$(PLATFORM)']['$(CONFIG)'] = { $(definesString:J= ) }$(NEWLINE)" ;
 
-	hdrs += $(SUBDIRHDRS) $(STDHDRS) ;
+	hdrs += $(STDHDRS) ;
+	hdrs += $(C.STDHDRS:Z=$(C.COMPILER_SUITE_SYMBOL)) ;
 
 	local hdrsString = "[[$(hdrs)]]," ;
 	hdrsString ?= "" ;
 	Contents += "$(project).IncludePaths['$(PLATFORM)']['$(CONFIG)'] = { $(hdrsString:J= ) }$(NEWLINE)" ;
+
+	local forceIncludesString = "[[$(forceIncludes)]]," ;
+	Contents += "$(project).ForceIncludes['$(PLATFORM)']['$(CONFIG)'] = { $(forceIncludesString:J= ) }$(NEWLINE)" ;
 
 	DumpSources $(project) : $(SOURCES) ;
 
@@ -155,7 +177,7 @@ rule DumpProjectInfo TARGET : SOURCES : OPTIONS {
 rule Project PROJECT_NAME : SOURCES
 {
 	PROJECT_NAME = [ C.ActiveTarget $(PROJECT_NAME) ] ;
-	DumpProjectInfo $(PROJECT_NAME) : $(SOURCES) ;
+	DumpProjectInfo $(PROJECT_NAME) : $(SOURCES) : project ;
 }
 
 
@@ -188,15 +210,15 @@ Assign NoWorkspace to one of the two to prevent the conflict." ;
 	Contents += "$(TAB)$(TAB)[[$(VALID_CONFIGS)]],$(NEWLINE)" ;
 	Contents += "}$(NEWLINE)$(NEWLINE)" ;
 
-	if $(CONFIG) != * {
+	#if $(CONFIG) != * {
 		Contents += [ CompilerPlatformInfo ] ;
 		Contents += [ CompilerConfigInfo ] ;
-	}
+	#}
 
-	if $(PLATFORM) != *
-	{
-		return ;
-	}
+	#if $(PLATFORM) != *
+	#{
+		#return ;
+	#}
 
 	local subdir = $(SUBDIR[1]:R=$(CWD)) ;
 	local solutionInfo = "Workspaces['$(WORKSPACE_NAME)']" ;
@@ -215,6 +237,20 @@ $(solutionInfo).RelativePath = '$(SUBDIR_DOWN:E=.:J=/)'
 }
 
 
+rule WorkspaceConfig WORKSPACE_NAME : CONFIG_NAME : ACTUAL_CONFIG_NAME : COMMAND_LINE_OPTIONS {
+    if $(NO_EXPORT_WORKSPACES.$(WORKSPACE_NAME)) {
+        return ;
+    }
+    if $(PLATFORM) = *  &&  $(CONFIG) = * {
+        local solutionInfo = "Workspaces['$(WORKSPACE_NAME)']" ;
+        local configText = "$(solutionInfo).Configs[ [[$(CONFIG_NAME)]] ]" ;
+        local optionLines = "$(TAB)[[$(COMMAND_LINE_OPTIONS)]],$(NEWLINE)" ;
+        Contents += "$(configText).CommandLineOptions = concat($(configText).CommandLineOptions, $(NEWLINE){$(NEWLINE)$(optionLines)})$(NEWLINE)" ;
+        Contents += "$(configText).ActualConfigName = [[$(ACTUAL_CONFIG_NAME)]]$(NEWLINE)" ;
+    }
+}
+
+
 rule WriteTargetInfoFile FILENAME
 {
 	Always $(FILENAME) ;
@@ -230,47 +266,55 @@ actions WriteTargetInfoFileHelper
 
 Contents += "-- This file is generated.  Do not modify.$(NEWLINE)$(NEWLINE)" ;
 
-if $(PLATFORM) = *  &&  $(CONFIG) = * {
-	Contents += "function concat(l, r)
-	local out = {}
-	if l then
-		for _, v in ipairs(l) do
-			table.insert(out, v)
+#if $(PLATFORM) = *  &&  $(CONFIG) = * {
+	Contents += "if not concat then
+	function concat(l, r)
+		local out = {}
+		if l then
+			for index = 1, #l do
+				out[#out + 1] = l[index]
+			end
 		end
+		for index = 1, #r do
+			out[#out + 1] = r[index]
+		end
+		return out
 	end
-	for _, v in ipairs(r) do
-		table.insert(out, v)
-	end
-	return out
 end
 
-local autoWriteMetaTable = { active = true }
-AutoWriteMetaTable = autoWriteMetaTable
+if not AutoWriteMetaTable then
+	local autoWriteMetaTable = { active = true }
+	AutoWriteMetaTable = autoWriteMetaTable
 
-function autoWriteMetaTable.__index(table, key)
-	local t = rawget(table, key)
-	if autoWriteMetaTable.active and not t then
-		t = {}
-		setmetatable(t, autoWriteMetaTable)
-		rawset(table, key, t)
+	function autoWriteMetaTable.__index(table, key)
+		local t = rawget(table, key)
+		if autoWriteMetaTable.active and not t then
+			t = {}
+			setmetatable(t, autoWriteMetaTable)
+			rawset(table, key, t)
+		end
+		return t
 	end
-	return t
+
+	function autoWriteMetaTable.__newindex(table, key, value)
+		local t = rawget(table, key)
+		if not t then
+			rawset(table, key, value)
+			t = rawget(table, key)
+		end
+		return t
+	end
 end
 
-function autoWriteMetaTable.__newindex(table, key, value)
-	local t = rawget(table, key)
-	if not t then
-		rawset(table, key, value)
-		t = rawget(table, key)
-	end
-	return t
+if not Projects then
+	Projects = setmetatable({}, AutoWriteMetaTable)
 end
-
-Projects = setmetatable({}, autoWriteMetaTable)
-Workspaces = setmetatable({}, autoWriteMetaTable)
+if not Workspaces then
+	Workspaces = setmetatable({}, AutoWriteMetaTable)
+end
 
 " ;
-}
+#}
 
 JAMFILE = Jamfile.jam ;
 include $(JAMFILE) ;

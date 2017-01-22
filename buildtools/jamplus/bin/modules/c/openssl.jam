@@ -1,31 +1,34 @@
-rule C.UseOpenSSL TARGET : OPTIONS {
+rule C.OpenSSL TARGET : OPTIONS {
 	if $(NT) {
-		local bits = 32 ;
+		local bits = "" ;
 		if $(PLATFORM) = win64 {
 			bits = 64 ;
 		}
 
-		if ! $(OPENSSL$(bits)_ROOT) {
+		local opensslRoot = $(OPENSSL_ROOT:Z=$(C.COMPILER_SUITE_SYMBOL)) ;
+		if ! $(opensslRoot) {
 			local PATHS =
-				"$(OPENSSL_ROOT_DIR:J=$(SPACE))/"
 				c:/
 				d:/
 				e:/
 			;
 
 			local PATH_SUFFIXES =
-				OpenSSL-Win$(bits)
+				# http://www.npcglib.org/~stathis/blog/precompiled-openssl/
+				openssl-1.0.2f-$(C.COMPILER)
+				openssl-1.0.1r-$(C.COMPILER)
 			;
 
-			local ssl.h = [ Glob $(PATHS)$(PATH_SUFFIXES)/include/openssl : ssl.h ] ;
+			local ssl.h = [ Glob $(PATHS)$(PATH_SUFFIXES)/include$(bits)/openssl : ssl.h ] ;
 			if $(ssl.h) {
-				OPENSSL$(bits)_ROOT = [ Match (.+)/include/openssl/ : $(ssl.h[1]) ] ;
+				opensslRoot = [ Match (.+)/include$(bits)/openssl/ : $(ssl.h[1]) ] ;
 			} else {
-				OPENSSL$(bits)_ROOT = _ ;
+				opensslRoot = _ ;
 			}
+			OPENSSL_ROOT on $(C.COMPILER_SUITE_SYMBOL) = $(opensslRoot) ;
 		}
 
-		if $(OPENSSL$(bits)_ROOT) = _ {
+		if $(opensslRoot) = _ {
 			return ;
 		}
 
@@ -33,21 +36,23 @@ rule C.UseOpenSSL TARGET : OPTIONS {
 			return true ;
 		}
 
+		TARGET = [ C.ActiveTarget $(TARGET) ] ;
 		C.Defines $(TARGET) : USE_SSLEAY ;
 
-		C.IncludeDirectories $(TARGET) : $(OPENSSL$(bits)_ROOT)/include $(OPENSSL$(bits)_ROOT)/include/openssl ;
+		C.IncludeDirectories $(TARGET) : $(opensslRoot)/include$(bits) $(opensslRoot)/include$(bits)/openssl ;
 
 		if link in $(OPTIONS) {
-			C.LinkDirectories $(TARGET) : $(OPENSSL$(bits)_ROOT)/lib/VC/static ;
+			C.LinkDirectories $(TARGET) : $(opensslRoot)/lib$(bits) ;
+			C.LinkPrebuiltLibraries $(TARGET) : libeay32MT ssleay32MT ;
 
-			#C.LinkPrebuiltLibraries : libeay32 ssleay32 ;
-			C.LinkPrebuiltLibraries $(TARGET) : libeay32MT ssleay32MT advapi32 gdi32 user32 ;
+			C.LinkPrebuiltLibraries $(TARGET) : advapi32 gdi32 user32 ;
 
 			C.LinkPrebuiltLibraries $(TARGET) : ws2_32 ;
 		}
+
 	} else {
 		local bits = 32 ;
-		if $(PLATFORM) in linux64 macosxx64 {
+		if $(PLATFORM) in linux64 macosx64 {
 			bits = 64 ;
 		}
 
@@ -55,6 +60,12 @@ rule C.UseOpenSSL TARGET : OPTIONS {
 			local PATHS =
 				/usr
 			;
+
+			if $(PLATFORM) in macosx32 macosx64 {
+				PATHS +=
+					/usr/local/opt/openssl
+				;
+			}
 
 			local ssl.h = [ Glob $(PATHS)/include/openssl : ssl.h ] ;
 			if $(ssl.h) {
@@ -74,8 +85,11 @@ rule C.UseOpenSSL TARGET : OPTIONS {
 
 		C.Defines $(TARGET) : USE_SSLEAY ;
 
+		C.IncludeDirectories $(TARGET) : $(OPENSSL$(bits)_ROOT)/include ;
+
 		if link in $(OPTIONS) {
-			C.LinkPrebuiltLibraries $(TARGET) : crypto ;
+			C.LinkDirectories $(TARGET) : $(OPENSSL$(bits)_ROOT)/lib ;
+			C.LinkPrebuiltLibraries $(TARGET) : crypto ssl ;
 		}
 	}
 

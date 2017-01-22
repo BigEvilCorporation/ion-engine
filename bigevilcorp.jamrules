@@ -97,15 +97,20 @@ rule ApplyIonRenderer TARGET
 {
 	ApplyIonLib $(TARGET) : renderer ;
 
+	ApplyDefaultRenderer $(TARGET) link ;
+}
+
+rule ApplyDefaultRenderer TARGET
+{
 	if ( win32 in $(PLATFORM) )
 	{
-		ApplyRendererImpl $(TARGET) : opengl sdl cggl ;
-		# ApplyRendererImpl $(TARGET) : opengl sdl ;
+		ApplyRendererImpl $(TARGET) : opengl sdl cggl $(LINK_OPT) ;
+		# ApplyRendererImpl $(TARGET) : opengl sdl $(LINK_OPT) ;
 	}
 
 	if ( dreamcast in $(PLATFORM) )
 	{
-		ApplyRendererImpl $(TARGET) : opengl sdl glut ;
+		ApplyRendererImpl $(TARGET) : opengl sdl glut $(LINK_OPT) ;
 	}
 }
 
@@ -184,7 +189,10 @@ rule ApplyIonRendererOgre TARGET
 	ApplyIonIncludes $(TARGET) ;
 	ApplyOgreSDK $(TARGET) ;
 
-	C.LinkLibraries $(TARGET) : ogre3d ;
+	# if ( link in TARGET )
+	{
+		C.LinkLibraries $(TARGET) : ogre3d ;
+	}
 }
 
 rule ApplyIonRendererDirect3D TARGET
@@ -201,7 +209,10 @@ rule ApplyIonRendererOpenGL TARGET
 	ApplyIonIncludes $(TARGET) ;
 	ApplyOpenGLSDK $(TARGET) ;
 
-	C.LinkLibraries $(TARGET) : opengl ;
+	# if ( link in TARGET )
+	{
+		C.LinkLibraries $(TARGET) : opengl ;
+	}
 }
 
 rule ApplyIonRendererCGGL TARGET
@@ -213,7 +224,10 @@ rule ApplyIonRendererCGGL TARGET
 	ApplyIonIncludes $(TARGET) ;
 	ApplyCgSDK $(TARGET) ;
 
-	C.LinkLibraries $(TARGET) : cggl ;
+	# if ( link in TARGET )
+	{
+		C.LinkLibraries $(TARGET) : cggl ;
+	}
 }
 
 rule ApplyIonRendererFixed TARGET
