@@ -26,6 +26,8 @@ rule ApplyIonDefines TARGET
 			ION_ENDIAN_LITTLE
 			;
 	}
+
+	ApplyDefaultRenderer $(TARGET) : defines ;
 }
 
 rule ApplyIonLib TARGET : LIBNAME
@@ -96,16 +98,15 @@ rule ApplyIonIo TARGET
 rule ApplyIonRenderer TARGET
 {
 	ApplyIonLib $(TARGET) : renderer ;
-
-	ApplyDefaultRenderer $(TARGET) link ;
+	ApplyDefaultRenderer $(TARGET) : sdk link ;
 }
 
-rule ApplyDefaultRenderer TARGET
+rule ApplyDefaultRenderer TARGET : LINK_OPT
 {
 	if ( win32 in $(PLATFORM) )
 	{
-		ApplyRendererImpl $(TARGET) : opengl sdl cggl $(LINK_OPT) ;
-		# ApplyRendererImpl $(TARGET) : opengl sdl $(LINK_OPT) ;
+		# ApplyRendererImpl $(TARGET) : opengl sdl cggl $(LINK_OPT) ;
+		ApplyRendererImpl $(TARGET) : opengl sdl $(LINK_OPT) ;
 	}
 
 	if ( dreamcast in $(PLATFORM) )
@@ -114,46 +115,46 @@ rule ApplyDefaultRenderer TARGET
 	}
 }
 
-rule ApplyRendererImpl TARGET : RENDER_IMPL
+rule ApplyRendererImpl TARGET : RENDER_IMPL_OPTS
 {
-	if ( ogre3d in $(RENDER_IMPL) )
+	if ( direct3d in $(RENDER_IMPL_OPTS) )
 	{
-		ApplyIonRendererOgre $(TARGET) ;
+		ApplyIonRendererDirect3D $(TARGET) : $(RENDER_IMPL_OPTS) ;
 	}
 
-	if ( direct3d in $(RENDER_IMPL) )
+	if ( opengl in $(RENDER_IMPL_OPTS) )
 	{
-		ApplyIonRendererDirect3D $(TARGET) ;
+		ApplyIonRendererOpenGL $(TARGET) : $(RENDER_IMPL_OPTS) ;
 	}
 
-	if ( opengl in $(RENDER_IMPL) )
+	if ( cggl in $(RENDER_IMPL_OPTS) )
 	{
-		ApplyIonRendererOpenGL $(TARGET) ;
+		ApplyIonRendererCGGL $(TARGET) : $(RENDER_IMPL_OPTS) ;
+	}
+	else
+	{
+		ApplyIonRendererFixed $(TARGET) : $(RENDER_IMPL_OPTS) ;
+	}
 
-		if ( cggl in $(RENDER_IMPL) )
-		{
-			ApplyIonRendererCGGL $(TARGET) ;
-
-			ApplyCgSDK $(TARGET) ;
-			ApplyGlewSDK $(TARGET) ;
-			ApplyGlfwSDK $(TARGET) ;
-		}
-		else
-		{
-			ApplyIonRendererFixed $(TARGET) ;
-		}
-
-		if ( glut in $(RENDER_IMPL) )
+	if ( glut in $(RENDER_IMPL_OPTS) )
+	{
+		if ( sdk in $(RENDER_IMPL_OPTS) )
 		{
 			ApplyGlutSDK $(TARGET) ;
 		}
 	}
 
-	if ( sdl in $(RENDER_IMPL) )
+	if ( sdl in $(RENDER_IMPL_OPTS) )
 	{
-		ApplySDLSDK $(TARGET) ;
+		if ( sdk in $(RENDER_IMPL_OPTS) )
+		{
+			ApplySDLSDK $(TARGET) ;
+		}
+	}
 
-		if ( sdlimage in $(RENDER_IMPL) )
+	if ( sdlimage in $(RENDER_IMPL_OPTS) )
+	{
+		if ( sdk in $(RENDER_IMPL_OPTS) )
 		{
 			ApplySDLImageSDK $(TARGET) ;
 		}
@@ -180,59 +181,65 @@ rule ApplyIonNetwork TARGET
 #################################################
 ## Apply API implementations
 #################################################
-rule ApplyIonRendererOgre TARGET
+rule ApplyIonRendererDirect3D TARGET : RENDER_IMPL_OPTS
 {
-	SubInclude bigevilcorp ion renderer ogre3d : ogre3d ;
 
-	C.Defines $(TARGET) : ION_RENDERER_OGRE3D ;
+}
 
-	ApplyIonIncludes $(TARGET) ;
-	ApplyOgreSDK $(TARGET) ;
-
-	# if ( link in TARGET )
+rule ApplyIonRendererOpenGL TARGET : RENDER_IMPL_OPTS
+{
+	if ( defines in $(RENDER_IMPL_OPTS) )
 	{
-		C.LinkLibraries $(TARGET) : ogre3d ;
+		C.Defines $(TARGET) : ION_RENDERER_OPENGL ;
+	}
+
+	if ( sdk in $(RENDER_IMPL_OPTS) )
+	{
+		ApplyIonIncludes $(TARGET) ;
+		ApplyOpenGLSDK $(TARGET) ;
+	}
+
+	if ( link in $(RENDER_IMPL_OPTS) )
+	{
+		if ! ( opengl in $(TARGET) )
+		{
+			SubInclude bigevilcorp ion renderer opengl : opengl ;
+			C.LinkLibraries $(TARGET) : opengl ;
+		}
 	}
 }
 
-rule ApplyIonRendererDirect3D TARGET
+rule ApplyIonRendererCGGL TARGET : RENDER_IMPL_OPTS
 {
-
-}
-
-rule ApplyIonRendererOpenGL TARGET
-{
-	SubInclude bigevilcorp ion renderer opengl : opengl ;
-
-	C.Defines $(TARGET) : ION_RENDERER_OPENGL ;
-
-	ApplyIonIncludes $(TARGET) ;
-	ApplyOpenGLSDK $(TARGET) ;
-
-	# if ( link in TARGET )
+	if ( defines in $(RENDER_IMPL_OPTS) )
 	{
-		C.LinkLibraries $(TARGET) : opengl ;
+		C.Defines $(TARGET) : ION_RENDERER_SHADER ;
+	}
+
+	if ( sdk in $(RENDER_IMPL_OPTS) )
+	{
+		ApplyIonIncludes $(TARGET) ;
+		ApplyCgSDK $(TARGET) ;
+		ApplyGlewSDK $(TARGET) ;
+		ApplyGlfwSDK $(TARGET) ;
+	}
+
+	if ( link in $(RENDER_IMPL_OPTS) )
+	{
+		if ! ( cggl in $(TARGET) )
+		{
+			SubInclude bigevilcorp ion renderer cggl : cggl ;
+			C.LinkLibraries $(TARGET) : cggl ;
+		}
 	}
 }
 
-rule ApplyIonRendererCGGL TARGET
+rule ApplyIonRendererFixed TARGET : RENDER_IMPL_OPTS
 {
-	SubInclude bigevilcorp ion renderer cggl : cggl ;
-
-	C.Defines $(TARGET) : ION_RENDERER_SHADER ;
-
-	ApplyIonIncludes $(TARGET) ;
-	ApplyCgSDK $(TARGET) ;
-
-	# if ( link in TARGET )
+	if ( defines in $(RENDER_IMPL_OPTS) )
 	{
-		C.LinkLibraries $(TARGET) : cggl ;
+		C.Defines $(TARGET) : ION_RENDERER_FIXED ;
 	}
-}
-
-rule ApplyIonRendererFixed TARGET
-{
-	C.Defines $(TARGET) : ION_RENDERER_FIXED ;
 }
 
 #################################################

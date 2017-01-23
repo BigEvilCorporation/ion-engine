@@ -33,6 +33,11 @@ namespace ion
 			SetLightingMode(ePhong);
 			SetBlendMode(eAdditive);
 			SetReceiveShadows(true);
+
+#if defined ION_RENDERER_SHADER
+			m_vertexShader = NULL;
+			m_pixelShader = NULL;
+#endif
 		}
 
 		Material::~Material()

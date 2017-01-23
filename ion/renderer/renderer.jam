@@ -54,7 +54,7 @@ local SRC =
 
 ApplyIonDefines renderer ;
 ApplyIonIncludes renderer ;
-ApplyIonRenderer renderer ;
+ApplyDefaultRenderer renderer : sdk ;
 # ApplyWin32SDK renderer ;
 # ApplyDirectXSDK renderer ;
 # ApplyOpenGLSDK renderer ;

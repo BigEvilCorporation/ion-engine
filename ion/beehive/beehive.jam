@@ -4,7 +4,7 @@ ApplyIonDefines beehive ;
 ApplyIonIncludes beehive ;
 ApplyIonCore beehive ;
 ApplyIonIo beehive ;
-ApplyIonRenderer beehive : opengl ;
+ApplyIonRenderer beehive ;
 ApplyIonGameKit beehive ;
 
 local BEEHIVE_SRC = 
