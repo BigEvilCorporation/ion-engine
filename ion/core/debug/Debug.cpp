@@ -25,6 +25,8 @@ extern unsigned long end;
 extern unsigned long start;
 #define _end end
 #define _start start
+#elif defined ION_PLATFORM_MACOSX
+#include <signal.h>
 #endif
 
 namespace ion
@@ -83,15 +85,19 @@ namespace ion
 
 		void Break()
 		{
-			#if defined ION_PLATFORM_WINDOWS
+#if defined ION_PLATFORM_WINDOWS
 			__debugbreak();
-			#endif
+#elif defined ION_PLATFORM_MACOSX
+            raise(SIGTRAP);
+#endif
 		}
 
 		void PrintMemoryUsage()
 		{
 #if defined ION_PLATFORM_WINDOWS
 			printf("ion::debug::PrintMemoryUsage() - TODO\n");
+#elif defined ION_PLATFORM_MACOSX
+            printf("ion::debug::PrintMemoryUsage() - TODO\n");
 #elif defined ION_PLATFORM_DREAMCAST
 			malloc_stats();
 			pvr_mem_stats();

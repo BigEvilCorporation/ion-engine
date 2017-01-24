@@ -29,9 +29,17 @@
 #include <GL/glut.h>
 #endif
 
+#if defined ION_PLATFORM_MACOSX
+#include <OpenGL/gl.h>
+#include <OpenGL/glu.h>
+#include <OpenGL/glext.h>
+#include <SDL.h>
+#include <SDL_OpenGL.h>
+#else
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <GL/glext.h>
+#endif
 
 #if defined ION_PLATFORM_WINDOWS
 #include <GL/wglext.h>
@@ -90,7 +98,11 @@ namespace ion
 
 			//OpenGL context
 #if defined ION_PLATFORM_WINDOWS
-			HGLRC m_openGLContext;
+            HGLRC m_openGLContext;
+#elif defined ION_PLATFORM_MACOSX
+            SDL_GLContext m_openGLContext;
+#elif defined ION_PLATFORM_DREAMCAST
+            int m_openGLContext;
 #endif
 
 			//DC for gobal (non-rendering) context

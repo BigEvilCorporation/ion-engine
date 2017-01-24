@@ -18,7 +18,11 @@
 #include "renderer/OpenGL/RendererOpenGL.h"
 
 #if defined ION_RENDER_SUPPORTS_SDL
+#if defined ION_PLATFORM_MACOSX
+#include <SDL.h>
+#else
 #include <SDL/SDL.h>
+#endif
 #endif
 
 #if defined ION_RENDER_SUPPORTS_SDLIMAGE
@@ -271,7 +275,7 @@ namespace ion
 				dest += lineSize;
 			}
 
-			delete buffer;
+			delete [] buffer;
 #endif
 		}
 
@@ -417,7 +421,7 @@ namespace ion
 					break;
 				}
 				break;
-#if !defined ION_RENDERER_KGL
+#if !defined ION_RENDERER_KGL && !defined ION_PLATFORM_MACOSX
 			case eBPP32:
 				switch(format)
 				{

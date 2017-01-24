@@ -93,7 +93,9 @@ namespace ion
 		{
 #if defined ION_PLATFORM_DREAMCAST
 			return false;
-#else
+#elif defined ION_PLATFORM_MACOSX
+            return false;
+#elif defined ION_PLATFORM_WINDOWS
 			return (mMouseState.rgbButtons[button] & 0x80) != 0;
 #endif
 		}
@@ -102,7 +104,9 @@ namespace ion
 		{
 #if defined ION_PLATFORM_DREAMCAST
 			return 0;
-#else
+#elif defined ION_PLATFORM_MACOSX
+            return 0;
+#elif defined ION_PLATFORM_WINDOWS
 			return mMouseState.lX;
 #endif
 		}
@@ -111,7 +115,9 @@ namespace ion
 		{
 #if defined ION_PLATFORM_DREAMCAST
 			return 0;
-#else
+#elif defined ION_PLATFORM_MACOSX
+            return 0;
+#elif defined ION_PLATFORM_WINDOWS
 			return mMouseState.lY;
 #endif
 		}
@@ -130,7 +136,9 @@ namespace ion
 		{
 #if defined ION_PLATFORM_DREAMCAST
 			return 0;
-#else
+#elif defined ION_PLATFORM_MACOSX
+            return 0;
+#elif defined ION_PLATFORM_WINDOWS
 			return mMouseState.lZ;
 #endif
 		}

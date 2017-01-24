@@ -1218,7 +1218,7 @@ int Project::CleanupTerrainTiles(bool prompt)
 	//Collect all used TerrainTile ids from all maps
 	std::vector<bool> usedTerrainTiles;
 	usedTerrainTiles.resize(m_terrainTileset.GetCount(), false);
-	bool usedTileCount = 0;
+	int usedTileCount = 0;
 
 	//Always add default tile
 	if(m_defaultTerrainTile != InvalidTerrainTileId)

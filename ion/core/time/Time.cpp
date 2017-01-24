@@ -32,6 +32,8 @@ namespace ion
 			LARGE_INTEGER ticks;
 			QueryPerformanceCounter(&ticks);
 			return (u64)ticks.QuadPart;
+#elif defined ION_PLATFORM_MACOSX
+            return 0;
 #elif defined ION_PLATFORM_DREAMCAST
 			return timer_us_gettime64();
 #endif
@@ -50,6 +52,8 @@ namespace ion
 			}
 
 			return (float)ticks / timerFrequency;
+#elif defined ION_PLATFORM_MACOSX
+            return 0;
 #elif defined ION_PLATFORM_DREAMCAST
 			return (float)ticks / 1000000.0f;
 #endif

@@ -14,6 +14,9 @@
 #include "SpriteSheet.h"
 #include "BMPReader.h"
 
+const int SpriteSheet::subSpriteWidthTiles = 4;
+const int SpriteSheet::subSpriteHeightTiles = 4;
+
 SpriteSheet::SpriteSheet()
 {
 	m_widthTiles = 0;
@@ -50,8 +53,8 @@ bool SpriteSheet::ImportBitmap(const std::string& filename, const std::string& n
 		int spriteSheetHeightTiles = reader.GetHeight() / tileHeight;
 	
 		//Get frame width/height in tiles
-		m_widthTiles = spriteSheetWidthTiles / widthFrames;
-		m_heightTiles = spriteSheetHeightTiles / heightFrames;
+        m_widthTiles = spriteSheetWidthTiles / widthFrames;
+        m_heightTiles = spriteSheetHeightTiles / heightFrames;
 	
 		//For each frame
 		u32 frameCount = 0;

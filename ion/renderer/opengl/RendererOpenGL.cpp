@@ -28,6 +28,10 @@
 #include <Windows.h>
 #endif
 
+#if defined ION_PLATFORM_MACOSX
+#include <GLUT/glut.h>
+#endif
+
 namespace ion
 {
 	namespace render
@@ -57,6 +61,7 @@ namespace ion
 		{
 			m_currentDC = NULL;
 			m_contextLockStack = 0;
+            m_openGLContext = 0;
 
 			//Using existing global DC
 			m_globalDC = globalDeviceContext;
@@ -80,11 +85,16 @@ namespace ion
 			//Create OpenGL context
 #if defined ION_PLATFORM_WINDOWS
 			m_openGLContext = wglCreateContext(deviceContext);
-			if(!m_openGLContext)
-			{
-				debug::Error("Could not create OpenGL context");
-			}
+#elif defined ION_PLATFORM_MACOSX
+            m_openGLContext = SDL_GL_CreateContext(deviceContext);
+#elif defined ION_PLATFORM_DREAMCAST
+            m_openGLContext = 1;
 #endif
+            
+            if(!m_openGLContext)
+            {
+                debug::Error("Could not create OpenGL context");
+            }
 		}
 
 		void RendererOpenGL::InitContext(DeviceContext deviceContext)
@@ -324,6 +334,8 @@ namespace ion
 
 #if defined ION_PLATFORM_WINDOWS
 			::SwapBuffers(m_currentDC);
+#elif defined ION_PLATFORM_MACOSX
+            SDL_GL_SwapWindow(m_currentDC);
 #elif defined ION_PLATFORM_DREAMCAST
 			glutSwapBuffers();
 #endif

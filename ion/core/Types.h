@@ -26,4 +26,6 @@ typedef long long s64;
 #if defined ION_PLATFORM_DREAMCAST
 #include <kos.h>
 #include <typeinfo>
+#elif defined ION_PLATFORM_MACOSX
+#include <cstddef>
 #endif

@@ -16,6 +16,8 @@
 
 #if defined ION_PLATFORM_WINDOWS
 #include <memory.h>
+#elif defined ION_PLATFORM_MACOSX
+#include <string.h>
 #elif defined ION_PLATFORM_DREAMCAST
 #include <memory>
 #endif

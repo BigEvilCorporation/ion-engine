@@ -49,6 +49,7 @@ local SRC =
 	version.h
 	;
 
+ApplyIonCompiler core ;
 ApplyIonDefines core ;
 ApplyIonIncludes core ;
 ApplyWin32SDK core ;

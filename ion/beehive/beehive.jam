@@ -1,5 +1,6 @@
 SubDir bigevilcorp ion beehive ;
 
+ApplyIonCompiler beehive ;
 ApplyIonDefines beehive ;
 ApplyIonIncludes beehive ;
 ApplyIonCore beehive ;

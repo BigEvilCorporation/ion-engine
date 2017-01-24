@@ -1,5 +1,6 @@
 SubDir bigevilcorp ion gamekit ;
 
+ApplyIonCompiler gamekit ;
 ApplyIonDefines gamekit ;
 ApplyIonIncludes gamekit ;
 ApplyIonCore gamekit ;
