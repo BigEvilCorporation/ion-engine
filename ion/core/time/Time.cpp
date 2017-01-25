@@ -18,6 +18,8 @@
 
 #if defined ION_PLATFORM_WINDOWS
 #include <Windows.h>
+#elif defined ION_PLATFORM_MACOSX
+#include <sys/time.h>
 #elif defined ION_PLATFORM_DREAMCAST
 #include <time.h>
 #endif
@@ -33,7 +35,9 @@ namespace ion
 			QueryPerformanceCounter(&ticks);
 			return (u64)ticks.QuadPart;
 #elif defined ION_PLATFORM_MACOSX
-            return 0;
+            timeval time;
+            gettimeofday(&time, NULL);
+            return time.tv_usec;
 #elif defined ION_PLATFORM_DREAMCAST
 			return timer_us_gettime64();
 #endif
@@ -53,7 +57,7 @@ namespace ion
 
 			return (float)ticks / timerFrequency;
 #elif defined ION_PLATFORM_MACOSX
-            return 0;
+            return (float)ticks / 1000000.0f;;
 #elif defined ION_PLATFORM_DREAMCAST
 			return (float)ticks / 1000000.0f;
 #endif
