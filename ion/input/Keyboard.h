@@ -9,9 +9,13 @@
 
 #if defined ION_PLATFORM_WINDOWS
 #include <dinput.h>
+#elif defined ION_PLATFORM_MACOSX
+#include <SDL.h>
 #endif
 
 #include <vector>
+
+#include "Keycodes.h"
 
 namespace ion
 {
@@ -41,10 +45,10 @@ namespace ion
 			void UnregisterHandler(KeyboardHandler& handler);
 
 			//Is key currently down
-			bool KeyDown(int key) const;
+			bool KeyDown(Keycode key) const;
 
 			//Was key pressed this frame
-			bool KeyPressedThisFrame(int key) const;
+			bool KeyPressedThisFrame(Keycode key) const;
 
 			void Update();
 

@@ -6,6 +6,8 @@ local SRC =
 	input.jam
 	Keyboard.cpp
 	Keyboard.h
+    Keycodes.h
+    Keytable.h
 	Mouse.cpp
 	Mouse.h
 	;
@@ -18,6 +20,11 @@ if ( win32 in $PLATFORM) )
 {
 	ApplyWin32SDK input ;
 	ApplyXInputSDK input ;
+}
+
+if ( macosx64 in $(PLATFORM) )
+{
+    ApplySDLSDK input ;
 }
 
 AutoSourceGroup input : $(SRC) ;

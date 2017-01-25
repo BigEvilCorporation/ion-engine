@@ -437,8 +437,6 @@ rule ApplySDLSDK TARGET
     if ( macosx64 in $(PLATFORM) )
     {
         C.IncludeDirectories $(TARGET) : /Library/Frameworks/SDL2.framework/Headers ;
-        C.LinkDirectories $(TARGET) : /Library/Frameworks/SDL2.framework ;
-        # C.LinkPrebuiltLibraries $(TARGET) : SDL2 ;
         C.macosx.FrameworkDirectories $(TARGET) : /Library/Frameworks ;
         C.macosx.LinkFrameworks $(TARGET) : SDL2 ;
     }
