@@ -9,7 +9,7 @@
 // File:		WindowMacOSX.h
 // Date:		24th January 2017
 // Authors:		Matt Phillips
-// Description:	MacOSX not-really-a-window (yet)
+// Description:	MacOSX window
 ///////////////////////////////////////////////////
 
 #pragma once

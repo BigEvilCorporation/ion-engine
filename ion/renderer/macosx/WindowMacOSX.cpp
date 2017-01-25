@@ -9,7 +9,7 @@
 // File:		WindowMacOSX.cpp
 // Date:		24th January 2017
 // Authors:		Matt Phillips
-// Description:	MacOSX not-really-a-window (yet)
+// Description:	MacOSX window
 ///////////////////////////////////////////////////
 
 #include "core/debug/Debug.h"
@@ -31,12 +31,8 @@ namespace ion
 		{
             SDL_Init(SDL_INIT_VIDEO);
             
-            SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
-            SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION,2);
-            SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION,1);
-            
-            SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL,1);
-            SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER,1);
+            SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 2 );
+            SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 1 );
             
             m_windowHandle = SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, clientAreaWidth, clientAreaHeight, SDL_WINDOW_OPENGL);
             

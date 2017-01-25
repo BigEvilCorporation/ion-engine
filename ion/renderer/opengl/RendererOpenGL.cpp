@@ -26,9 +26,7 @@
 
 #if defined ION_PLATFORM_WINDOWS
 #include <Windows.h>
-#endif
-
-#if defined ION_PLATFORM_MACOSX
+#elif defined ION_PLATFORM_MACOSX
 #include <GLUT/glut.h>
 #endif
 
@@ -538,6 +536,8 @@ namespace ion
 			//Draw
 #if defined ION_PLATFORM_WINDOWS
 			glDrawElements(drawPattern, indexBuffer.GetSize(), GL_UNSIGNED_INT, indexBuffer.GetAddress());
+#elif defined ION_PLATFORM_MACOSX
+            glDrawElements(drawPattern, indexBuffer.GetSize(), GL_UNSIGNED_INT, indexBuffer.GetAddress());
 #elif defined ION_PLATFORM_DREAMCAST
 			glDrawElements(drawPattern, indexBuffer.GetSize(), GL_UNSIGNED_SHORT, indexBuffer.GetAddress());
 #endif
