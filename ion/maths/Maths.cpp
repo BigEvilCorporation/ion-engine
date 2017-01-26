@@ -80,7 +80,11 @@ namespace ion
 
 		float Fmod(float value, float divisor)
 		{
+#if defined ION_PLATFORM_DREAMCAST
+			return value - divisor * floorf(value / divisor);
+#else
 			return fmod(value, divisor);
+#endif
 		}
 
 		float Lerp(float valueA, float valueB, float time)
