@@ -38,6 +38,7 @@ local SRC =
 	thread/Thread.h
 
 	# Strings
+    string/String.cpp
 	string/String.h
 
 	# System time

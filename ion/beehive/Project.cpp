@@ -9,6 +9,7 @@
 // Licensed under GPLv3, see http://www.gnu.org/licenses/gpl-3.0.html
 ///////////////////////////////////////////////////////
 
+#include <ion/core/string/String.h>
 #include <ion/io/Archive.h>
 #include <ion/gamekit/Bezier.h>
 
@@ -233,7 +234,7 @@ Map* Project::FindMap(const std::string name)
 {
 	for(TMapMap::iterator it = m_maps.begin(), end = m_maps.end(); it != end; ++it)
 	{
-		if(it->second.GetName() == name)
+		if(ion::string::CompareNoCase(it->second.GetName(), name))
 		{
 			return &it->second;
 		}
@@ -246,7 +247,7 @@ MapId Project::FindMapId(const std::string name)
 {
 	for(TMapMap::iterator it = m_maps.begin(), end = m_maps.end(); it != end; ++it)
 	{
-		if(it->second.GetName() == name)
+		if(ion::string::CompareNoCase(it->second.GetName(), name))
 		{
 			return it->first;
 		}
@@ -820,16 +821,9 @@ const Actor* Project::GetActor(ActorId actorId) const
 
 Actor* Project::FindActor(const std::string& name)
 {
-	//std::string lowerName = name;
-	//std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), std::tolower);
-
 	for(TActorMap::iterator it = m_actors.begin(), end = m_actors.end(); it != end; ++it)
 	{
-		//std::string actorName = it->second.GetName();
-		//std::transform(actorName.begin(), actorName.end(), actorName.begin(), std::tolower);
-
-		//if(actorName == lowerName)
-		if(it->second.GetName() == name)
+		if(ion::string::CompareNoCase(it->second.GetName(), name))
 		{
 			return &it->second;
 		}

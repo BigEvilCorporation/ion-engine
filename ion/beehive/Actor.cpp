@@ -1,5 +1,7 @@
 #include "Actor.h"
 
+#include <ion/core/string/String.h>
+
 #define HEX1(val) std::hex << std::setfill('0') << std::setw(1) << std::uppercase << (int)val
 #define HEX2(val) std::hex << std::setfill('0') << std::setw(2) << std::uppercase << (int)val
 #define HEX4(val) std::hex << std::setfill('0') << std::setw(4) << std::uppercase << (int)val
@@ -65,7 +67,7 @@ SpriteSheet* Actor::FindSpriteSheet(const std::string& name)
 {
 	for(TSpriteSheetMap::iterator it = m_spriteSheets.begin(), end = m_spriteSheets.end(); it != end; ++it)
 	{
-		if(it->second.GetName() == name)
+        if(ion::string::CompareNoCase(it->second.GetName(), name))
 		{
 			return &it->second;
 		}

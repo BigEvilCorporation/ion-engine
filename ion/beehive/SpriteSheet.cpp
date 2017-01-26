@@ -9,6 +9,7 @@
 // Licensed under GPLv3, see http://www.gnu.org/licenses/gpl-3.0.html
 ///////////////////////////////////////////////////////
 
+#include <ion/core/string/String.h>
 #include <ion/core/debug/Debug.h>
 
 #include "SpriteSheet.h"
@@ -151,7 +152,7 @@ SpriteAnimation* SpriteSheet::FindAnimation(const std::string name)
 {
 	for(TSpriteAnimMap::iterator it = m_animations.begin(), end = m_animations.end(); it != end; ++it)
 	{
-		if(it->second.GetName() == name)
+		if(ion::string::CompareNoCase(it->second.GetName(), name))
 		{
 			return &it->second;
 		}
