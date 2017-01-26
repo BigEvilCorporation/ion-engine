@@ -30,6 +30,8 @@ public:
 	int GetWidth() const;
 	int GetHeight() const;
 
+	void Resize(int w, int h, bool shiftRight, bool shiftDown);
+
 	void SetTile(int x, int y, TileId tile);
 	TileId GetTile(int x, int y) const;
 

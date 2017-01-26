@@ -181,6 +181,8 @@ void GameObject::Export(std::stringstream& stream, const GameObjectType& gameObj
 
 		stream << "#" << valueString << ", " << instanceVariables[i].m_name << "(a0)" << std::endl;
 	}
+
+	stream << '\t' << "jsr " << gameObjectType.GetName() << "LoadGfx" << std::endl;
 }
 
 void GameObject::ParseValueTokens(std::string& valueString) const

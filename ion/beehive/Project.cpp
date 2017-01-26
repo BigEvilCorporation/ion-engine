@@ -1040,6 +1040,19 @@ const Stamp* Project::GetStamp(StampId stampId) const
 	return stamp;
 }
 
+Stamp* Project::FindStamp(const std::string& name)
+{
+	for(TStampMap::iterator it = m_stamps.begin(), end = m_stamps.end(); it != end; ++it)
+	{
+		if(it->second.GetName() == name)
+		{
+			return &it->second;
+		}
+	}
+
+	return NULL;
+}
+
 StampId Project::FindDuplicateStamp(Stamp* stamp) const
 {
 	StampId foundStampId = InvalidStampId;
@@ -1919,17 +1932,6 @@ bool Project::ImportBitmap(const std::string& filename, u32 importFlags, u32 pal
 			}
 		}
 
-		if(stamp)
-		{
-			if(((reader.GetWidth() / m_platformConfig.tileWidth) != stamp->GetWidth()) || ((reader.GetHeight() / m_platformConfig.tileHeight) != stamp->GetHeight()))
-			{
-				//TODO: wx message handler in ion::debug
-				//wxMessageBox("Bitmap width/height does not match stamp to be replaced, cannot import", "Warning", wxOK | wxICON_WARNING);
-				ion::debug::log << "Bitmap width/height does not match stamp to be replaced, cannot import: " << filename << ion::debug::end;
-				return false;
-			}
-		}
-
 		//Get width/height in tiles (aligned up to tile width/height)
 		int tilesWidth = (int)ion::maths::Ceil((float)reader.GetWidth() / (float)tileWidth);
 		int tilesHeight = (int)ion::maths::Ceil((float)reader.GetHeight() / (float)tileHeight);
@@ -1941,29 +1943,59 @@ bool Project::ImportBitmap(const std::string& filename, u32 importFlags, u32 pal
 			collisionMap.Resize(ion::maths::Max(collisionMap.GetWidth(), tilesWidth), ion::maths::Max(collisionMap.GetHeight(), tilesHeight), false, false);
 		}
 
+		if(importFlags & eBMPImportReplaceStamp)
+		{
+			if(stamp)
+			{
+				if((tilesWidth != stamp->GetWidth()) || (tilesHeight != stamp->GetHeight()))
+				{
+					//TODO: wx message handler in ion::debug
+					//wxMessageBox("Bitmap width/height does not match stamp to be replaced, cannot import", "Warning", wxOK | wxICON_WARNING);
+					ion::debug::log << "Bitmap width/height ("
+						<< tilesWidth << "x"
+						<< tilesHeight
+						<< ") does not match stamp to be replaced ("
+						<< stamp->GetWidth() << "x"
+						<< stamp->GetHeight()
+						<< "), resizing: " << filename << ion::debug::end;
+
+					stamp->Resize(tilesWidth, tilesHeight, false, false);
+				}
+			}
+		}
+
 		if(importFlags & eBMPImportToStamp)
 		{
-			//Create new stamp
-			StampId stampId = AddStamp(tilesWidth, tilesHeight);
-			stamp = GetStamp(stampId);
-
-			//Set name
-			std::string stampName = filename;
-
-			const size_t lastSlash = stampName.find_last_of('\\');
-			if(std::string::npos != lastSlash)
+			if(!stamp)
 			{
-				stampName.erase(0, lastSlash + 1);
+				//Create new stamp
+				StampId stampId = AddStamp(tilesWidth, tilesHeight);
+				stamp = GetStamp(stampId);
 			}
+		}
 
-			// Remove extension if present.
-			const size_t period = stampName.rfind('.');
-			if(std::string::npos != period)
+		if((importFlags & eBMPImportToStamp) || (importFlags & eBMPImportReplaceStamp))
+		{
+			if(stamp)
 			{
-				stampName.erase(period);
-			}
+				//Set name
+				std::string stampName = filename;
 
-			stamp->SetName(stampName);
+				const size_t lastSlash = stampName.find_last_of('\\');
+				if(std::string::npos != lastSlash)
+				{
+					stampName.erase(0, lastSlash + 1);
+				}
+
+				// Remove extension if present.
+				const size_t period = stampName.rfind('.');
+				if(std::string::npos != period)
+				{
+					stampName.erase(period);
+				}
+
+				stamp->SetName(stampName);
+			}
 		}
 
 		int paletteIndex = -1;
@@ -2177,9 +2209,12 @@ bool Project::ImportBitmap(const std::string& filename, u32 importFlags, u32 pal
 
 				if((importFlags & eBMPImportToStamp) || (importFlags & eBMPImportReplaceStamp))
 				{
-					//Set in stamp
-					stamp->SetTile(tileX, tileY, tileId);
-					stamp->SetTileFlags(tileX, tileY, tileFlags);
+					if(stamp)
+					{
+						//Set in stamp
+						stamp->SetTile(tileX, tileY, tileId);
+						stamp->SetTileFlags(tileX, tileY, tileFlags);
+					}
 				}
 			}
 		}
@@ -2666,7 +2701,6 @@ bool Project::ExportGameObjects(MapId mapId, const std::string& filename) const
 	{
 		std::stringstream stream;
 		WriteFileHeader(stream);
-		stream << "gameobjects_" << mapName << ":" << std::endl;
 
 		const TGameObjectPosMap& gameObjMap = map.GetGameObjects();
 
@@ -2676,37 +2710,59 @@ bool Project::ExportGameObjects(MapId mapId, const std::string& filename) const
 			const GameObjectType& gameObjectType = it->second;
 			const TGameObjectPosMap::const_iterator gameObjIt = gameObjMap.find(it->first);
 			u32 count = (gameObjIt != gameObjMap.end()) ? gameObjIt->second.size() : 0;
-			
+
 			//Export game object count
-			stream << "gameobjects_" << mapName << "_" << gameObjectType.GetName() << "_count equ 0x" << count << std::endl;
+			stream << mapName << "_" << gameObjectType.GetName() << "_count equ 0x" << count << std::endl;
 
-			//Export game object init sunroutine
-			stream << "LoadGameObjects_" << mapName << "_" << gameObjectType.GetName() << ":" << std::endl;
-
-			//Export all game objects of this type
+			//Export game object names/indices
 			if(gameObjIt != gameObjMap.end())
 			{
 				for(int i = 0; i < gameObjIt->second.size(); i++)
 				{
 					if(gameObjIt->second[i].m_gameObject.GetName().size() > 0)
 					{
-						stream << gameObjIt->second[i].m_gameObject.GetName() << "_idx\tequ 0x" << std::hex << i << std::endl;
+						stream << mapName << "_" << gameObjIt->second[i].m_gameObject.GetName() << "_idx\tequ 0x" << std::hex << i << std::endl;
 					}
 					else
 					{
 						//No name, generate one
-						stream << mapName << gameObjectType.GetName() << "_" << std::dec << (u32)gameObjIt->second[i].m_gameObject.GetId() << "_idx\tequ 0x" << std::hex << i << std::endl;
+						stream << mapName << "_" << gameObjectType.GetName() << "_" << std::dec << (u32)gameObjIt->second[i].m_gameObject.GetId() << "_idx\tequ 0x" << std::hex << i << std::endl;
 					}
+				}
+			}
 
+			stream << std::endl;
+		}
+
+		stream << std::endl;
+
+		//Start init subroutine
+		stream << mapName << "_LoadGameObjects:" << std::endl;
+
+		for(TGameObjectTypeMap::const_iterator it = m_gameObjectTypes.begin(), end = m_gameObjectTypes.end(); it != end; ++it)
+		{
+			const GameObjectType& gameObjectType = it->second;
+			const TGameObjectPosMap::const_iterator gameObjIt = gameObjMap.find(it->first);
+
+			//Load array
+			stream << '\t' << "move.l #EntityArray_" << gameObjectType.GetName() << ", a0" << std::endl;
+
+			//Export all game objects of this type
+			if(gameObjIt != gameObjMap.end())
+			{
+				for(int i = 0; i < gameObjIt->second.size(); i++)
+				{
 					gameObjIt->second[i].m_gameObject.Export(stream, gameObjectType);
 					stream << '\t' << "add.l #" << gameObjectType.GetName() << "_Struct_Size, a0" << std::endl;
 				}
 			}
 
-			//End subroutine
-			stream << '\t' << "rts" << std::endl;
 			stream << std::endl;
 		}
+
+		//End subroutine
+		stream << '\t' << "rts" << std::endl;
+		stream << std::endl;
 
 		file.Write(stream.str().c_str(), stream.str().size());
 
@@ -2720,11 +2776,11 @@ bool Project::ExportSpriteSheets(const std::string& directory, bool binary) cons
 {
 	for(TActorMap::const_iterator it = m_actors.begin(), end = m_actors.end(); it != end; ++it)
 	{
-		if(binary)
-		{
-
-		}
-		else
+		//if(binary)
+		//{
+		//
+		//}
+		//else
 		{
 			std::stringstream filename;
 			filename << directory << "\\" << it->second.GetName() << ".ASM";
@@ -2751,11 +2807,11 @@ bool Project::ExportSpriteAnims(const std::string& directory, bool binary) const
 {
 	for(TActorMap::const_iterator it = m_actors.begin(), end = m_actors.end(); it != end; ++it)
 	{
-		if(binary)
-		{
-
-		}
-		else
+		//if(binary)
+		//{
+		//
+		//}
+		//else
 		{
 			std::stringstream filename;
 			filename << directory << "\\" << it->second.GetName() << ".ASM";

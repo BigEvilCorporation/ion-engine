@@ -61,6 +61,45 @@ int Stamp::GetHeight() const
 	return m_height;
 }
 
+void Stamp::Resize(int width, int height, bool shiftRight, bool shiftDown)
+{
+	const int tileWidth = 8; // m_platformConfig.tileWidth;
+	const int tileHeight = 8; // m_platformConfig.tileHeight;
+
+	//Create new tile array
+	std::vector<TileDesc> tiles;
+
+	//Set new size
+	int size = width * height;
+	tiles.resize(size);
+
+	//Fill with invalid tile
+	TileDesc blankTile;
+	blankTile.m_id = InvalidTileId;
+	std::fill(tiles.begin(), tiles.end(), blankTile);
+
+	//Copy tiles
+	for(int x = 0; x < ion::maths::Min(width, m_width); x++)
+	{
+		for(int y = 0; y < ion::maths::Min(height, m_height); y++)
+		{
+			int destTileIdx = (y * width) + x;
+			if(shiftRight && width > m_width)
+				destTileIdx += (width - m_width);
+			if(shiftDown && height > m_height)
+				destTileIdx += (height - m_height) * width;
+
+			tiles[destTileIdx].m_id = GetTile(x, y);
+			tiles[destTileIdx].m_flags = GetTileFlags(x, y);
+		}
+	}
+
+	//Set new
+	m_tiles = tiles;
+	m_width = width;
+	m_height = height;
+}
+
 void Stamp::SetTile(int x, int y, TileId tile)
 {
 	int tileIdx = (y * m_width) + x;

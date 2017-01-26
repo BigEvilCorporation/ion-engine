@@ -172,6 +172,7 @@ public:
 	void DeleteStamp(StampId stampId);
 	Stamp* GetStamp(StampId stampId);
 	const Stamp* GetStamp(StampId stampId) const;
+	Stamp* FindStamp(const std::string& name);
 	StampId FindDuplicateStamp(Stamp* stamp) const;
 	const TStampMap::const_iterator StampsBegin() const;
 	const TStampMap::const_iterator StampsEnd() const;
