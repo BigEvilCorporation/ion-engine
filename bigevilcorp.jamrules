@@ -2,6 +2,14 @@
 ## Apply ion::engine libraries
 #################################################
 
+rule ApplyIonCompiler TARGET
+{
+    if ( macosx64 in $(PLATFORM) )
+    {
+        C.Flags $(TARGET) : C++	: -std=c++11 ;
+    }
+}
+
 rule ApplyIonIncludes TARGET
 {
 	C.IncludeDirectories $(TARGET) : $(bigevilcorp) ;
@@ -17,6 +25,14 @@ rule ApplyIonDefines TARGET
 			ION_ENDIAN_LITTLE
 			;
 	}
+
+    if ( macosx64 in $(PLATFORM) )
+    {
+        C.Defines $(TARGET) :
+            ION_PLATFORM_MACOSX
+            ION_ENDIAN_LITTLE
+            ;
+    }
 
 	if ( dreamcast in $(PLATFORM) )
 	{
@@ -91,8 +107,6 @@ rule ApplyIonInput TARGET
 rule ApplyIonIo TARGET
 {
 	ApplyIonLib $(TARGET) : io ;
-
-	ApplyTinyXMLSDK $(TARGET) ;
 }
 
 rule ApplyIonRenderer TARGET
@@ -109,9 +123,14 @@ rule ApplyDefaultRenderer TARGET : LINK_OPT
 		ApplyRendererImpl $(TARGET) : opengl sdl $(LINK_OPT) ;
 	}
 
+    if ( macosx64 in $(PLATFORM) )
+    {
+        ApplyRendererImpl $(TARGET) : opengl sdl $(LINK_OPT) ;
+    }
+
 	if ( dreamcast in $(PLATFORM) )
 	{
-		ApplyRendererImpl $(TARGET) : opengl sdl glut $(LINK_OPT) ;
+		ApplyRendererImpl $(TARGET) : opengl glut $(LINK_OPT) ;
 	}
 }
 
@@ -320,7 +339,12 @@ rule ApplyOpenGLSDK TARGET
 
 		C.LinkPrebuiltLibraries $(TARGET) : $(OPENGL_LIBS) ;
 	}
-	
+
+    if ( macosx64 in $(PLATFORM) )
+    {
+        C.macosx.LinkFrameworks $(TARGET) : OpenGL ;
+    }
+
 	if ( dreamcast in $(PLATFORM) )
 	{
 		C.Defines $(TARGET) : ION_RENDERER_KGL ;
@@ -363,6 +387,11 @@ rule ApplyGlewSDK TARGET
 rule ApplyGlutSDK TARGET
 {
 	C.Defines $(TARGET) : ION_RENDER_SUPPORTS_GLUT ;
+
+    if ( macosx64 in $(PLATFORM) )
+    {
+        C.macosx.LinkFrameworks $(TARGET) : OpenGL GLUT ;
+    }
 }
 
 rule ApplyGlfwSDK TARGET
@@ -404,6 +433,13 @@ rule ApplySDLSDK TARGET
 
 		C.LinkPrebuiltLibraries $(TARGET) : $(SDL_LIBS) ;
 	}
+
+    if ( macosx64 in $(PLATFORM) )
+    {
+        C.IncludeDirectories $(TARGET) : /Library/Frameworks/SDL2.framework/Headers ;
+        C.macosx.FrameworkDirectories $(TARGET) : /Library/Frameworks ;
+        C.macosx.LinkFrameworks $(TARGET) : SDL2 ;
+    }
 
 	if ( dreamcast in $(PLATFORM) )
 	{
@@ -459,6 +495,10 @@ rule ApplyCgSDK TARGET
 rule ApplyTinyXMLSDK TARGET
 {
 	C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/TinyXML/include ;
+
+    ApplyIonCompiler tinyxml ;
+    ApplyIonDefines tinyxml ;
+    ApplyIonIncludes tinyxml ;
 
 	C.RuntimeType tinyxml : static ;
 

@@ -26,8 +26,8 @@ static const SpriteSheetId InvalidSpriteSheetId = 0;
 class SpriteSheet
 {
 public:
-	static const int subSpriteWidthTiles = 4;
-	static const int subSpriteHeightTiles = 4;
+	static const int subSpriteWidthTiles;
+	static const int subSpriteHeightTiles;
 
 	SpriteSheet();
 

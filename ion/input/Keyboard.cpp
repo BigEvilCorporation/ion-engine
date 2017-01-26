@@ -6,6 +6,8 @@
 ///////////////////////////////////////////////////
 
 #include "Keyboard.h"
+#include "Keytable.h"
+
 #include "core/memory/Memory.h"
 #include "core/debug/Debug.h"
 
@@ -73,16 +75,16 @@ namespace ion
 			m_handlers.erase(std::find(m_handlers.begin(), m_handlers.end(), &handler));
 		}
 		
-		bool Keyboard::KeyDown(int key) const
+		bool Keyboard::KeyDown(Keycode key) const
 		{
 			debug::Assert(key >=0 && key < sMaxKeys, "Keyboard::KeyDown() - Key out of range");
-			return (mCurrKeyStates[key] & 0x80) != 0;
+			return (mCurrKeyStates[key] != 0);
 		}
 		
-		bool Keyboard::KeyPressedThisFrame(int key) const
+		bool Keyboard::KeyPressedThisFrame(Keycode key) const
 		{
 			debug::Assert(key >=0 && key < sMaxKeys, "Keyboard::KeyPressedThisFrame() - Key out of range");
-			return ((mCurrKeyStates[key] & 0x80) != 0) && ((mPrevKeyStates[key] & 0x80) == 0);
+			return (mCurrKeyStates[key] != 0) && (mPrevKeyStates[key] == 0);
 		}
 
 		void Keyboard::Update()
@@ -107,25 +109,31 @@ namespace ion
 						mKeyboardDevice->GetDeviceState(sizeof(mCurrKeyStates), mCurrKeyStates);
 					}
 				}
-
-				if(hResult == DI_OK)
-				{
-					for(int i = 0; i < sMaxKeys; i++)
-					{
-						if(mCurrKeyStates[i] != mPrevKeyStates[i])
-						{
-							for(int j = 0; j < m_handlers.size(); j++)
-							{
-								if(mCurrKeyStates[i])
-									m_handlers[j]->OnKeyDown(i);
-								else
-									m_handlers[j]->OnKeyUp(i);
-							}
-						}
-					}
-				}
 			}
+#elif defined ION_PLATFORM_MACOSX
+            int numKeys = 0;
+            const u8* keyStates = SDL_GetKeyboardState(&numKeys);
+            
+            for(int i = 0; i < Keycode::COUNT; i++)
+            {
+                mCurrKeyStates[i] = keyStates[KeycodeTable[i]];
+            }
 #endif
+            
+            //Determine changea and fire events
+            for(int i = 0; i < sMaxKeys; i++)
+            {
+                if(mCurrKeyStates[i] != mPrevKeyStates[i])
+                {
+                    for(int j = 0; j < m_handlers.size(); j++)
+                    {
+                        if(mCurrKeyStates[i])
+                            m_handlers[j]->OnKeyDown(i);
+                        else
+                            m_handlers[j]->OnKeyUp(i);
+                    }
+                }
+            }
 		}
 
 		void Keyboard::SetCooperativeWindow(CoopLevel coopLevel)

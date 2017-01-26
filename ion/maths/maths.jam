@@ -13,6 +13,7 @@ local SRC =
 	Vector.h
 	;
 
+ApplyIonCompiler maths ;
 ApplyIonDefines maths ;
 ApplyIonIncludes maths ;
 ApplyWin32SDK maths ;

@@ -93,6 +93,7 @@ namespace ion
 			{
 			public:
 				ShaderParamDelegate() : m_refCount(0) {}
+                virtual ~ShaderParamDelegate() {}
 
 				virtual void Set(const int& value) = 0;
 				virtual void Set(const float& value) = 0;

@@ -9,10 +9,14 @@
 // Licensed under GPLv3, see http://www.gnu.org/licenses/gpl-3.0.html
 ///////////////////////////////////////////////////////
 
+#include <ion/core/string/String.h>
 #include <ion/core/debug/Debug.h>
 
 #include "SpriteSheet.h"
 #include "BMPReader.h"
+
+const int SpriteSheet::subSpriteWidthTiles = 4;
+const int SpriteSheet::subSpriteHeightTiles = 4;
 
 SpriteSheet::SpriteSheet()
 {
@@ -50,8 +54,8 @@ bool SpriteSheet::ImportBitmap(const std::string& filename, const std::string& n
 		int spriteSheetHeightTiles = reader.GetHeight() / tileHeight;
 	
 		//Get frame width/height in tiles
-		m_widthTiles = spriteSheetWidthTiles / widthFrames;
-		m_heightTiles = spriteSheetHeightTiles / heightFrames;
+        m_widthTiles = spriteSheetWidthTiles / widthFrames;
+        m_heightTiles = spriteSheetHeightTiles / heightFrames;
 	
 		//For each frame
 		u32 frameCount = 0;
@@ -148,7 +152,7 @@ SpriteAnimation* SpriteSheet::FindAnimation(const std::string name)
 {
 	for(TSpriteAnimMap::iterator it = m_animations.begin(), end = m_animations.end(); it != end; ++it)
 	{
-		if(it->second.GetName() == name)
+		if(ion::string::CompareNoCase(it->second.GetName(), name))
 		{
 			return &it->second;
 		}

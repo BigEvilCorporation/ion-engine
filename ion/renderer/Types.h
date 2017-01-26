@@ -14,6 +14,10 @@
 
 #pragma once
 
+#if defined ION_PLATFORM_MACOSX
+struct SDL_Window;
+#endif
+
 namespace ion
 {
 	namespace render
@@ -21,6 +25,9 @@ namespace ion
 #if defined ION_PLATFORM_WINDOWS
 		typedef HWND WindowHandle;
 		typedef HDC DeviceContext;
+#elif defined ION_PLATFORM_MACOSX
+        typedef SDL_Window* WindowHandle;
+        typedef SDL_Window* DeviceContext;
 #elif defined ION_PLATFORM_DREAMCAST
 		typedef int WindowHandle;
 		typedef void* DeviceContext;

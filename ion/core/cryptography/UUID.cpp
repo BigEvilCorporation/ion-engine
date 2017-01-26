@@ -27,6 +27,9 @@ namespace ion
 		CoCreateGuid(&guid);
 		UUID64 uuid = ((u64)guid.Data1 << 32 | (u64)guid.Data2 << 16 | (u64)guid.Data3);
 		return uuid;
+#elif defined ION_PLATFORM_MACOSX
+        static u64 id = 0;
+        return ++id;
 #elif defined ION_PLATFORM_DREAMCAST
 		static u64 id = 0;
 		return ++id;

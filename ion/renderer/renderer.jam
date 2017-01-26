@@ -43,6 +43,7 @@ local SRC =
 	TexCoord.h
 	Texture.cpp
 	Texture.h
+    Types.h
 	Vertex.h
 	VertexBuffer.cpp
 	VertexBuffer.h
@@ -52,14 +53,10 @@ local SRC =
 	Window.h
 	;
 
+ApplyIonCompiler renderer ;
 ApplyIonDefines renderer ;
 ApplyIonIncludes renderer ;
 ApplyDefaultRenderer renderer : sdk ;
-# ApplyWin32SDK renderer ;
-# ApplyDirectXSDK renderer ;
-# ApplyOpenGLSDK renderer ;
-# ApplySDLSDK renderer ;
-# ApplyFreeTypeSDK renderer ;
 
 AutoSourceGroup renderer : $(SRC) ;
 C.RuntimeType renderer : static ;

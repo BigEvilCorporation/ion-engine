@@ -55,6 +55,8 @@ namespace ion
 						sRegisteredControllers[i] = true;
 						break;
 					}
+#elif defined ION_PLATFORM_MACOSX
+                    return 0;
 #elif defined ION_PLATFORM_DREAMCAST
 					if(i < maple_enum_count())
 					{
@@ -138,6 +140,9 @@ namespace ion
 
 			if(ly != 0.0f)
 				ly /= 127;
+#elif defined ION_PLATFORM_MACOSX
+            float lx = 0.0f;
+            float ly = 0.0f;
 #elif defined ION_PLATFORM_WINDOWS
 			float lx = (float)mInputState.Gamepad.sThumbLX;
 			float ly = (float)mInputState.Gamepad.sThumbLY;
@@ -169,6 +174,9 @@ namespace ion
 
 			if(ry != 0.0f)
 				ry /= 127;
+#elif defined ION_PLATFORM_MACOSX
+            float rx = 0.0f;
+            float ry = 0.0f;
 #elif defined ION_PLATFORM_WINDOWS
 			float rx = (float)mInputState.Gamepad.sThumbRX;
 			float ry = (float)mInputState.Gamepad.sThumbRY;
@@ -194,6 +202,8 @@ namespace ion
 #if defined ION_PLATFORM_DREAMCAST
 			int mapleButton = ToPlatformButton(button);
 			return (m_mapleState.buttons & mapleButton) != 0;
+#elif defined ION_PLATFORM_MACOSX
+            return false;
 #else
 			int xInputButton = ToPlatformButton(button);
 			return (mInputState.Gamepad.wButtons & xInputButton) != 0;

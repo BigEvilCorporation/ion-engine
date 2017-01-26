@@ -24,7 +24,11 @@
 #include <GL/glew.h>
 #endif
 
+#if defined ION_PLATFORM_MACOSX
+#include <OpenGL/gl.h>
+#else
 #include <GL/gl.h>
+#endif
 
 #ifdef ION_PLATFORM_WINDOWS
 #include <GL/glext.h>

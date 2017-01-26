@@ -1,5 +1,6 @@
 SubDir bigevilcorp ion renderer imageformats ;
 
+ApplyIonCompiler imageformats ;
 ApplyIonDefines imageformats ;
 ApplyIonIncludes imageformats ;
 ApplyIonCore imageformats ;

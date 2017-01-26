@@ -147,7 +147,9 @@ namespace ion
 			char text[128] = { 0 };
 #if defined ION_PLATFORM_DREAMCAST
 			sprintf(text, "%i", value);
-#else
+#elif defined ION_PLATFORM_MACOSX
+            sprintf(text, "%i", value);
+#elif defined ION_PLATFORM_WINDOWS
 			sprintf_s(text, 128, "%i", value);
 #endif
 			m_attributes.insert(std::make_pair(nameLower, std::string(text)));
@@ -159,7 +161,9 @@ namespace ion
 			char text[128] = {0};
 #if defined ION_PLATFORM_DREAMCAST
 			sprintf(text, "%f", value);
-#else
+#elif defined ION_PLATFORM_MACOSX
+            sprintf(text, "%f", value);
+#elif defined ION_PLATFORM_WINDOWS
 			sprintf_s(text, 128, "%f", value);
 #endif
 			m_attributes.insert(std::make_pair(nameLower, std::string(text)));

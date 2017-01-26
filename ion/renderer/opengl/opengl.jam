@@ -1,5 +1,10 @@
 SubDir bigevilcorp ion renderer opengl ;
 
+ApplyIonCompiler opengl ;
+ApplyIonDefines opengl ;
+ApplyIonIncludes opengl ;
+ApplyDefaultRenderer opengl : sdk ;
+
 local SRC =
 	RendererOpenGL.cpp
 	RendererOpenGL.h
@@ -15,6 +20,14 @@ if ( win32 in $(PLATFORM) )
 	;
 }
 
+if ( macosx64 in $(PLATFORM) )
+{
+    SRC +=
+    ../macosx/WindowMacOSX.cpp
+    ../macosx/WindowMacOSX.h
+    ;
+}
+
 if ( dreamcast in $(PLATFORM) )
 {
 	SRC +=
@@ -22,10 +35,6 @@ if ( dreamcast in $(PLATFORM) )
 	../dreamcast/WindowDreamcast.h
 	;
 }
-
-ApplyIonDefines opengl ;
-ApplyIonIncludes opengl ;
-ApplyDefaultRenderer opengl : sdk ;
 
 AutoSourceGroup opengl : $(SRC) ;
 C.RuntimeType opengl : static ;

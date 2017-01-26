@@ -38,6 +38,7 @@ local SRC =
 	thread/Thread.h
 
 	# Strings
+    string/String.cpp
 	string/String.h
 
 	# System time
@@ -49,6 +50,7 @@ local SRC =
 	version.h
 	;
 
+ApplyIonCompiler core ;
 ApplyIonDefines core ;
 ApplyIonIncludes core ;
 ApplyWin32SDK core ;

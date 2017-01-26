@@ -13,6 +13,7 @@
 #include "Project.h"
 #include <algorithm>
 
+#include <ion/core/string/String.h>
 #include <ion/core/memory/Memory.h>
 #include <ion/core/memory/Endian.h>
 
@@ -374,7 +375,7 @@ GameObject* Map::FindGameObject(const std::string& name)
 	{
 		for(std::vector<GameObjectMapEntry>::reverse_iterator itVec = itMap->second.rbegin(), endVec = itMap->second.rend(); itVec != endVec; ++itVec)
 		{
-			if(itVec->m_gameObject.GetName() == name)
+            if(ion::string::CompareNoCase(itVec->m_gameObject.GetName(), name))
 			{
 				return &itVec->m_gameObject;
 			}
