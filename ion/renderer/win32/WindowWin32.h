@@ -14,8 +14,8 @@
 
 #pragma once
 
+#include "core/Platform.h"
 #include "renderer/Window.h"
-#include <Windows.h>
 
 namespace ion
 {

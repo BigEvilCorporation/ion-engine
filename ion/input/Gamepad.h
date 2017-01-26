@@ -7,15 +7,15 @@
 
 #pragma once
 
+#include "core/Platform.h"
 #include "core/memory/Memory.h"
 #include "maths/Vector.h"
 
 #if defined ION_PLATFORM_WINDOWS
-//TODO: Windows headers in platform header
-#include <windows.h>
 #include <XInput.h>
-#elif defined ION_PLATFORM_DREAMCAST
-#include <kos.h>
+#include <dinput.h>
+#elif defined ION_PLATFORM_MACOSX
+#include <SDL.h>
 #endif
 
 namespace ion

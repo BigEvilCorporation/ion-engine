@@ -24,9 +24,7 @@
 #include "renderer/cggl/ShaderCgGL.h"
 #endif
 
-#if defined ION_PLATFORM_WINDOWS
-#include <Windows.h>
-#elif defined ION_PLATFORM_MACOSX
+#if defined ION_RENDERER_SUPPORTS_GLUT
 #include <GLUT/glut.h>
 #endif
 

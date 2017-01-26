@@ -14,11 +14,8 @@
 
 #pragma once
 
+#include "core/Platform.h"
 #include "renderer/Texture.h"
-
-#ifdef ION_PLATFORM_WINDOWS
-#include <windows.h>
-#endif
 
 #if defined ION_RENDER_SUPPORTS_GLEW
 #include <GL/glew.h>

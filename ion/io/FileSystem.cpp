@@ -12,13 +12,8 @@
 // Description:	File device management
 ///////////////////////////////////////////////////
 
+#include "core/Platform.h"
 #include "io/FileSystem.h"
-
-#if defined ION_PLATFORM_WINDOWS
-//WIN32_LEAN_AND_MEAN defined in JamRules
-#include <windows.h>
-#include <direct.h>
-#endif
 
 namespace ion
 {

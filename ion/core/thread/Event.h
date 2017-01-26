@@ -14,11 +14,8 @@
 
 #pragma once
 
+#include "core/Platform.h"
 #include "core/Types.h"
-
-#if defined ION_PLATFORM_WINDOWS
-#include <Windows.h>
-#endif
 
 namespace ion
 {

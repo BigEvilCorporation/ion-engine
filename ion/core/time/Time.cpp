@@ -14,15 +14,8 @@
 
 #include "Time.h"
 
+#include "core/Platform.h"
 #include "core/debug/Debug.h"
-
-#if defined ION_PLATFORM_WINDOWS
-#include <Windows.h>
-#elif defined ION_PLATFORM_MACOSX
-#include <sys/time.h>
-#elif defined ION_PLATFORM_DREAMCAST
-#include <time.h>
-#endif
 
 namespace ion
 {

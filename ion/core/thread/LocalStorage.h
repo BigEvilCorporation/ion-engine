@@ -14,13 +14,10 @@
 
 #pragma once
 
+#include "core/Platform.h"
 #include "core/Types.h"
 #include "core/thread/CriticalSection.h"
 #include <vector>
-
-#if defined ION_PLATFORM_WINDOWS
-#include <Windows.h>
-#endif
 
 namespace ion
 {

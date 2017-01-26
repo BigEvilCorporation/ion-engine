@@ -12,12 +12,8 @@
 // Description:	Interface to a file storage system
 ///////////////////////////////////////////////////
 
+#include "core/Platform.h"
 #include "io/FileDevice.h"
-
-#if defined ION_PLATFORM_WINDOWS
-//WIN32_LEAN_AND_MEAN defined in JamRules
-#include <windows.h>
-#endif
 
 namespace ion
 {

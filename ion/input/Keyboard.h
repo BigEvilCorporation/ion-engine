@@ -7,7 +7,10 @@
 
 #pragma once
 
+#include "core/Platform.h"
+
 #if defined ION_PLATFORM_WINDOWS
+#include <XInput.h>
 #include <dinput.h>
 #elif defined ION_PLATFORM_MACOSX
 #include <SDL.h>
@@ -55,9 +58,8 @@ namespace ion
 			void SetCooperativeWindow(CoopLevel coopLevel);
 
 		private:
-			static const int sMaxKeys = 256;
-			char mCurrKeyStates[sMaxKeys];
-			char mPrevKeyStates[sMaxKeys];
+			char mCurrKeyStates[Keycode::COUNT];
+			char mPrevKeyStates[Keycode::COUNT];
 
 			std::vector<KeyboardHandler*> m_handlers;
 

@@ -14,12 +14,9 @@
 
 #pragma once
 
+#include "core/Platform.h"
 #include "core/thread/CriticalSection.h"
 #include "renderer/Renderer.h"
-
-#if defined ION_PLATFORM_WINDOWS
-#include <windows.h>
-#endif
 
 #if defined ION_RENDER_SUPPORTS_GLEW
 #include <GL/glew.h>

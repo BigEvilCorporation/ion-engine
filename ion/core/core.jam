@@ -46,8 +46,9 @@ local SRC =
 	time/Time.h
 
 	# Base
+	Platform.h
 	Types.h
-	version.h
+	Version.h
 	;
 
 ApplyIonCompiler core ;
