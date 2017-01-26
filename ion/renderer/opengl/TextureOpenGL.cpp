@@ -169,25 +169,25 @@ namespace ion
 #endif
 
 			//If first time load, init size
-			if(m_width == 0 && m_height == 0)
+			//if(m_width == 0 && m_height == 0)
 			{
 				m_width = width;
 				m_height = height;
 			}
 
 			//Copy all pixels in surface to GL texture
-			if(width == m_width && height == m_height)
+			//if(width == m_width && height == m_height)
 			{
 				//Width/height match, just copy
 				glTexImage2D(GL_TEXTURE_2D, 0, m_glFormat, width, height, 0, m_glFormat, glByteFormat, data);
 			}
 #if !defined ION_RENDERER_KGL
-			else
-			{
-				//Width/height mismatch, copy subimage
-				glTexImage2D(GL_TEXTURE_2D, 0, m_glFormat, m_width, m_height, 0, m_glFormat, glByteFormat, NULL);
-				glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, m_glFormat, glByteFormat, data);
-			}
+			//else
+			//{
+			//	//Width/height mismatch, copy subimage
+			//	glTexImage2D(GL_TEXTURE_2D, 0, m_glFormat, m_width, m_height, 0, m_glFormat, glByteFormat, NULL);
+			//	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, m_glFormat, glByteFormat, data);
+			//}
 #endif
 
 			//Unbind texture
