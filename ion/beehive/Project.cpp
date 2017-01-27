@@ -1247,8 +1247,11 @@ int Project::CleanupTerrainTiles(bool prompt)
 
 				if(terrainTileId != InvalidTerrainTileId)
 				{
-					usedTerrainTiles[terrainTileId] = true;
-					usedTileCount++;
+					if(!usedTerrainTiles[terrainTileId])
+					{
+						usedTerrainTiles[terrainTileId] = true;
+						usedTileCount++;
+					}
 				}
 			}
 		}
