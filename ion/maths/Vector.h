@@ -24,6 +24,8 @@ namespace ion
 		TVector2(const TVector2<T>& vector);
 		T operator [](int index) const;
 
+		bool operator ==(const TVector2<T>& rhs) const;
+
 		TVector2<T> operator *(T scalar) const;
 		TVector2<T> operator /(T scalar) const;
 		TVector2<T> operator *(const TVector2<T> &vector) const;
@@ -123,6 +125,11 @@ namespace ion
 			return y;
 		else
 			return 0.0f;
+	}
+
+	template <typename T> bool TVector2<T>::operator ==(const TVector2<T>& rhs) const
+	{
+		return x == rhs.x && y == rhs.y;
 	}
 
 	template <typename T> TVector2<T> TVector2<T>::operator *(T Scalar) const

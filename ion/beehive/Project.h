@@ -56,6 +56,7 @@ public:
 		eBMPImportToSpriteSheet	= (1 << 6),
 		eBMPImportWholePalette	= (1 << 7),
 		eBMPImportInsertBGTile	= (1 << 8),
+		eBMPImportOnlyExisting	= (1 << 9),
 	};
 
 	Project(PlatformConfig& defaultPatformConfig);
