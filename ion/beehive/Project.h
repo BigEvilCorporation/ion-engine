@@ -272,6 +272,8 @@ public:
 	bool ExportStampBitmaps(const std::string& directory) const;
 
 	bool ExportMap(MapId mapId, const std::string& filename, bool binary) const;
+	bool ExportBlocks(MapId mapId, const std::string& filename, bool binary, int blockWidth, int blockHeight) const;
+	bool ExportBlockMap(MapId mapId, const std::string& filename, bool binary, int blockWidth, int blockHeight) const;
 	bool ExportStamps(const std::string& filename, bool binary) const;
 	bool ExportStampMap(MapId mapId, const std::string& filename, bool binary) const;
 	bool ExportCollisionMap(MapId mapId, const std::string& filename, bool binary) const;

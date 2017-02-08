@@ -96,6 +96,12 @@ public:
 	int GetWidth() const;
 	int GetHeight() const;
 
+	int GetBlockAlignedWidth(int blockWidth) const;
+	int GetBlockAlignedHeight(int blockHeight) const;
+
+	int GetWidthBlocks(int blockWidth) const;
+	int GetHeightBlocks(int blockHeight) const;
+
 	void Resize(int w, int h, bool shiftRight, bool shiftDown);
 
 	//Set tile on map
@@ -131,9 +137,16 @@ public:
 	const TStampPosMap::const_iterator StampsBegin() const;
 	const TStampPosMap::const_iterator StampsEnd() const;
 
+	// Generate NxN blocks and sort unique
+	void GenerateBlocks(const Project& project, int blockWidth, int blockHeight);
+
 	void Serialise(ion::io::Archive& archive);
 	void Export(const Project& project, std::stringstream& stream) const;
 	void Export(const Project& project, ion::io::File& file) const;
+	void ExportBlocks(const Project& project, std::stringstream& stream, int blockWidth, int blockHeight) const;
+	void ExportBlocks(const Project& project, ion::io::File& file, int blockWidth, int blockHeight) const;
+	void ExportBlockMap(const Project& project, std::stringstream& stream, int blockWidth, int blockHeight) const;
+	void ExportBlockMap(const Project& project, ion::io::File& file, int blockWidth, int blockHeight) const;
 	void ExportStampMap(const Project& project, std::stringstream& stream) const;
 	void ExportStampMap(const Project& project, ion::io::File& file) const;
 
@@ -144,21 +157,29 @@ public:
 		std::string stampMap;
 		std::string collisionMap;
 		std::string gameObjects;
+		std::string blocks;
+		std::string blockMap;
 
 		bool mapExportEnabled;
 		bool stampMapExportEnabled;
 		bool collisionMapExportEnabled;
 		bool gameObjectsExportEnabled;
+		bool blocksExportEnabled;
+		bool blockMapExportEnabled;
 
 		void Serialise(ion::io::Archive& archive)
 		{
 			archive.Serialise(mapExportEnabled, "mapExportEnabled");
 			archive.Serialise(stampMapExportEnabled, "stampMapExportEnabled");
+			archive.Serialise(blocksExportEnabled, "blocksExportEnabled");
+			archive.Serialise(blockMapExportEnabled, "blockMapExportEnabled");
 			archive.Serialise(collisionMapExportEnabled, "collisionMapExportEnabled");
 			archive.Serialise(gameObjectsExportEnabled, "gameObjectsExportEnabled");
 
 			archive.Serialise(map, "exportFNameMap");
 			archive.Serialise(stampMap, "exportFNameStampMap");
+			archive.Serialise(blocks, "exportFNameblocks");
+			archive.Serialise(blockMap, "exportFNameblockMap");
 			archive.Serialise(collisionMap, "exportFNameCollisionMap");
 			archive.Serialise(gameObjects, "exportFNameGameObjects");
 		}
@@ -170,6 +191,7 @@ private:
 	struct TileDesc
 	{
 		TileDesc() { m_id = InvalidTileId; m_flags = 0; }
+		TileDesc(TileId id, u32 flags) { m_id = id; m_flags = flags; }
 
 		void Serialise(ion::io::Archive& archive)
 		{
@@ -177,11 +199,26 @@ private:
 			archive.Serialise(m_flags);
 		}
 
+		bool operator ==(const TileDesc& rhs) const
+		{
+			return m_id == rhs.m_id && m_flags == rhs.m_flags;
+		}
+
 		TileId m_id;
 		u32 m_flags;
 	};
 
-	void BakeStamp(std::vector<TileDesc>& tiles, int x, int y, const Stamp& stamp, u32 flipFlags) const;
+	struct Block
+	{
+		std::vector<TileDesc> m_tiles;
+		int uniqueIndex = -1;
+
+		bool operator ==(const Block& rhs) const;
+		void Export(const Project& project, std::stringstream& stream, int blockWidth, int blockHeight);
+		void Export(const Project& project, ion::io::File& file, int blockWidth, int blockHeight);
+	};
+
+	void BakeStamp(std::vector<TileDesc>& tiles, int mapWidth, int mapHeight, int x, int y, const Stamp& stamp, u32 flipFlags) const;
 
 	const PlatformConfig& m_platformConfig;
 	std::string m_name;
@@ -191,4 +228,7 @@ private:
 	TStampPosMap m_stamps;
 	TGameObjectPosMap m_gameObjects;
 	GameObjectId m_nextFreeGameObjectId;
+
+	std::vector<Block> m_blocks;
+	std::vector<Block*> m_uniqueBlocks;
 };

@@ -2442,6 +2442,133 @@ bool Project::ExportMap(MapId mapId, const std::string& filename, bool binary) c
 	return false;
 }
 
+bool Project::ExportBlocks(MapId mapId, const std::string& filename, bool binary, int blockWidth, int blockHeight) const
+{
+	const Map& map = m_maps.find(mapId)->second;
+	const std::string& mapName = map.GetName();
+
+	u32 binarySize = 0;
+
+	if(binary)
+	{
+		std::string binaryFilename = filename.substr(0, filename.find_first_of('.'));
+		binaryFilename += ".bin";
+
+		//Export binary data
+		ion::io::File binaryFile(binaryFilename, ion::io::File::eOpenWrite);
+		if(binaryFile.IsOpen())
+		{
+			map.ExportBlocks(*this, binaryFile, blockWidth, blockHeight);
+			binarySize = binaryFile.GetSize();
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	ion::io::File file(filename, ion::io::File::eOpenWrite);
+	if(file.IsOpen())
+	{
+		std::stringstream stream;
+		WriteFileHeader(stream);
+
+		if(binary)
+		{
+			//Export size of binary file
+			stream << "map_blocks_" << mapName << "_size_b\tequ 0x" << std::hex << std::setfill('0') << std::uppercase << std::setw(8) << binarySize << std::dec << "\t; Size in bytes" << std::endl;
+		}
+		else
+		{
+			//Export label, data and size as inline text
+			stream << "map_blocks_" << mapName << ":" << std::endl;
+
+			map.ExportBlocks(*this, stream, blockWidth, blockHeight);
+
+			stream << std::endl;
+			stream << "map_blocks_" << mapName << "_end:" << std::endl;
+			stream << "map_blocks_" << mapName << "_size_b\tequ (map_blocks_" << mapName << "_end-map_" << mapName << ")\t; Size in bytes" << std::endl;
+		}
+
+		stream << "map_blocks_" << mapName << "_size_w\tequ (map_blocks_" << mapName << "_size_b/2)\t; Size in words" << std::endl;
+		stream << "map_blocks_" << mapName << "_size_l\tequ (map_blocks_" << mapName << "_size_b/4)\t; Size in longwords" << std::endl;
+
+		file.Write(stream.str().c_str(), stream.str().size());
+
+		return true;
+	}
+
+	return false;
+}
+
+bool Project::ExportBlockMap(MapId mapId, const std::string& filename, bool binary, int blockWidth, int blockHeight) const
+{
+	const Map& map = m_maps.find(mapId)->second;
+	int mapWidth = map.GetBlockAlignedWidth(blockWidth);
+	int mapHeight = map.GetBlockAlignedHeight(blockHeight);
+	const std::string& mapName = map.GetName();
+
+	u32 binarySize = 0;
+
+	if(binary)
+	{
+		std::string binaryFilename = filename.substr(0, filename.find_first_of('.'));
+		binaryFilename += ".bin";
+
+		//Export binary data
+		ion::io::File binaryFile(binaryFilename, ion::io::File::eOpenWrite);
+		if(binaryFile.IsOpen())
+		{
+			map.ExportBlockMap(*this, binaryFile, blockWidth, blockHeight);
+			binarySize = binaryFile.GetSize();
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	ion::io::File file(filename, ion::io::File::eOpenWrite);
+	if(file.IsOpen())
+	{
+		std::stringstream stream;
+		WriteFileHeader(stream);
+
+		if(binary)
+		{
+			//Export size of binary file
+			stream << "map_blockmap_" << mapName << "_size_b\tequ 0x" << std::hex << std::setfill('0') << std::uppercase << std::setw(8) << binarySize << std::dec << "\t; Size in bytes" << std::endl;
+		}
+		else
+		{
+			//Export label, data and size as inline text
+			stream << "map_blockmap_" << mapName << ":" << std::endl;
+
+			map.ExportBlockMap(*this, stream, blockWidth, blockHeight);
+
+			stream << std::endl;
+			stream << "map_blockmap_" << mapName << "_end:" << std::endl;
+			stream << "map_blockmap_" << mapName << "_size_b\tequ (map_blockmap_" << mapName << "_end-map_" << mapName << ")\t; Size in bytes" << std::endl;
+		}
+
+		stream << "map_blockmap_" << mapName << "_size_w\tequ (map_blockmap_" << mapName << "_size_b/2)\t; Size in words" << std::endl;
+		stream << "map_blockmap_" << mapName << "_size_l\tequ (map_blockmap_" << mapName << "_size_b/4)\t; Size in longwords" << std::endl;
+
+		stream << std::hex << std::setfill('0') << std::uppercase;
+		stream << "map_" << mapName << "_width\tequ " << "0x" << std::setw(2) << mapWidth << std::endl;
+		stream << "map_" << mapName << "_height\tequ " << "0x" << std::setw(2) << mapHeight << std::endl;
+		stream << "map_blockmap_" << mapName << "_width\tequ " << "0x" << std::setw(2) << map.GetWidthBlocks(blockWidth) << std::endl;
+		stream << "map_blockmap_" << mapName << "_height\tequ " << "0x" << std::setw(2) << map.GetHeightBlocks(blockHeight) << std::endl;
+		stream << std::dec;
+
+		file.Write(stream.str().c_str(), stream.str().size());
+
+		return true;
+	}
+
+	return false;
+}
+
 bool Project::ExportStamps(const std::string& filename, bool binary) const
 {
 	u32 binarySize = 0;

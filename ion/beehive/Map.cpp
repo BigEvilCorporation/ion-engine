@@ -78,6 +78,26 @@ int Map::GetHeight() const
 	return m_height;
 }
 
+int Map::GetBlockAlignedWidth(int blockWidth) const
+{
+	return ion::maths::RoundUpToNearest((int)m_width, blockWidth);
+}
+
+int Map::GetBlockAlignedHeight(int blockHeight) const
+{
+	return ion::maths::RoundUpToNearest((int)m_height, blockHeight);
+}
+
+int Map::GetWidthBlocks(int blockWidth) const
+{
+	return GetBlockAlignedWidth(blockWidth) / blockWidth;
+}
+
+int Map::GetHeightBlocks(int blockHeight) const
+{
+	return GetBlockAlignedHeight(blockHeight) / blockHeight;
+}
+
 void Map::Resize(int width, int height, bool shiftRight, bool shiftDown)
 {
 	const int tileWidth = m_platformConfig.tileWidth;
@@ -202,10 +222,10 @@ void Map::SetStamp(int x, int y, const Stamp& stamp, u32 flipFlags)
 
 void Map::BakeStamp(int x, int y, const Stamp& stamp, u32 flipFlags)
 {
-	BakeStamp(m_tiles, x, y, stamp, flipFlags);
+	BakeStamp(m_tiles, m_width, m_height, x, y, stamp, flipFlags);
 }
 
-void Map::BakeStamp(std::vector<TileDesc>& tiles, int x, int y, const Stamp& stamp, u32 flipFlags) const
+void Map::BakeStamp(std::vector<TileDesc>& tiles, int mapWidth, int mapHeight, int x, int y, const Stamp& stamp, u32 flipFlags) const
 {
 	int width = stamp.GetWidth();
 	int height = stamp.GetHeight();
@@ -227,10 +247,10 @@ void Map::BakeStamp(std::vector<TileDesc>& tiles, int x, int y, const Stamp& sta
 				int mapY = stampY + y;
 
 				//Can place stamps outside map boundaries, only bake tiles that are inside
-				if(mapX >= 0 && mapX < m_width && mapY >= 0 && mapY < m_height)
+				if(mapX >= 0 && mapX < mapWidth && mapY >= 0 && mapY < mapHeight)
 				{
 					//Copy tile and flags
-					int tileIdx = (mapY * m_width) + mapX;
+					int tileIdx = (mapY * mapWidth) + mapX;
 					tiles[tileIdx].m_id = tileId;
 					tiles[tileIdx].m_flags = tileFlags;
 				}
@@ -375,7 +395,7 @@ GameObject* Map::FindGameObject(const std::string& name)
 	{
 		for(std::vector<GameObjectMapEntry>::reverse_iterator itVec = itMap->second.rbegin(), endVec = itMap->second.rend(); itVec != endVec; ++itVec)
 		{
-            if(ion::string::CompareNoCase(itVec->m_gameObject.GetName(), name))
+			if(ion::string::CompareNoCase(itVec->m_gameObject.GetName(), name))
 			{
 				return &itVec->m_gameObject;
 			}
@@ -478,7 +498,7 @@ void Map::Export(const Project& project, std::stringstream& stream) const
 		if(const Stamp* stamp = project.GetStamp(it->m_id))
 		{
 			const ion::Vector2i& position = it->m_position;
-			BakeStamp(tiles, position.x, position.y, *stamp, it->m_flags);
+			BakeStamp(tiles, m_width, m_height, position.x, position.y, *stamp, it->m_flags);
 		}
 	}
 
@@ -532,7 +552,9 @@ void Map::Export(const Project& project, std::stringstream& stream) const
 				stream << "0x" << std::setw(4) << (u32)word;
 
 				if(x < (m_width - 1))
+				{
 					stream << ",";
+				}
 			}
 
 			stream << std::endl;
@@ -558,7 +580,7 @@ void Map::Export(const Project& project, ion::io::File& file) const
 		if(stamp)
 		{
 			const ion::Vector2i& position = it->m_position;
-			BakeStamp(tiles, position.x, position.y, *stamp, it->m_flags);
+			BakeStamp(tiles, m_width, m_height, position.x, position.y, *stamp, it->m_flags);
 		}
 	}
 
@@ -615,6 +637,173 @@ void Map::Export(const Project& project, ion::io::File& file) const
 	//else if(project.GetPlatformConfig().platform == ePlatformSNES)
 	{
 		//TODO: SNES export goes here
+	}
+}
+
+void Map::GenerateBlocks(const Project& project, int blockWidth, int blockHeight)
+{
+	//Align map size to block size
+	int mapWidth = GetBlockAlignedWidth(blockWidth);
+	int mapHeight = GetBlockAlignedHeight(blockHeight);
+
+	//Use background tile if there is one, else use first tile
+	u32 backgroundTileId = project.GetBackgroundTile();
+	if(backgroundTileId == InvalidTileId)
+	{
+		backgroundTileId = 0;
+	}
+
+	//Copy tiles (using new aligned map size)
+	std::vector<TileDesc> tiles;
+	tiles.resize(mapWidth * mapHeight);
+	std::fill(tiles.begin(), tiles.end(), TileDesc(backgroundTileId, 0));
+
+	for(int x = 0; x < m_width; x++)
+	{
+		for(int y = 0; y < m_height; y++)
+		{
+			TileDesc& dest = tiles[(y * mapWidth) + x];
+			dest = m_tiles[(y * m_width) + x];
+
+			if(dest.m_id == InvalidTileId)
+			{
+				dest.m_id = backgroundTileId;
+			}
+		}
+	}
+
+	//Blit stamps
+	for(TStampPosMap::const_iterator it = m_stamps.begin(), end = m_stamps.end(); it != end; ++it)
+	{
+		const Stamp* stamp = project.GetStamp(it->m_id);
+		if(stamp)
+		{
+			const ion::Vector2i& position = it->m_position;
+			BakeStamp(tiles, mapWidth, mapHeight, position.x, position.y, *stamp, it->m_flags);
+		}
+	}
+
+	//Split map into NxN blocks
+	int widthBlocks = mapWidth / blockWidth;
+	int heightBlocks = mapHeight / blockHeight;
+
+	m_blocks.clear();
+
+	for(int blockY = 0; blockY < heightBlocks; blockY++)
+	{
+		for(int blockX = 0; blockX < widthBlocks; blockX++)
+		{
+			m_blocks.push_back(Block());
+			Block& block = m_blocks.back();
+
+			int blockStartOffset = (blockY * widthBlocks * blockWidth) + (blockX * blockWidth);
+
+			for(int tileY = 0; tileY < blockHeight; tileY++)
+			{
+				for(int tileX = 0; tileX < blockWidth; tileX++)
+				{
+					int x = (blockX * blockWidth) + tileX;
+					int y = (blockY * blockHeight) + tileY;
+
+					int tileOffset = (y * mapWidth) + x;
+					block.m_tiles.push_back(tiles[tileOffset]);
+				}
+			}
+		}
+	}
+
+	//Find duplicates
+	m_uniqueBlocks.clear();
+
+	for(int i = 0; i < m_blocks.size(); i++)
+	{
+		if(m_blocks[i].uniqueIndex == -1)
+		{
+			m_blocks[i].uniqueIndex = m_uniqueBlocks.size();
+			m_uniqueBlocks.push_back(&m_blocks[i]);
+
+			for(int j = i + 1; j < m_blocks.size(); j++)
+			{
+				if(m_blocks[i] == m_blocks[j])
+				{
+					m_blocks[j].uniqueIndex = m_blocks[i].uniqueIndex;
+				}
+			}
+		}
+	}
+}
+
+void Map::ExportBlocks(const Project& project, std::stringstream& stream, int blockWidth, int blockHeight) const
+{
+	//Export unique blocks
+	for(int i = 0; i < m_uniqueBlocks.size(); i++)
+	{
+		stream << "Block_" << i << ":" << std::endl;
+		m_uniqueBlocks[i]->Export(project, stream, blockWidth, blockHeight);
+		stream << std::endl;
+	}
+}
+
+void Map::ExportBlocks(const Project& project, ion::io::File& file, int blockWidth, int blockHeight) const
+{
+	//Export unique blocks
+	for(int i = 0; i < m_uniqueBlocks.size(); i++)
+	{
+		m_uniqueBlocks[i]->Export(project, file, blockWidth, blockHeight);
+	}
+}
+
+void Map::ExportBlockMap(const Project& project, std::stringstream& stream, int blockWidth, int blockHeight) const
+{
+	int widthBlocks = GetWidthBlocks(blockWidth);
+	int heightBlocks = GetHeightBlocks(blockHeight);
+
+	//Export block map
+	stream << std::endl;
+	stream << "Block_Map:" << std::endl;
+
+	for(int blockY = 0; blockY < heightBlocks; blockY++)
+	{
+		stream << "\tdc.w\t";
+
+		for(int blockX = 0; blockX < widthBlocks; blockX++)
+		{
+			int blockId = (blockY * widthBlocks) + blockX;
+			const Block& block = m_blocks[blockId];
+			
+			stream << "0x" << std::hex << std::setfill('0') << std::setw(4) << block.uniqueIndex;
+
+			if(blockX < (widthBlocks - 1))
+			{
+				stream << ",";
+			}
+		}
+
+		stream << std::endl;
+	}
+}
+
+void Map::ExportBlockMap(const Project& project, ion::io::File& file, int blockWidth, int blockHeight) const
+{
+	int widthBlocks = GetWidthBlocks(blockWidth);
+	int heightBlocks = GetHeightBlocks(blockHeight);
+
+	//Export block map
+	for(int blockY = 0; blockY < heightBlocks; blockY++)
+	{
+		for(int blockX = 0; blockX < widthBlocks; blockX++)
+		{
+			int blockId = (blockY * widthBlocks) + blockX;
+			const Block& block = m_blocks[blockId];
+
+			u16 word = block.uniqueIndex;
+
+			//Endian flip
+			ion::memory::EndianSwap(word);
+
+			//Write
+			file.Write(&word, sizeof(u16));
+		}
 	}
 }
 
@@ -684,4 +873,101 @@ void Map::ExportStampMap(const Project& project, std::stringstream& stream) cons
 void Map::ExportStampMap(const Project& project, ion::io::File& file) const
 {
 
+}
+
+bool Map::Block::operator ==(const Block& rhs) const
+{
+	return m_tiles == rhs.m_tiles;
+}
+
+void Map::Block::Export(const Project& project, std::stringstream& stream, int blockWidth, int blockHeight)
+{
+	//Output to stream
+	stream << std::hex << std::setfill('0') << std::uppercase;
+
+	for(int y = 0; y < blockHeight; y++)
+	{
+		stream << "\tdc.w\t";
+
+		for(int x = 0; x < blockWidth; x++)
+		{
+			//16 bit word:
+			//-------------------
+			//ABBC DEEE EEEE EEEE
+			//-------------------
+			//A = Low/high plane
+			//B = Palette ID
+			//C = Horizontal flip
+			//D = Vertical flip
+			//E = Tile ID
+
+			const TileDesc& tileDesc = m_tiles[(y * blockWidth) + x];
+			u8 paletteId = 0;
+
+			const Tile* tile = project.GetTileset().GetTile(tileDesc.m_id);
+			ion::debug::Assert(tile, "Map::Export() - Invalid tile");
+
+			//Generate components
+			u16 tileIndex = tileDesc.m_id & 0x7FF;								//Bottom 11 bits = tile ID (index from 0)
+			u16 flipH = (tileDesc.m_flags & eFlipX) ? 1 << 11 : 0;		//12th bit = Flip X flag
+			u16 flipV = (tileDesc.m_flags & eFlipY) ? 1 << 12 : 0;		//13th bit = Flip Y flag
+			u16 palette = (tile->GetPaletteId() & 0x3) << 13;			//14th+15th bits = Palette ID
+			u16 plane = (tileDesc.m_flags & eHighPlane) ? 1 << 15 : 0;	//16th bit = High plane flag
+
+			//Generate word
+			u16 word = tileIndex | flipV | flipH | palette | plane;
+
+			//Write
+			stream << "0x" << std::hex << std::setfill('0') << std::setw(4) << (u32)word;
+
+			if(x < (blockWidth - 1))
+			{
+				stream << ",";
+			}
+		}
+
+		stream << std::endl;
+	}
+}
+
+void Map::Block::Export(const Project& project, ion::io::File& file, int blockWidth, int blockHeight)
+{
+	//Output to file
+	for(int y = 0; y < blockHeight; y++)
+	{
+		for(int x = 0; x < blockWidth; x++)
+		{
+			//16 bit word:
+			//-------------------
+			//ABBC DEEE EEEE EEEE
+			//-------------------
+			//A = Low/high plane
+			//B = Palette ID
+			//C = Horizontal flip
+			//D = Vertical flip
+			//E = Tile ID
+
+			const TileDesc& tileDesc = m_tiles[(y * blockWidth) + x];
+			u8 paletteId = 0;
+
+			const Tile* tile = project.GetTileset().GetTile(tileDesc.m_id);
+			ion::debug::Assert(tile, "Map::Export() - Invalid tile");
+
+			//Generate components
+			u16 tileIndex = tileDesc.m_id & 0x7FF;						//Bottom 11 bits = tile ID (index from 0)
+			u16 flipH = (tileDesc.m_flags & eFlipX) ? 1 << 11 : 0;		//12th bit = Flip X flag
+			u16 flipV = (tileDesc.m_flags & eFlipY) ? 1 << 12 : 0;		//13th bit = Flip Y flag
+			u16 palette = (tile->GetPaletteId() & 0x3) << 13;			//14th+15th bits = Palette ID
+			u16 plane = (tileDesc.m_flags & eHighPlane) ? 1 << 15 : 0;	//16th bit = High plane flag
+
+			//Generate word
+			u16 word = tileIndex | flipV | flipH | palette | plane;
+
+			//Endian flip
+			ion::memory::EndianSwap(word);
+
+			//Write
+			file.Write(&word, sizeof(u16));
+		}
+	}
 }

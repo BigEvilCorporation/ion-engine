@@ -228,14 +228,18 @@ namespace ion
 			else
 			{
 				u64 size = stream.GetSize();
-				stream.Seek(0);
 
-				while(size)
+				if(size > 0)
 				{
-					u64 bytesToWrite = maths::Min(size, bufferSize);
-					stream.Read(buffer, bytesToWrite);
-					Serialise((void*)buffer, bytesToWrite);
-					size -= bytesToWrite;
+					stream.Seek(0);
+
+					while(size)
+					{
+						u64 bytesToWrite = maths::Min(size, bufferSize);
+						stream.Read(buffer, bytesToWrite);
+						Serialise((void*)buffer, bytesToWrite);
+						size -= bytesToWrite;
+					}
 				}
 			}
 		}

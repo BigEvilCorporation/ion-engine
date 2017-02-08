@@ -28,6 +28,7 @@ namespace ion
 
 		int Round(float x);
 		float RoundToNearest(float value, int nearest);
+		float RoundUpToNearest(float value, int nearest);
 		int NextPowerOfTwo(int x);
 		float Sqrt(float value);
 		float Floor(float value);

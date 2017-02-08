@@ -30,6 +30,17 @@ namespace ion
 			return floorf(value / nearest) * nearest;
 		}
 
+		float RoundUpToNearest(float value, int nearest)
+		{
+			float modulus = Fmod(value, nearest);
+			if(modulus == 0.0f)
+			{
+				return value;
+			}
+
+			return value + nearest - modulus;
+		}
+
 		int NextPowerOfTwo(int x)
 		{
 			x--;
