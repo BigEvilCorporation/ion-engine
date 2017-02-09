@@ -43,6 +43,12 @@ public:
 	int GetWidth() const;
 	int GetHeight() const;
 
+	int GetBlockAlignedWidth(int blockWidth) const;
+	int GetBlockAlignedHeight(int blockHeight) const;
+
+	int GetWidthBlocks(int blockWidth) const;
+	int GetHeightBlocks(int blockHeight) const;
+
 	void Resize(int w, int h, bool shiftRight, bool shiftDown);
 
 	//Set collision tile on CollisionMap
@@ -61,16 +67,39 @@ public:
 	void RemoveTerrainBezier(u32 index);
 	int GetNumTerrainBeziers() const;
 
+	// Generate NxN blocks and sort unique
+	void GenerateBlocks(const Project& project, int blockWidth, int blockHeight);
+
 	void Serialise(ion::io::Archive& archive);
 	void Export(const Project& project, std::stringstream& stream) const;
 	void Export(const Project& project, ion::io::File& file) const;
+	void ExportBlocks(const Project& project, std::stringstream& stream, int blockWidth, int blockHeight) const;
+	void ExportBlocks(const Project& project, ion::io::File& file, int blockWidth, int blockHeight) const;
+	void ExportBlockMap(const Project& project, std::stringstream& stream, int blockWidth, int blockHeight) const;
+	void ExportBlockMap(const Project& project, ion::io::File& file, int blockWidth, int blockHeight) const;
 
 private:
 	typedef u16 TTerrainTileDesc;
 
+	struct Block
+	{
+		std::vector<TTerrainTileDesc> m_tiles;
+		int uniqueIndex = -1;
+
+		bool operator ==(const Block& rhs) const;
+		void Export(const Project& project, std::stringstream& stream, int blockWidth, int blockHeight);
+		void Export(const Project& project, ion::io::File& file, int blockWidth, int blockHeight);
+	};
+
 	int m_width;
 	int m_height;
+
+	//Tiles
 	std::vector<TerrainTileId> m_collisionTiles;
+
+	//Blocks
+	std::vector<Block> m_blocks;
+	std::vector<Block*> m_uniqueBlocks;
 
 	//Terrain beziers
 	std::vector<ion::gamekit::BezierPath> m_terrainBeziers;

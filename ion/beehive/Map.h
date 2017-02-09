@@ -159,6 +159,8 @@ public:
 		std::string gameObjects;
 		std::string blocks;
 		std::string blockMap;
+		std::string terrainBlocks;
+		std::string terrainBlockMap;
 
 		bool mapExportEnabled;
 		bool stampMapExportEnabled;
@@ -166,6 +168,8 @@ public:
 		bool gameObjectsExportEnabled;
 		bool blocksExportEnabled;
 		bool blockMapExportEnabled;
+		bool terrainBlocksExportEnabled;
+		bool terrainBlockMapExportEnabled;
 
 		void Serialise(ion::io::Archive& archive)
 		{
@@ -173,6 +177,8 @@ public:
 			archive.Serialise(stampMapExportEnabled, "stampMapExportEnabled");
 			archive.Serialise(blocksExportEnabled, "blocksExportEnabled");
 			archive.Serialise(blockMapExportEnabled, "blockMapExportEnabled");
+			archive.Serialise(terrainBlocksExportEnabled, "terrainBlocksExportEnabled");
+			archive.Serialise(terrainBlockMapExportEnabled, "terrainBlockMapExportEnabled");
 			archive.Serialise(collisionMapExportEnabled, "collisionMapExportEnabled");
 			archive.Serialise(gameObjectsExportEnabled, "gameObjectsExportEnabled");
 
@@ -180,6 +186,8 @@ public:
 			archive.Serialise(stampMap, "exportFNameStampMap");
 			archive.Serialise(blocks, "exportFNameblocks");
 			archive.Serialise(blockMap, "exportFNameblockMap");
+			archive.Serialise(terrainBlocks, "exportFNameTerrainBlocks");
+			archive.Serialise(terrainBlockMap, "exportFNameTerrainBlockMap");
 			archive.Serialise(collisionMap, "exportFNameCollisionMap");
 			archive.Serialise(gameObjects, "exportFNameGameObjects");
 		}
