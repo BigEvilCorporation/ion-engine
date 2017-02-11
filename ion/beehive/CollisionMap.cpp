@@ -226,6 +226,7 @@ void CollisionMap::GenerateBlocks(const Project& project, int blockWidth, int bl
 	int heightBlocks = mapHeight / blockHeight;
 
 	m_blocks.clear();
+	m_blocks.reserve(widthBlocks * heightBlocks);
 
 	for(int blockY = 0; blockY < heightBlocks; blockY++)
 	{
