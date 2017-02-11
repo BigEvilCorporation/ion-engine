@@ -594,7 +594,70 @@ void Project::SwapTiles(TileId tileId1, TileId tileId2)
 
 void Project::SetBackgroundTile(TileId tileId)
 {
-	m_backgroundTile = tileId;
+	//Swap with tile 0
+	if(tileId != 0)
+	{
+		Tile* tile0 = m_tileset.GetTile(0);
+		Tile* bgTile = m_tileset.GetTile(tileId);
+
+		if(tile0 && bgTile)
+		{
+			Tile temp = *tile0;
+			*tile0 = *bgTile;
+			*bgTile = temp;
+
+			//Swap tile ids in all maps
+			for(TMapMap::iterator it = m_maps.begin(), end = m_maps.end(); it != end; ++it)
+			{
+				for(int x = 0; x < it->second.GetWidth(); x++)
+				{
+					for(int y = 0; y < it->second.GetHeight(); y++)
+					{
+						TileId mapTile = it->second.GetTile(x, y);
+						u32 mapFlags = it->second.GetTileFlags(x, y);
+
+						if(mapTile == tileId)
+						{
+							it->second.SetTile(x, y, 0);
+							it->second.SetTileFlags(x, y, mapFlags);
+						}
+						else if(mapTile == 0)
+						{
+							it->second.SetTile(x, y, tileId);
+							it->second.SetTileFlags(x, y, mapFlags);
+						}
+					}
+				}
+			}
+
+			//Swap tile ids in all stamps
+			for(TStampMap::iterator it = m_stamps.begin(), end = m_stamps.end(); it != end; ++it)
+			{
+				for(int x = 0; x < it->second.GetWidth(); x++)
+				{
+					for(int y = 0; y < it->second.GetHeight(); y++)
+					{
+						TileId stampTile = it->second.GetTile(x, y);
+						u32 stampFlags = it->second.GetTileFlags(x, y);
+
+						if(stampTile == tileId)
+						{
+							it->second.SetTile(x, y, 0);
+							it->second.SetTileFlags(x, y, stampFlags);
+						}
+						else if(stampTile == 0)
+						{
+							it->second.SetTile(x, y, tileId);
+							it->second.SetTileFlags(x, y, stampFlags);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	//TODO: Redundant now
+	m_backgroundTile = 0;
 }
 
 int Project::CleanupTiles()
