@@ -15,7 +15,7 @@
 #ifndef ARCHIVE_H
 #define ARCHIVE_H
 
-#include "io/stream.h"
+#include "io/Stream.h"
 
 //Includes for ion types handled directly by Archive
 #include "core/Types.h"
@@ -27,6 +27,9 @@
 #include <list>
 #include <map>
 #include <algorithm>
+
+//RTTI
+#include <typeinfo>
 
 namespace ion
 {
@@ -160,7 +163,7 @@ namespace ion
 					startPos = 0;
 					parent = NULL;
 				}
-				
+
 				Header header;
 				MemoryStream data;
 				u64 startPos;

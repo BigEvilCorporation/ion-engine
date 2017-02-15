@@ -26,6 +26,8 @@ namespace ion
 		typedef u32 TIndex;
 #elif defined ION_PLATFORM_MACOSX
         typedef u32 TIndex;
+#elif defined ION_PLATFORM_LINUX
+        typedef u32 TIndex;
 #elif defined ION_PLATFORM_DREAMCAST
 		typedef u16 TIndex;
 #endif

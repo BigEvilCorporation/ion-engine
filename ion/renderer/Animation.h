@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include "maths/matrix.h"
+#include "maths/Matrix.h"
 #include "io/Archive.h"
 
 #include <vector>

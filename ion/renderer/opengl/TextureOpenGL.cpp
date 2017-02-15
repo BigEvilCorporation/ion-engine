@@ -14,12 +14,14 @@
 
 #include "core/debug/Debug.h"
 #include "core/memory/Memory.h"
-#include "renderer/OpenGL/TextureOpenGL.h"
-#include "renderer/OpenGL/RendererOpenGL.h"
+#include "renderer/opengl/TextureOpenGL.h"
+#include "renderer/opengl/RendererOpenGL.h"
 
 #if defined ION_RENDER_SUPPORTS_SDL
 #if defined ION_PLATFORM_MACOSX
 #include <SDL.h>
+#elif defined ION_PLATFORM_LINUX
+#include <SDL2/SDL.h>
 #else
 #include <SDL/SDL.h>
 #endif

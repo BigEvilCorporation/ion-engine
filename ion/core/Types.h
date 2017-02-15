@@ -28,4 +28,6 @@ typedef long long s64;
 #include <typeinfo>
 #elif defined ION_PLATFORM_MACOSX
 #include <cstddef>
+#elif defined ION_PLATFORM_LINUX
+#include <cstddef>
 #endif

@@ -18,7 +18,7 @@
 #include "maths/Matrix.h"
 #include "maths/Quaternion.h"
 #include "io/Archive.h"
-#include "renderer/colour.h"
+#include "renderer/Colour.h"
 
 #include <string>
 #include <map>
@@ -136,7 +136,7 @@ namespace ion
 			m_paramDelegate = paramDelegate;
 			Reference();
 		}
-		
+
 		template <typename T> Shader::ParamHndl<T>::~ParamHndl()
 		{
 			Release();

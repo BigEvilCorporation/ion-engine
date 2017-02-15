@@ -16,6 +16,8 @@
 #include <sys/time.h>
 #elif defined ION_PLATFORM_DREAMCAST
 #include <time.h>
+#elif defined ION_PLATFORM_LINUX
+
 #else
 #error Unsupported Platform
 #endif

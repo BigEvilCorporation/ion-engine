@@ -14,7 +14,7 @@
 
 #pragma once
 
-#if defined ION_PLATFORM_MACOSX
+#if defined ION_PLATFORM_MACOSX || defined ION_PLATFORM_LINUX
 struct SDL_Window;
 #endif
 
@@ -26,8 +26,11 @@ namespace ion
 		typedef HWND WindowHandle;
 		typedef HDC DeviceContext;
 #elif defined ION_PLATFORM_MACOSX
-        typedef SDL_Window* WindowHandle;
-        typedef SDL_Window* DeviceContext;
+        	typedef SDL_Window* WindowHandle;
+        	typedef SDL_Window* DeviceContext;
+#elif defined ION_PLATFORM_LINUX
+		typedef SDL_Window* WindowHandle;
+        	typedef SDL_Window* DeviceContext;
 #elif defined ION_PLATFORM_DREAMCAST
 		typedef int WindowHandle;
 		typedef void* DeviceContext;

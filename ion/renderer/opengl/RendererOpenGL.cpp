@@ -13,7 +13,7 @@
 ///////////////////////////////////////////////////
 
 #include "core/debug/Debug.h"
-#include "renderer/colour.h"
+#include "renderer/Colour.h"
 #include "renderer/Viewport.h"
 #include "renderer/VertexBuffer.h"
 #include "renderer/IndexBuffer.h"

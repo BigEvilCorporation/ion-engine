@@ -32,6 +32,12 @@
 #include <OpenGL/glext.h>
 #include <SDL.h>
 #include <SDL_OpenGL.h>
+#elif defined ION_PLATFORM_LINUX
+#include <GL/gl.h>
+#include <GL/glu.h>
+#include <GL/glext.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_opengl.h>
 #else
 #include <GL/gl.h>
 #include <GL/glu.h>
@@ -97,6 +103,8 @@ namespace ion
 #if defined ION_PLATFORM_WINDOWS
             HGLRC m_openGLContext;
 #elif defined ION_PLATFORM_MACOSX
+            SDL_GLContext m_openGLContext;
+#elif defined ION_PLATFORM_LINUX
             SDL_GLContext m_openGLContext;
 #elif defined ION_PLATFORM_DREAMCAST
             int m_openGLContext;
