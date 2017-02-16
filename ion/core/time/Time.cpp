@@ -28,9 +28,13 @@ namespace ion
 			QueryPerformanceCounter(&ticks);
 			return (u64)ticks.QuadPart;
 #elif defined ION_PLATFORM_MACOSX
-            timeval time;
-            gettimeofday(&time, NULL);
-            return (time.tv_sec * 1000000) + time.tv_usec;
+			timeval time;
+			gettimeofday(&time, NULL);
+			return (time.tv_sec * 1000000) + time.tv_usec;
+#elif defined ION_PLATFORM_LINUX
+			timeval time;
+			gettimeofday(&time, NULL);
+			return (time.tv_sec * 1000000) + time.tv_usec;
 #elif defined ION_PLATFORM_DREAMCAST
 			return timer_us_gettime64();
 #endif
@@ -50,7 +54,9 @@ namespace ion
 
 			return (float)ticks / timerFrequency;
 #elif defined ION_PLATFORM_MACOSX
-            return (float)ticks / 1000000.0f;;
+			return (float)ticks / 1000000.0f;
+#elif defined ION_PLATFORM_LINUX
+			return (float)ticks / 1000000.0f;
 #elif defined ION_PLATFORM_DREAMCAST
 			return (float)ticks / 1000000.0f;
 #endif
