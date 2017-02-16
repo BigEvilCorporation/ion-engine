@@ -116,7 +116,7 @@ namespace ion
 					mCurrKeyStates[i] = diKeyStates[KeycodeTable[i]];
 				}
 			}
-#elif defined ION_PLATFORM_MACOSX
+#elif defined ION_PLATFORM_MACOSX || defined ION_PLATFORM_LINUX
 			int numKeys = 0;
 			const u8* keyStates = SDL_GetKeyboardState(&numKeys);
 
