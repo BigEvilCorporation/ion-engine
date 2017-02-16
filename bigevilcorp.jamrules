@@ -363,6 +363,16 @@ rule ApplyOpenGLSDK TARGET
         C.macosx.LinkFrameworks $(TARGET) : OpenGL ;
     }
 
+	if ( linux64 in $(PLATFORM) )
+	{
+		local OPENGL_LIBS =
+			GL
+			GLU
+			;
+
+		C.LinkPrebuiltLibraries $(TARGET) : $(OPENGL_LIBS) ;
+	}
+
 	if ( dreamcast in $(PLATFORM) )
 	{
 		C.Defines $(TARGET) : ION_RENDERER_KGL ;
