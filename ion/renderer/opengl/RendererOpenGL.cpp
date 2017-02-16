@@ -83,6 +83,8 @@ namespace ion
 			m_openGLContext = wglCreateContext(deviceContext);
 #elif defined ION_PLATFORM_MACOSX
             m_openGLContext = SDL_GL_CreateContext(deviceContext);
+#elif defined ION_PLATFORM_LINUX
+	    m_openGLContext = SDL_GL_CreateContext(deviceContext);
 #elif defined ION_PLATFORM_DREAMCAST
             m_openGLContext = 1;
 #endif
@@ -331,7 +333,9 @@ namespace ion
 #if defined ION_PLATFORM_WINDOWS
 			::SwapBuffers(m_currentDC);
 #elif defined ION_PLATFORM_MACOSX
-            SDL_GL_SwapWindow(m_currentDC);
+			SDL_GL_SwapWindow(m_currentDC);
+#elif defined ION_PLATFORM_LINUX
+			SDL_GL_SwapWindow(m_currentDC);
 #elif defined ION_PLATFORM_DREAMCAST
 			glutSwapBuffers();
 #endif
@@ -535,6 +539,8 @@ namespace ion
 #if defined ION_PLATFORM_WINDOWS
 			glDrawElements(drawPattern, indexBuffer.GetSize(), GL_UNSIGNED_INT, indexBuffer.GetAddress());
 #elif defined ION_PLATFORM_MACOSX
+            glDrawElements(drawPattern, indexBuffer.GetSize(), GL_UNSIGNED_INT, indexBuffer.GetAddress());
+#elif defined ION_PLATFORM_LINUX
             glDrawElements(drawPattern, indexBuffer.GetSize(), GL_UNSIGNED_INT, indexBuffer.GetAddress());
 #elif defined ION_PLATFORM_DREAMCAST
 			glDrawElements(drawPattern, indexBuffer.GetSize(), GL_UNSIGNED_SHORT, indexBuffer.GetAddress());
