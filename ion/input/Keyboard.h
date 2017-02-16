@@ -14,6 +14,8 @@
 #include <dinput.h>
 #elif defined ION_PLATFORM_MACOSX
 #include <SDL.h>
+#elif defined ION_PLATFORM_LINUX
+#include <SDL2/SDL.h>
 #endif
 
 #include <vector>

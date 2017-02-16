@@ -17,7 +17,7 @@
 #include "core/Types.h"
 #include "io/ResourceHandle.h"
 #include "io/ResourceManager.h"
-#include "renderer/colour.h"
+#include "renderer/Colour.h"
 #include "renderer/Animation.h"
 #include "renderer/Camera.h"
 #include "renderer/Entity.h"

@@ -143,6 +143,9 @@ namespace ion
 #elif defined ION_PLATFORM_MACOSX
             float lx = 0.0f;
             float ly = 0.0f;
+#elif defined ION_PLATFORM_LINUX
+            float lx = 0.0f;
+            float ly = 0.0f;
 #elif defined ION_PLATFORM_WINDOWS
 			float lx = (float)mInputState.Gamepad.sThumbLX;
 			float ly = (float)mInputState.Gamepad.sThumbLY;
@@ -177,6 +180,9 @@ namespace ion
 #elif defined ION_PLATFORM_MACOSX
             float rx = 0.0f;
             float ry = 0.0f;
+#elif defined ION_PLATFORM_LINUX
+            float rx = 0.0f;
+            float ry = 0.0f;
 #elif defined ION_PLATFORM_WINDOWS
 			float rx = (float)mInputState.Gamepad.sThumbRX;
 			float ry = (float)mInputState.Gamepad.sThumbRY;
@@ -203,6 +209,8 @@ namespace ion
 			int mapleButton = ToPlatformButton(button);
 			return (m_mapleState.buttons & mapleButton) != 0;
 #elif defined ION_PLATFORM_MACOSX
+            return false;
+#elif defined ION_PLATFORM_LINUX
             return false;
 #else
 			int xInputButton = ToPlatformButton(button);

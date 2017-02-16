@@ -85,7 +85,7 @@ namespace ion
 			DIK_DOWN,
 			DIK_UP
         };
-#elif defined ION_PLATFORM_MACOSX
+#elif defined ION_PLATFORM_MACOSX || defined ION_PLATFORM_LINUX
         static int KeycodeTable[Keycode::COUNT] =
         {
             //Alpha
@@ -115,7 +115,7 @@ namespace ion
             SDL_SCANCODE_X,
             SDL_SCANCODE_Y,
             SDL_SCANCODE_Z,
-            
+
             //Numeric (non-numpad)
             SDL_SCANCODE_1,
             SDL_SCANCODE_2,
@@ -127,7 +127,7 @@ namespace ion
             SDL_SCANCODE_8,
             SDL_SCANCODE_9,
             SDL_SCANCODE_0,
-            
+
             //Functions
             SDL_SCANCODE_F1,
             SDL_SCANCODE_F2,
@@ -141,7 +141,7 @@ namespace ion
             SDL_SCANCODE_F10,
             SDL_SCANCODE_F11,
             SDL_SCANCODE_F12,
-            
+
             SDL_SCANCODE_RETURN,
             SDL_SCANCODE_ESCAPE,
             SDL_SCANCODE_BACKSPACE,

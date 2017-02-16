@@ -28,6 +28,14 @@ if ( macosx64 in $(PLATFORM) )
     ;
 }
 
+if ( linux64 in $(PLATFORM) )
+{
+    SRC +=
+    ../linux/WindowLinux.cpp
+    ../linux/WindowLinux.h
+    ;
+}
+
 if ( dreamcast in $(PLATFORM) )
 {
 	SRC +=

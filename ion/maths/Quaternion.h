@@ -12,7 +12,7 @@
 #include "maths/Maths.h"
 #include "maths/Vector.h"
 #include "maths/Matrix.h"
-#include "io/archive.h"
+#include "io/Archive.h"
 
 namespace ion
 {
@@ -35,7 +35,7 @@ namespace ion
 		Quaternion GetInverse() const;
 		Quaternion GetConjugate() const;
 		Quaternion GetToPowerOf(float n) const;
-		
+
 		void FromAxis(float radian, const Vector3& axis);
 		void FromEuler(const Vector3& euler);
 		void FromMatrix(const Matrix4& Matrix);

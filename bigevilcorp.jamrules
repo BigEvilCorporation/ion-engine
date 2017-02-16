@@ -8,6 +8,11 @@ rule ApplyIonCompiler TARGET
     {
         C.Flags $(TARGET) : C++	: -std=c++11 ;
     }
+
+    if ( linux64 in $(PLATFORM) )
+    {
+        C.Flags $(TARGET) : C++	: -std=c++11 ;
+    }
 }
 
 rule ApplyIonIncludes TARGET
@@ -30,6 +35,14 @@ rule ApplyIonDefines TARGET
     {
         C.Defines $(TARGET) :
             ION_PLATFORM_MACOSX
+            ION_ENDIAN_LITTLE
+            ;
+    }
+
+    if ( linux64 in $(PLATFORM) )
+    {
+        C.Defines $(TARGET) :
+            ION_PLATFORM_LINUX
             ION_ENDIAN_LITTLE
             ;
     }
@@ -123,10 +136,15 @@ rule ApplyDefaultRenderer TARGET : LINK_OPT
 		ApplyRendererImpl $(TARGET) : opengl sdl $(LINK_OPT) ;
 	}
 
-    if ( macosx64 in $(PLATFORM) )
-    {
-        ApplyRendererImpl $(TARGET) : opengl sdl $(LINK_OPT) ;
-    }
+	if ( macosx64 in $(PLATFORM) )
+	{
+		ApplyRendererImpl $(TARGET) : opengl sdl $(LINK_OPT) ;
+	}
+
+	if ( linux64 in $(PLATFORM) )
+	{
+		ApplyRendererImpl $(TARGET) : opengl sdl $(LINK_OPT) ;
+	}
 
 	if ( dreamcast in $(PLATFORM) )
 	{
@@ -298,7 +316,7 @@ rule ApplyXInputSDK TARGET
 	C.IncludeDirectories $(TARGET) : $(DXSDK_DIR:J=" ")/Include ;
 	C.LinkDirectories $(TARGET) : $(DXSDK_DIR:J=" ")/Lib/x86 ;
 	C.Defines $(TARGET) : DIRECTINPUT_VERSION=0x0800 ;
-	
+
 	local XINPUT_LIBS =
 		xinput.lib
 		dinput8.lib
@@ -344,6 +362,16 @@ rule ApplyOpenGLSDK TARGET
     {
         C.macosx.LinkFrameworks $(TARGET) : OpenGL ;
     }
+
+	if ( linux64 in $(PLATFORM) )
+	{
+		local OPENGL_LIBS =
+			GL
+			GLU
+			;
+
+		C.LinkPrebuiltLibraries $(TARGET) : $(OPENGL_LIBS) ;
+	}
 
 	if ( dreamcast in $(PLATFORM) )
 	{
@@ -441,6 +469,15 @@ rule ApplySDLSDK TARGET
         C.macosx.LinkFrameworks $(TARGET) : SDL2 ;
     }
 
+    if ( linux64 in $(PLATFORM) )
+	{
+		local SDL_LIBS =
+			SDL2
+			;
+
+		C.LinkPrebuiltLibraries $(TARGET) : $(SDL_LIBS) ;
+	}
+
 	if ( dreamcast in $(PLATFORM) )
 	{
 		local SDL_LIBS =
@@ -515,13 +552,13 @@ rule ApplyBulletSDK TARGET
 	C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/Dependencies/Bullet/include ;
 	C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/Dependencies/Bullet/lib ;
 
-	BULLET_LIBS_DEBUG = 
+	BULLET_LIBS_DEBUG =
 		BulletCollision_debug.lib
 		BulletDynamics_debug.lib
 		LinearMath_debug.lib
 		;
 
-	BULLET_LIBS_RELEASE = 
+	BULLET_LIBS_RELEASE =
 		BulletCollision.lib
 		BulletDynamics.lib
 		LinearMath.lib

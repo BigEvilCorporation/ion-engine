@@ -15,7 +15,7 @@
 #pragma once
 
 #include "maths/Vector.h"
-#include "renderer/colour.h"
+#include "renderer/Colour.h"
 #include "renderer/VertexBuffer.h"
 #include "renderer/IndexBuffer.h"
 #include "renderer/Entity.h"

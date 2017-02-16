@@ -25,6 +25,8 @@ extern unsigned long end;
 extern unsigned long start;
 #define _end end
 #define _start start
+#elif defined ION_PLATFORM_LINUX
+#include <signal.h>
 #elif defined ION_PLATFORM_MACOSX
 #include <signal.h>
 #endif
@@ -87,8 +89,10 @@ namespace ion
 		{
 #if defined ION_PLATFORM_WINDOWS
 			__debugbreak();
+#elif defined ION_PLATFORM_LINUX
+			raise(SIGTRAP);
 #elif defined ION_PLATFORM_MACOSX
-            raise(SIGTRAP);
+			raise(SIGTRAP);
 #endif
 		}
 
