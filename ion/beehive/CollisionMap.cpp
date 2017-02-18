@@ -15,6 +15,7 @@
 
 #include <ion/core/memory/Memory.h>
 #include <ion/core/memory/Endian.h>
+#include <ion/maths/Geometry.h>
 
 CollisionMap::CollisionMap()
 {
@@ -174,6 +175,51 @@ const ion::gamekit::BezierPath* CollisionMap::GetTerrainBezier(u32 index) const
 {
 	ion::debug::Assert(index < m_terrainBeziers.size(), "CollisionMap::GetTerrainBezier() - Out of range");
 	return &m_terrainBeziers[index];
+}
+
+const ion::gamekit::BezierPath* CollisionMap::FindTerrainBezier(int x, int y, ion::Vector2i& topLeft) const
+{
+	const ion::gamekit::BezierPath* bezier = NULL;
+	ion::Vector2i bottomRight;
+
+	ion::Vector2 bezierBoundsMin;
+	ion::Vector2 bezierBoundsMax;
+
+	for(int i = 0; i < m_terrainBeziers.size() && !bezier; i++)
+	{
+		m_terrainBeziers[i].GetBounds(bezierBoundsMin, bezierBoundsMax);
+
+		if(x >= topLeft.x && y >= topLeft.y
+			&& x < bottomRight.x && y < bottomRight.y)
+		{
+			bezier = &m_terrainBeziers[i];
+			topLeft.x = bezierBoundsMin.x;
+			topLeft.y = bezierBoundsMin.y;
+		}
+	}
+
+	return bezier;
+}
+
+int CollisionMap::FindTerrainBeziers(int x, int y, int width, int height, std::vector<const ion::gamekit::BezierPath*>& beziers) const
+{
+	ion::Vector2i boundsMin(x, y);
+	ion::Vector2i boundsMax(x + width, y + height);
+
+	ion::Vector2 bezierBoundsMin;
+	ion::Vector2 bezierBoundsMax;
+
+	for(int i = 0; i < m_terrainBeziers.size(); i++)
+	{
+		const ion::gamekit::BezierPath& bezier = m_terrainBeziers[i];
+		bezier.GetBounds(bezierBoundsMin, bezierBoundsMax);
+		if(ion::maths::BoxIntersectsBox(boundsMin, boundsMax, ion::Vector2i(bezierBoundsMin.x, bezierBoundsMin.y), ion::Vector2i(bezierBoundsMax.x, bezierBoundsMax.y)))
+		{
+			beziers.push_back(&bezier);
+		}
+	}
+
+	return beziers.size();
 }
 
 void CollisionMap::RemoveTerrainBezier(u32 index)

@@ -16,6 +16,7 @@
 #include <ion/core/string/String.h>
 #include <ion/core/memory/Memory.h>
 #include <ion/core/memory/Endian.h>
+#include <ion/maths/Geometry.h>
 
 #define HEX1(val) std::hex << std::setfill('0') << std::setw(1) << std::uppercase << (int)val
 #define HEX2(val) std::hex << std::setfill('0') << std::setw(2) << std::uppercase << (int)val
@@ -288,6 +289,23 @@ StampId Map::FindStamp(int x, int y, ion::Vector2i& topLeft, u32& flags, u32& ma
 	return stampId;
 }
 
+int Map::FindStamps(int x, int y, int width, int height, std::vector<const StampMapEntry*>& stamps) const
+{
+	ion::Vector2i boundsMin(x, y);
+	ion::Vector2i boundsMax(x + width, y + height);
+
+	for(int i = 0; i < m_stamps.size(); i++)
+	{
+		const StampMapEntry& stamp = m_stamps[i];
+		if(ion::maths::BoxIntersectsBox(boundsMin, boundsMax, stamp.m_position, stamp.m_position + stamp.m_size))
+		{
+			stamps.push_back(&stamp);
+		}
+	}
+
+	return stamps.size();
+}
+
 void Map::MoveStamp(StampId stampId, u32 mapEntryIndex, int x, int y, int& originalX, int& originalY)
 {
 	ion::debug::Assert(mapEntryIndex < m_stamps.size(), "Map::MoveStamp() - Out of bounds");
@@ -403,6 +421,28 @@ GameObject* Map::FindGameObject(const std::string& name)
 	}
 
 	return NULL;
+}
+
+int Map::FindGameObjects(int x, int y, int width, int height, std::vector<const GameObjectMapEntry*>& gameObjects) const
+{
+	ion::Vector2i boundsMin(x, y);
+	ion::Vector2i boundsMax(x + width, y + height);
+
+	for(TGameObjectPosMap::const_iterator it = m_gameObjects.begin(), end = m_gameObjects.end(); it != end; ++it)
+	{
+		const std::vector<GameObjectMapEntry>& gameObjectsOfType = it->second;
+
+		for(int i = 0; i < gameObjectsOfType.size(); i++)
+		{
+			const GameObjectMapEntry& gameObject = gameObjectsOfType[i];
+			if(ion::maths::BoxIntersectsBox(boundsMin, boundsMax, gameObject.m_position, gameObject.m_position + gameObject.m_size))
+			{
+				gameObjects.push_back(&gameObject);
+			}
+		}
+	}
+
+	return gameObjects.size();
 }
 
 GameObject* Map::GetGameObject(GameObjectId gameObjectId)

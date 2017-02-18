@@ -64,6 +64,8 @@ public:
 	void AddTerrainBezier(const ion::gamekit::BezierPath& bezier);
 	ion::gamekit::BezierPath* GetTerrainBezier(u32 index);
 	const ion::gamekit::BezierPath* GetTerrainBezier(u32 index) const;
+	const ion::gamekit::BezierPath* CollisionMap::FindTerrainBezier(int x, int y, ion::Vector2i& topLeft) const;
+	int FindTerrainBeziers(int x, int y, int width, int height, std::vector<const ion::gamekit::BezierPath*>& beziers) const;
 	void RemoveTerrainBezier(u32 index);
 	int GetNumTerrainBeziers() const;
 

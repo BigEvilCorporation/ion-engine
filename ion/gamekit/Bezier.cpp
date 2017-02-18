@@ -54,6 +54,14 @@ namespace ion
 			controlB -= position;
 		}
 
+		void BezierPath::Move(const Vector2& offset)
+		{
+			for(int i = 0; i < m_controlPoints.size(); i++)
+			{
+				m_controlPoints[i] += offset;
+			}
+		}
+
 		int BezierPath::GetNumCurves() const
 		{
 			int numControlPoints = m_controlPoints.size();

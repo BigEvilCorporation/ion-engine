@@ -29,6 +29,7 @@ namespace ion
 			void RemovePoint(int index);
 			void SetPoint(int index, const Vector2& position, const Vector2& controlA, const Vector2& controlB);
 			void GetPoint(int index, Vector2& position, Vector2& controlA, Vector2& controlB) const;
+			void Move(const Vector2& offset);
 			int GetNumPoints() const;
 			int GetNumCurves() const;
 			void GetBounds(Vector2& boundsMin, Vector2& boundsMax) const;

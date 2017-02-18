@@ -119,6 +119,7 @@ public:
 	void SetStamp(int x, int y, const Stamp& stamp, u32 flipFlags);
 	void BakeStamp(int x, int y, const Stamp& stamp, u32 flipFlags);
 	StampId FindStamp(int x, int y, ion::Vector2i& topLeft, u32& flags, u32& mapEntryIndex) const;
+	int FindStamps(int x, int y, int width, int height, std::vector<const StampMapEntry*>& stamps) const;
 	void MoveStamp(StampId stampId, u32 mapEntryIndex, int x, int y, int& originalX, int& originalY);
 	void RemoveStamp(int x, int y);
 	TStampPosMap& GetStamps();
@@ -129,6 +130,7 @@ public:
 	GameObjectId PlaceGameObject(int x, int y, const GameObject& object, const GameObjectType& objectType);
 	GameObjectId FindGameObject(int x, int y, ion::Vector2i& topLeft) const;
 	GameObject* FindGameObject(const std::string& name);
+	int FindGameObjects(int x, int y, int width, int height, std::vector<const GameObjectMapEntry*>& gameObjects) const;
 	GameObject* GetGameObject(GameObjectId gameObjectId);
 	void MoveGameObject(GameObjectId gameObjectId, int x, int y);
 	void RemoveGameObject(int x, int y);
