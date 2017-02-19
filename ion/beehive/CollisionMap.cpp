@@ -203,8 +203,8 @@ const ion::gamekit::BezierPath* CollisionMap::FindTerrainBezier(int x, int y, io
 
 int CollisionMap::FindTerrainBeziers(int x, int y, int width, int height, std::vector<const ion::gamekit::BezierPath*>& beziers) const
 {
-	ion::Vector2i boundsMin(x, y);
-	ion::Vector2i boundsMax(x + width, y + height);
+	ion::Vector2i boundsMin(x * 8, y * 8);
+	ion::Vector2i boundsMax((x + width) * 8, (y + height) * 8);
 
 	ion::Vector2 bezierBoundsMin;
 	ion::Vector2 bezierBoundsMax;
@@ -213,6 +213,12 @@ int CollisionMap::FindTerrainBeziers(int x, int y, int width, int height, std::v
 	{
 		const ion::gamekit::BezierPath& bezier = m_terrainBeziers[i];
 		bezier.GetBounds(bezierBoundsMin, bezierBoundsMax);
+
+		//Invert Y
+		float temp = ((m_height * 8) - bezierBoundsMin.y - 1);
+		bezierBoundsMin.y = ((m_height * 8) - bezierBoundsMax.y - 1);
+		bezierBoundsMax.y = temp;
+
 		if(ion::maths::BoxIntersectsBox(boundsMin, boundsMax, ion::Vector2i(bezierBoundsMin.x, bezierBoundsMin.y), ion::Vector2i(bezierBoundsMax.x, bezierBoundsMax.y)))
 		{
 			beziers.push_back(&bezier);

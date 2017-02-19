@@ -1318,6 +1318,20 @@ int Project::CleanupTerrainTiles(bool prompt)
 				}
 			}
 		}
+
+		//Cleanup zero-sized beziers
+		for(int i = 0; i < collisionMap.GetNumTerrainBeziers();)
+		{
+			ion::gamekit::BezierPath* bezier = collisionMap.GetTerrainBezier(i);
+			if(bezier->GetNumCurves() == 0)
+			{
+				collisionMap.RemoveTerrainBezier(i);
+			}
+			else
+			{
+				i++;
+			}
+		}
 	}
 
 	std::vector<TerrainTileId> unusedTerrainTiles;
