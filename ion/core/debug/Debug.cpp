@@ -77,14 +77,6 @@ namespace ion
 #endif
 		}
 
-		void Assert(bool condition, const char* message)
-		{
-			if(!condition)
-			{
-				Error(message);
-			}
-		}
-
 		void Break()
 		{
 #if defined ION_PLATFORM_WINDOWS

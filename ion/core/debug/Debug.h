@@ -28,8 +28,9 @@ namespace ion
 		void Log(const char* message);
 		void Flush();
 		void Error(const char* message);
-		void Assert(bool condition, const char* message);
 		void Break();
+
+		inline void Assert(bool condition, const char* message);
 
 		void PrintMemoryUsage();
 
@@ -68,5 +69,22 @@ namespace ion
 		static LogStream log(LogStream::eLog);
 		static LogStream error(LogStream::eError);
 		static LogTokenEnd end;
+	}
+}
+
+///////////////////////////////////////////////////
+// Inline/template implmentations
+///////////////////////////////////////////////////
+namespace ion
+{
+	namespace debug
+	{
+		void Assert(bool condition, const char* message)
+		{
+			if(!condition)
+			{
+				Error(message);
+			}
+		}
 	}
 }
