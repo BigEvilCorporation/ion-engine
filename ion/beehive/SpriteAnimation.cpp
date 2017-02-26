@@ -43,6 +43,7 @@ void SpriteAnimation::Serialise(ion::io::Archive& archive)
 	archive.Serialise(m_name, "name");
 	archive.Serialise(m_speed, "speed");
 	archive.Serialise(m_trackSpriteFrame, "trackSpriteFrame");
+	archive.Serialise(m_trackSFX, "trackSFX");
 	archive.Serialise(m_trackPosition, "trackPosition");
 }
 
@@ -159,6 +160,50 @@ void AnimTrackSpritePosition::ExportX(ion::io::File& file) const
 }
 
 void AnimTrackSpritePosition::ExportY(ion::io::File& file) const
+{
+
+}
+
+const std::string AnimTrackSFX::GetValue(float time) const
+{
+	std::string value;
+
+	if(const ion::render::Keyframe<std::string>* keyframeA = GetPrevKeyframe(time))
+	{
+		value = keyframeA->GetValue();
+	}
+
+	return value;
+}
+
+void AnimTrackSFX::Export(std::stringstream& stream) const
+{
+	if(GetNumKeyframes() > 0)
+	{
+		stream << "\tdc.l ";
+
+		for(int i = 0; i < GetNumKeyframes(); i++)
+		{
+			std::string value = GetKeyframe(i).GetValue();
+
+			if(value.size() > 0)
+			{
+				stream << value;
+			}
+			else
+			{
+				stream << "0x0";
+			}
+
+			if(i < GetNumKeyframes() - 1)
+				stream << ", ";
+		}
+
+		stream << std::endl;
+	}
+}
+
+void AnimTrackSFX::Export(ion::io::File& file) const
 {
 
 }

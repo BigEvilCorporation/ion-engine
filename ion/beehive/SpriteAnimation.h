@@ -24,6 +24,7 @@
 //Keyframes
 typedef ion::render::Keyframe<u32> AnimKeyframeSpriteFrame;
 typedef ion::render::Keyframe<ion::Vector2i> AnimKeyframeSpritePosition;
+typedef ion::render::Keyframe<std::string> AnimKeyframeSpriteSFX;
 
 //Tracks
 class AnimTrackSpriteFrame : public ion::render::AnimationTrack<u32>
@@ -45,6 +46,14 @@ public:
 	void ExportY(ion::io::File& file) const;
 };
 
+class AnimTrackSFX : public ion::render::AnimationTrack<std::string>
+{
+public:
+	const std::string GetValue(float time) const;
+	void Export(std::stringstream& stream) const;
+	void Export(ion::io::File& file) const;
+};
+
 class SpriteAnimation : public ion::render::Animation
 {
 public:
@@ -60,6 +69,7 @@ public:
 
 	AnimTrackSpriteFrame m_trackSpriteFrame;
 	AnimTrackSpritePosition m_trackPosition;
+	AnimTrackSFX m_trackSFX;
 
 private:
 	std::string m_name;

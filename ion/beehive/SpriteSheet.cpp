@@ -336,14 +336,19 @@ void SpriteSheet::ExportAnims(const PlatformConfig& config, std::stringstream& s
 
 		stream << label.str() << "_track_frames:" << std::endl;
 		it->second.m_trackSpriteFrame.Export(stream);
+		stream << "\tEven" << std::endl;
 
 		stream << label.str() << "_track_posx:" << std::endl;
 		it->second.m_trackPosition.ExportX(stream);
+		stream << "\tEven" << std::endl;
 
 		stream << label.str() << "_track_posy:" << std::endl;
 		it->second.m_trackPosition.ExportY(stream);
+		stream << "\tEven" << std::endl;
 
-		stream << std::endl << "\tEven" << std::endl;
+		stream << label.str() << "_track_sfx:" << std::endl;
+		it->second.m_trackSFX.Export(stream);
+		stream << "\tEven" << std::endl;
 	}
 
 	stream << std::dec;
