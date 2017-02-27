@@ -224,7 +224,7 @@ void Actor::ExportSpriteSheets(const PlatformConfig& config, std::stringstream& 
 
 		stream << label.str() << ":" << std::endl << std::endl;
 
-		it->second.ExportTiles(config, stream);
+		it->second.ExportSpriteTiles(config, stream);
 
 		stream << std::endl << std::endl;
 	}

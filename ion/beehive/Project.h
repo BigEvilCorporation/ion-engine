@@ -29,14 +29,12 @@
 #include "TerrainTile.h"
 #include "TerrainTileset.h"
 #include "GameObject.h"
-#include "StampAnimation.h"
 
 typedef std::map<MapId, Map> TMapMap;
 typedef std::map<CollisionMapId, CollisionMap> TCollisionMapMap;
 typedef std::map<StampId, Stamp> TStampMap;
 typedef std::map<ActorId, Actor> TActorMap;
 typedef std::map<AnimationId, Animation> TAnimationMap;
-typedef std::map<StampAnimId, StampAnimation> TStampAnimationMap;
 typedef std::map<GameObjectTypeId, GameObjectType> TGameObjectTypeMap;
 
 class Project
@@ -158,15 +156,6 @@ public:
 	const TAnimationMap::const_iterator AnimationsEnd() const;
 	int GetAnimationCount() const;
 
-	//Stamp animations
-	StampAnimId CreateStampAnimation();
-	void DeleteStampAnimation(StampAnimId StampAnimId);
-	StampAnimation* GetStampAnimation(StampAnimId StampAnimId);
-	const StampAnimation* GetStampAnimation(StampAnimId StampAnimId) const;
-	const TStampAnimationMap::const_iterator StampAnimationsBegin() const;
-	const TStampAnimationMap::const_iterator StampAnimationsEnd() const;
-	int GetStampAnimationCount() const;
-
 	//Stamps
 	StampId AddStamp(int width, int height);
 	StampId AddStamp(Stamp* stamp);
@@ -180,6 +169,7 @@ public:
 	int GetStampCount() const;
 	int CleanupStamps();
 	void SubstituteStamp(StampId stampToReplace, StampId substitution);
+	void SortStampTilesSequentially(Stamp* stamp);
 
 	//Collision tiles
 	void DeleteTerrainTile(TerrainTileId tileId);
@@ -264,6 +254,7 @@ public:
 	//Export
 	bool ExportPalettes(const std::string& filename) const;
 	bool ExportTiles(const std::string& filename, bool binary) const;
+	bool ExportStampAnims(const std::string& filename, bool binary) const;
 	bool ExportTerrainTiles(const std::string& filename, bool binary) const;
 	bool ExportSpriteSheets(const std::string& directory, bool binary) const;
 	bool ExportSpriteAnims(const std::string& directory, bool binary) const;
@@ -290,6 +281,7 @@ public:
 		std::string palettes;
 		std::string tileset;
 		std::string stamps;
+		std::string stampAnims;
 		std::string terrainTiles;
 		std::string spriteSheets;
 		std::string spriteAnims;
@@ -298,6 +290,7 @@ public:
 		bool palettesExportEnabled;
 		bool tilesetExportEnabled;
 		bool stampsExportEnabled;
+		bool stampAnimsExportEnabled;
 		bool terrainTilesExportEnabled;
 		bool spriteSheetsExportEnabled;
 		bool spriteAnimsExportEnabled;
@@ -310,6 +303,7 @@ public:
 			archive.Serialise(palettesExportEnabled, "palettesExportEnabled");
 			archive.Serialise(tilesetExportEnabled, "tilesetExportEnabled");
 			archive.Serialise(stampsExportEnabled, "stampsExportEnabled");
+			archive.Serialise(stampAnimsExportEnabled, "stampAnimsExportEnabled");
 			archive.Serialise(terrainTilesExportEnabled, "terrainTilesExportEnabled");
 			archive.Serialise(spriteSheetsExportEnabled, "spriteSheetsExportEnabled");
 			archive.Serialise(spriteAnimsExportEnabled, "spriteAnimsExportEnabled");
@@ -319,6 +313,7 @@ public:
 			archive.Serialise(palettes, "exportFNamePalettes");
 			archive.Serialise(tileset, "exportFNameTileset");
 			archive.Serialise(stamps, "exportFNameStamps");
+			archive.Serialise(stampAnims, "exportFNameStampAnims");
 			archive.Serialise(terrainTiles, "exportFNameTerrainTiles");
 			archive.Serialise(spriteSheets, "exportDirSpriteSheets");
 			archive.Serialise(spriteAnims, "exportDirSpriteAnims");
@@ -382,9 +377,6 @@ private:
 
 	//Animations
 	TAnimationMap m_animations;
-
-	//Stamp animations
-	TStampAnimationMap m_stampAnimations;
 
 	//Game object types
 	TGameObjectTypeMap m_gameObjectTypes;

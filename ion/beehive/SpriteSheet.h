@@ -23,6 +23,8 @@ typedef std::map<SpriteAnimId, SpriteAnimation> TSpriteAnimMap;
 
 static const SpriteSheetId InvalidSpriteSheetId = 0;
 
+class Stamp;
+
 class SpriteSheet
 {
 public:
@@ -64,8 +66,10 @@ public:
 
 	//Serialise
 	void Serialise(ion::io::Archive& archive);
-	void ExportTiles(const PlatformConfig& config, std::stringstream& stream) const;
-	void ExportTiles(const PlatformConfig& config, ion::io::File& file) const;
+	void ExportSpriteTiles(const PlatformConfig& config, std::stringstream& stream) const;
+	void ExportSpriteTiles(const PlatformConfig& config, ion::io::File& file) const;
+	void ExportStampTiles(const PlatformConfig& config, const Stamp& referenceStamp, std::stringstream& stream) const;
+	void ExportStampTiles(const PlatformConfig& config, const Stamp& referenceStamp, ion::io::File& file) const;
 	void ExportAnims(const PlatformConfig& config, std::stringstream& stream, const std::string& actorName) const;
 	void ExportAnims(const PlatformConfig& config, ion::io::File& file) const;
 	void ExportPalette(const PlatformConfig& config, std::stringstream& stream) const;

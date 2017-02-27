@@ -14,7 +14,12 @@
 
 #include <core/memory/Memory.h>
 #include <core/memory/Endian.h>
+#include <core/string/String.h>
 #include <core/cryptography/Hash.h>
+
+#define HEX1(val) std::hex << std::setfill('0') << std::setw(1) << std::uppercase << (int)val
+#define HEX2(val) std::hex << std::setfill('0') << std::setw(2) << std::uppercase << (int)val
+#define HEX4(val) std::hex << std::setfill('0') << std::setw(4) << std::uppercase << (int)val
 
 Stamp::Stamp()
 {
@@ -115,6 +120,19 @@ TileId Stamp::GetTile(int x, int y) const
 	return m_tiles[tileIdx].m_id;
 }
 
+int Stamp::GetTileIndex(TileId tileId) const
+{
+	for(int i = 0; i < m_tiles.size(); i++)
+	{
+		if(m_tiles[i].m_id == tileId)
+		{
+			return i;
+		}
+	}
+
+	return 0;
+}
+
 void Stamp::SetTileFlags(int x, int y, u32 flags)
 {
 	int tileIdx = (y * m_width) + x;
@@ -145,6 +163,144 @@ u32 Stamp::GetNameHash() const
 	return m_nameHash;
 }
 
+bool Stamp::CheckTilesBatched() const
+{
+	//Get all unique tiles
+	std::vector<TileId> tiles;
+	GetSortedUniqueTileBatch(tiles);
+
+	//Check list is sequential
+	int index = tiles.front();
+	for(int i = 0; i < tiles.size(); i++, index++)
+	{
+		if(index != tiles[i])
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+int Stamp::GetSortedUniqueTileBatch(std::vector<TileId>& tileBatch) const
+{
+	//Get all unique tiles
+	tileBatch.reserve(GetWidth() * GetHeight());
+
+	for(int y = 0; y < GetHeight(); y++)
+	{
+		for(int x = 0; x < GetWidth(); x++)
+		{
+			int tileIndex = GetTile(x, y);
+
+			if(std::find(tileBatch.begin(), tileBatch.end(), tileIndex) == tileBatch.end())
+			{
+				tileBatch.push_back(tileIndex);
+			}
+		}
+	}
+
+	//Sort
+	std::sort(tileBatch.begin(), tileBatch.end(), [](TileId& a, TileId& b) { return a < b; });
+
+	return tileBatch.size();
+}
+
+TileId Stamp::GetFirstTileId() const
+{
+	TileId tileId = InvalidTileId;
+
+	for(int i = 0; i < m_tiles.size(); i++)
+	{
+		if(m_tiles[i].m_id < tileId)
+		{
+			tileId = m_tiles[i].m_id;
+		}
+	}
+
+	return tileId;
+}
+
+StampAnimSheetId Stamp::CreateStampAnimSheet()
+{
+	StampAnimSheetId stampAnimSheetId = ion::GenerateUUID64();
+	m_stampAnimSheets.insert(std::make_pair(stampAnimSheetId, StampAnimSheet()));
+	return stampAnimSheetId;
+}
+
+void Stamp::DeleteStampAnimSheet(StampAnimSheetId stampAnimSheetId)
+{
+	TStampAnimSheetMap::iterator it = m_stampAnimSheets.find(stampAnimSheetId);
+	if(it != m_stampAnimSheets.end())
+	{
+		m_stampAnimSheets.erase(it);
+	}
+}
+
+StampAnimSheet* Stamp::GetStampAnimSheet(StampAnimSheetId stampAnimSheetId)
+{
+	StampAnimSheet* stampAnimSheet = NULL;
+
+	TStampAnimSheetMap::iterator it = m_stampAnimSheets.find(stampAnimSheetId);
+	if(it != m_stampAnimSheets.end())
+	{
+		stampAnimSheet = &it->second;
+	}
+
+	return stampAnimSheet;
+}
+
+const StampAnimSheet* Stamp::GetStampAnimSheet(StampAnimSheetId stampAnimSheetId) const
+{
+	const StampAnimSheet* stampAnimSheet = NULL;
+
+	TStampAnimSheetMap::const_iterator it = m_stampAnimSheets.find(stampAnimSheetId);
+	if(it != m_stampAnimSheets.end())
+	{
+		stampAnimSheet = &it->second;
+	}
+
+	return stampAnimSheet;
+}
+
+StampAnimSheet* Stamp::FindStampAnimSheet(const std::string& name)
+{
+	for(TStampAnimSheetMap::iterator it = m_stampAnimSheets.begin(), end = m_stampAnimSheets.end(); it != end; ++it)
+	{
+		if(ion::string::CompareNoCase(it->second.GetName(), name))
+		{
+			return &it->second;
+		}
+	}
+
+	return NULL;
+}
+
+const TStampAnimSheetMap::const_iterator Stamp::StampAnimSheetsBegin() const
+{
+	return m_stampAnimSheets.begin();
+}
+
+const TStampAnimSheetMap::const_iterator Stamp::StampAnimSheetsEnd() const
+{
+	return m_stampAnimSheets.end();
+}
+
+TStampAnimSheetMap::iterator Stamp::StampAnimSheetsBegin()
+{
+	return m_stampAnimSheets.begin();
+}
+
+TStampAnimSheetMap::iterator Stamp::StampAnimSheetsEnd()
+{
+	return m_stampAnimSheets.end();
+}
+
+int Stamp::GetStampAnimSheetCount() const
+{
+	return m_stampAnimSheets.size();
+}
+
 void Stamp::Serialise(ion::io::Archive& archive)
 {
 	archive.Serialise(m_id, "id");
@@ -152,6 +308,7 @@ void Stamp::Serialise(ion::io::Archive& archive)
 	archive.Serialise(m_height, "height");
 	archive.Serialise(m_name, "name");
 	archive.Serialise(m_nameHash, "nameHash");
+	archive.Serialise(m_stampAnimSheets, "stampAnimSheets");
 	archive.Serialise(m_tiles, "tiles");
 }
 
@@ -277,4 +434,71 @@ void Stamp::Export(const Project& project, ion::io::File& file) const
 	{
 		//TODO: SNES export goes here
 	}
+}
+
+void Stamp::ExportStampAnims(const PlatformConfig& config, std::stringstream& stream) const
+{
+	if(m_tiles.size() > 0 && m_stampAnimSheets.size() > 0)
+	{
+		u32 frameIndex = 0;
+
+		stream << "stamp_" << m_name << ":" << std::endl << std::endl;
+
+		//Export stamp size and tile offset
+		const StampAnimSheet& stampAnimSheet = m_stampAnimSheets.begin()->second;
+
+		std::stringstream label;
+		label << "stampanimsheet_" << m_name;
+
+		std::vector<TileId> uniqueTiles;
+		int sizeUniqueTiles = GetSortedUniqueTileBatch(uniqueTiles);
+		int firstUniqueTile = uniqueTiles[0];
+
+		stream << label.str() << "_size_b\t\tequ 0x" << HEX4(sizeUniqueTiles * 32) << "\t; Size in bytes" << std::endl;
+		stream << label.str() << "_size_t\t\tequ 0x" << HEX4(sizeUniqueTiles) << "\t; Size in tiles" << std::endl;
+		stream << label.str() << "_tileoffset\t\tequ 0x" << HEX4(firstUniqueTile) << "\t; First tile offset" << std::endl;
+
+		//Export frame offsets
+		for(TStampAnimSheetMap::const_iterator it = m_stampAnimSheets.begin(), end = m_stampAnimSheets.end(); it != end; ++it)
+		{
+			std::stringstream label;
+			label << "stampanimsheet_" << m_name << "_" << it->second.GetName();
+
+			u32 size = it->second.GetBinarySizeTiles();
+
+			stream << label.str() << "_frameoffset\tequ 0x" << HEX2(frameIndex) << "\t; Offset to first frame in stamp anim sheet" << std::endl << std::dec << std::endl << std::endl;
+
+			frameIndex += it->second.GetNumFrames();
+		}
+
+		stream << "spritesheets_" << m_name << ":" << std::endl << std::endl;
+
+		//Export stamp anim sheet tile data
+		for(TStampAnimSheetMap::const_iterator it = m_stampAnimSheets.begin(), end = m_stampAnimSheets.end(); it != end; ++it)
+		{
+			std::stringstream label;
+			label << "stampanimsheet_" << m_name << "_" << it->second.GetName();
+
+			stream << label.str() << ":" << std::endl << std::endl;
+
+			//Row major
+			it->second.ExportStampTiles(config, *this, stream);
+
+			stream << std::endl << std::endl;
+		}
+
+		stream << "stampanims_" << m_name << ":" << std::endl << std::endl;
+
+		//Export stamp anim data
+		for(TStampAnimSheetMap::const_iterator it = m_stampAnimSheets.begin(), end = m_stampAnimSheets.end(); it != end; ++it)
+		{
+			it->second.ExportAnims(config, stream, m_name);
+			stream << std::endl;
+		}
+	}
+}
+
+void Stamp::ExportStampAnims(const PlatformConfig& config, ion::io::File& file) const
+{
+
 }

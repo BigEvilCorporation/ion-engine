@@ -13,6 +13,7 @@
 #include <ion/core/debug/Debug.h>
 
 #include "SpriteSheet.h"
+#include "Stamp.h"
 #include "BMPReader.h"
 
 const int SpriteSheet::subSpriteWidthTiles = 4;
@@ -284,7 +285,7 @@ void SpriteSheet::Serialise(ion::io::Archive& archive)
 	archive.Serialise(m_heightTiles, "height");
 }
 
-void SpriteSheet::ExportTiles(const PlatformConfig& config, std::stringstream& stream) const
+void SpriteSheet::ExportSpriteTiles(const PlatformConfig& config, std::stringstream& stream) const
 {
 	for(std::vector<SpriteSheetFrame>::const_iterator it = m_frames.begin(), end = m_frames.end(); it != end; ++it)
 	{
@@ -301,10 +302,10 @@ void SpriteSheet::ExportTiles(const PlatformConfig& config, std::stringstream& s
 				int subSprOffsetX = m_heightTiles * subSpriteWidthTiles * subSprX;
 				int topLeft = subSprOffsetY + subSprOffsetX;
 
-				//Tiles column major
-				for(int x = 0; x < ion::maths::Min(subSpriteWidthTiles, m_widthTiles - (subSpriteWidthTiles * subSprX)); x++)
+				//Column jamor for sprites
+				for(int y = 0; y < ion::maths::Min(subSpriteHeightTiles, m_heightTiles - (subSpriteHeightTiles * subSprY)); y++)
 				{
-					for(int y = 0; y < ion::maths::Min(subSpriteHeightTiles, m_heightTiles - (subSpriteHeightTiles * subSprY)); y++)
+					for(int x = 0; x < ion::maths::Min(subSpriteWidthTiles, m_widthTiles - (subSpriteWidthTiles * subSprX)); x++)
 					{
 						(*it)[topLeft + (x * m_heightTiles) + y].Export(config, stream);
 
@@ -316,7 +317,43 @@ void SpriteSheet::ExportTiles(const PlatformConfig& config, std::stringstream& s
 	}
 }
 
-void SpriteSheet::ExportTiles(const PlatformConfig& config, ion::io::File& file) const
+void SpriteSheet::ExportSpriteTiles(const PlatformConfig& config, ion::io::File& file) const
+{
+
+}
+
+void SpriteSheet::ExportStampTiles(const PlatformConfig& config, const Stamp& referenceStamp, std::stringstream& stream) const
+{
+#if defined _DEBUG
+	ion::debug::Assert(referenceStamp.CheckTilesBatched(), "SpriteSheet::ExportStampTiles() - Tiles not in sequential order");
+#endif
+
+	//Get all unique tiles
+	std::vector<TileId> tileIndices;
+	int numUniqueTiles = referenceStamp.GetSortedUniqueTileBatch(tileIndices);
+
+	//Offset by first index
+	int firstIndex = tileIndices[0];
+
+	for(std::vector<SpriteSheetFrame>::const_iterator it = m_frames.begin(), end = m_frames.end(); it != end; ++it)
+	{
+		//Export in sorted unique order
+		for(int i = 0; i < tileIndices.size(); i++)
+		{
+			//Convert col major to row major
+			int tileIndex = referenceStamp.GetTileIndex(tileIndices[i]); // -firstIndex;
+
+			ion::Vector2i pos(tileIndex / referenceStamp.GetWidth(), tileIndex % referenceStamp.GetWidth());
+			int rowMajorIndex = (pos.y * referenceStamp.GetHeight()) + pos.x;
+
+			(*it)[rowMajorIndex].Export(config, stream);
+
+			stream << std::endl;
+		}
+	}
+}
+
+void SpriteSheet::ExportStampTiles(const PlatformConfig& config, const Stamp& referenceStamp, ion::io::File& file) const
 {
 
 }

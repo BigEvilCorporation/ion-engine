@@ -14,8 +14,19 @@
 #include "Tile.h"
 #include "Tileset.h"
 
+#include "Actor.h"
+#include "SpriteSheet.h"
+#include "SpriteAnimation.h"
+
 typedef u32 StampId;
 static const StampId InvalidStampId = 0;
+
+//Stamp animations are just sprite animations in disguise
+typedef SpriteSheetId StampAnimSheetId;
+typedef SpriteSheet StampAnimSheet;
+typedef SpriteSheetFrame StampAnimSheetFrame;
+typedef TSpriteSheetMap TStampAnimSheetMap;
+static const StampAnimSheetId InvalidStampAnimSheetId = 0;
 
 class Project;
 
@@ -34,6 +45,7 @@ public:
 
 	void SetTile(int x, int y, TileId tile);
 	TileId GetTile(int x, int y) const;
+	int GetTileIndex(TileId tileId) const;
 
 	void SetTileFlags(int x, int y, u32 flags);
 	u32 GetTileFlags(int x, int y) const;
@@ -42,9 +54,32 @@ public:
 	const std::string& GetName() const;
 	u32 GetNameHash() const;
 
+	//Check all tiles in stamp are part of a sequential batch
+	bool CheckTilesBatched() const;
+
+	//Get all unique tiles in stamp, sorted sequentially
+	int GetSortedUniqueTileBatch(std::vector<TileId>& tileBatch) const;
+
+	//Find tile with lowest id
+	TileId GetFirstTileId() const;
+
+	//Animation sheets
+	StampAnimSheetId CreateStampAnimSheet();
+	void DeleteStampAnimSheet(StampAnimSheetId stampAnimSheetId);
+	StampAnimSheet* GetStampAnimSheet(StampAnimSheetId stampAnimSheetId);
+	const StampAnimSheet* GetStampAnimSheet(StampAnimSheetId stampAnimSheetId) const;
+	StampAnimSheet* FindStampAnimSheet(const std::string& name);
+	const TStampAnimSheetMap::const_iterator StampAnimSheetsBegin() const;
+	const TStampAnimSheetMap::const_iterator StampAnimSheetsEnd() const;
+	TStampAnimSheetMap::iterator StampAnimSheetsBegin();
+	TStampAnimSheetMap::iterator StampAnimSheetsEnd();
+	int GetStampAnimSheetCount() const;
+
 	void Serialise(ion::io::Archive& archive);
 	void Export(const Project& project, std::stringstream& stream) const;
 	void Export(const Project& project, ion::io::File& file) const;
+	void ExportStampAnims(const PlatformConfig& config, std::stringstream& stream) const;
+	void ExportStampAnims(const PlatformConfig& config, ion::io::File& file) const;
 
 	int GetBinarySize() const { return m_width * m_height * sizeof(u16); }
 
@@ -70,4 +105,5 @@ private:
 	};
 
 	std::vector<TileDesc> m_tiles;
+	TStampAnimSheetMap m_stampAnimSheets;
 };

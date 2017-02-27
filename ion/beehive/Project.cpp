@@ -155,7 +155,6 @@ void Project::Serialise(ion::io::Archive& archive)
 	archive.Serialise(m_stamps, "stamps");
 	archive.Serialise(m_actors, "actors");
 	archive.Serialise(m_animations, "animations");
-	archive.Serialise(m_stampAnimations, "stampAnimations");
 	archive.Serialise(m_gameObjectTypes, "gameObjectTypes");
 	archive.Serialise(m_nextFreeStampId, "nextFreeStampId");
 	archive.Serialise(m_nextFreeGameObjectTypeId, "nextFreeGameObjectTypeId");
@@ -967,63 +966,6 @@ int Project::GetAnimationCount() const
 	return m_animations.size();
 }
 
-StampAnimId Project::CreateStampAnimation()
-{
-	StampAnimId animationId = ion::GenerateUUID64();
-	m_stampAnimations.insert(std::make_pair(animationId, StampAnimation()));
-	return animationId;
-}
-
-void Project::DeleteStampAnimation(StampAnimId animationId)
-{
-	TStampAnimationMap::iterator it = m_stampAnimations.find(animationId);
-	if(it != m_stampAnimations.end())
-	{
-		m_stampAnimations.erase(it);
-	}
-}
-
-StampAnimation* Project::GetStampAnimation(StampAnimId animationId)
-{
-	StampAnimation* animation = NULL;
-
-	TStampAnimationMap::iterator it = m_stampAnimations.find(animationId);
-	if(it != m_stampAnimations.end())
-	{
-		animation = &it->second;
-	}
-
-	return animation;
-}
-
-const StampAnimation* Project::GetStampAnimation(StampAnimId animationId) const
-{
-	const StampAnimation* animation = NULL;
-
-	TStampAnimationMap::const_iterator it = m_stampAnimations.find(animationId);
-	if(it != m_stampAnimations.end())
-	{
-		animation = &it->second;
-	}
-
-	return animation;
-}
-
-const TStampAnimationMap::const_iterator Project::StampAnimationsBegin() const
-{
-	return m_stampAnimations.begin();
-}
-
-const TStampAnimationMap::const_iterator Project::StampAnimationsEnd() const
-{
-	return m_stampAnimations.end();
-}
-
-int Project::GetStampAnimationCount() const
-{
-	return m_stampAnimations.size();
-}
-
 StampId Project::AddStamp(int width, int height)
 {
 	StampId id = m_nextFreeStampId++;
@@ -1173,6 +1115,47 @@ void Project::SubstituteStamp(StampId stampToReplace, StampId substitution)
 			}
 		}
 	}
+}
+
+void Project::SortStampTilesSequentially(Stamp* stamp)
+{
+	//Get all unique tiles
+	std::vector<TileId> tiles;
+	tiles.reserve(stamp->GetWidth() * stamp->GetHeight());
+
+	for(int y = 0; y < stamp->GetHeight(); y++)
+	{
+		for(int x = 0; x < stamp->GetWidth(); x++)
+		{
+			TileId tileId = stamp->GetTile(x, y);
+
+			if(std::find(tiles.begin(), tiles.end(), tileId) == tiles.end())
+			{
+				tiles.push_back(tileId);
+			}
+		}
+	}
+
+	//Sort
+	std::sort(tiles.begin(), tiles.end(), [](TileId& a, TileId& b) { return a < b; });
+
+	//Make tiles sequential
+	int index = tiles.front();
+	for(int i = 0; i < tiles.size(); i++, index++)
+	{
+		if(index != tiles[i])
+		{
+			SwapTiles(index, tiles[i]);
+
+#if defined _DEBUG
+			tiles[i] = index;
+#endif
+		}
+	}
+
+#if defined _DEBUG
+	ion::debug::Assert(stamp->CheckTilesBatched(), "Project::SortStampTilesSequentially() - Error, tiles still not in sequential batch after sorting");
+#endif
 }
 
 int Project::CleanupStamps()
@@ -3172,6 +3155,36 @@ bool Project::ExportSpriteAnims(const std::string& directory, bool binary) const
 	}
 
 	return true;
+}
+
+bool Project::ExportStampAnims(const std::string& filename, bool binary) const
+{
+	ion::io::File file(filename, ion::io::File::eOpenWrite);
+	if(file.IsOpen())
+	{
+		//if(binary)
+		//{
+		//
+		//}
+		//else
+		{
+			std::stringstream stream;
+			WriteFileHeader(stream);
+
+			for(TStampMap::const_iterator it = m_stamps.begin(), end = m_stamps.end(); it != end; ++it)
+			{
+				it->second.ExportStampAnims(m_platformConfig, stream);
+			}
+
+			file.Write(stream.str().c_str(), stream.str().size());
+		}
+
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 }
 
 bool Project::ExportSpritePalettes(const std::string& directory) const

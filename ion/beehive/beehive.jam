@@ -29,8 +29,6 @@ local BEEHIVE_SRC =
 	SpriteSheet.h
 	SpriteAnimation.cpp
 	SpriteAnimation.h
-	StampAnimation.cpp
-	StampAnimation.h
 	Stamp.cpp
 	Stamp.h
 	TerrainTile.cpp
