@@ -80,6 +80,7 @@ public:
 	void Export(const Project& project, ion::io::File& file) const;
 	void ExportStampAnims(const PlatformConfig& config, std::stringstream& stream) const;
 	void ExportStampAnims(const PlatformConfig& config, ion::io::File& file) const;
+	void ExportStampAnimSetup(const PlatformConfig& config, std::stringstream& stream) const;
 
 	int GetBinarySize() const { return m_width * m_height * sizeof(u16); }
 

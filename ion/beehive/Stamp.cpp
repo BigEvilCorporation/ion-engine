@@ -502,3 +502,40 @@ void Stamp::ExportStampAnims(const PlatformConfig& config, ion::io::File& file) 
 {
 
 }
+
+void Stamp::ExportStampAnimSetup(const PlatformConfig& config, std::stringstream& stream) const
+{
+	if(m_tiles.size() > 0 && m_stampAnimSheets.size() > 0)
+	{
+		//Setup first anim
+		const StampAnimSheet& stampAnimSheet = m_stampAnimSheets.begin()->second;
+
+		std::stringstream animSheetLabel;
+		animSheetLabel << "stampanimsheet_" << m_name;
+
+		std::string animationName = stampAnimSheet.AnimationsBegin()->second.GetName();
+
+		stream << "\t; Get stamp VRAM address" << std::endl;
+		stream << "\tmove.w (vram_addr_leveltiles), d0" << std::endl;
+		stream << "\tadd.w  #" << animSheetLabel.str() << "_tileoffset*size_tile_b, d0" << std::endl;
+
+		stream << "\t; Load scene anim objects" << std::endl;
+		stream << "\tjsr    SceneAnimInit" << std::endl;
+		stream << "\tlea    spritesheets_" << m_name << ", a2" << std::endl;
+		stream << "\tmove.l #" << animSheetLabel.str() << "_size_t, d1" << std::endl;
+		stream << "\tjsr    SceneAnimLoadStampAnim" << std::endl;
+
+		stream << "\t; Set scene animations" << std::endl;
+		stream << "\tmove.w #" << animSheetLabel.str() << "_" << animationName << "_frameoffset, Animation_FirstFrameOffset(a1)" << std::endl;
+		stream << "\tmove.l #spriteanim_" << m_name << "_" << animationName << "_track_frames, Animation_AnimTrackSpriteFrame(a1)" << std::endl;
+		stream << "\tmove.b #spriteanim_" << m_name << "_" << animationName << "_speed, Animation_Speed(a1)" << std::endl;
+		stream << "\tmove.b #spriteanim_" << m_name << "_" << animationName << "_numframes, Animation_Length(a1)" << std::endl;
+		stream << "\tmove.b #0x1, Animation_Looping(a1)" << std::endl;
+		stream << "\tjsr    AnimObjSetAnimation" << std::endl;
+
+		stream << std::endl;
+		stream << "\tadd.l  #SceneAnim_Struct_Size, a0" << std::endl;
+		stream << "\tadd.l  #Animation_Struct_Size, a1" << std::endl;
+		stream << std::endl;
+	}
+}

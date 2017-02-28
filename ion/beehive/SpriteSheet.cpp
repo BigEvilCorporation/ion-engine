@@ -55,8 +55,8 @@ bool SpriteSheet::ImportBitmap(const std::string& filename, const std::string& n
 		int spriteSheetHeightTiles = reader.GetHeight() / tileHeight;
 	
 		//Get frame width/height in tiles
-        m_widthTiles = spriteSheetWidthTiles / widthFrames;
-        m_heightTiles = spriteSheetHeightTiles / heightFrames;
+		m_widthTiles = spriteSheetWidthTiles / widthFrames;
+		m_heightTiles = spriteSheetHeightTiles / heightFrames;
 	
 		//For each frame
 		u32 frameCount = 0;
@@ -340,12 +340,14 @@ void SpriteSheet::ExportStampTiles(const PlatformConfig& config, const Stamp& re
 		//Export in sorted unique order
 		for(int i = 0; i < tileIndices.size(); i++)
 		{
-			//Convert col major to row major
-			int tileIndex = referenceStamp.GetTileIndex(tileIndices[i]); // -firstIndex;
+			//Find index of first use of this tile id in reference stamp
+			int tileIndex = referenceStamp.GetTileIndex(tileIndices[i]);
 
+			//Transpose to sprite (column major) order
 			ion::Vector2i pos(tileIndex / referenceStamp.GetWidth(), tileIndex % referenceStamp.GetWidth());
 			int rowMajorIndex = (pos.y * referenceStamp.GetHeight()) + pos.x;
 
+			//Export tile of animation frame
 			(*it)[rowMajorIndex].Export(config, stream);
 
 			stream << std::endl;
