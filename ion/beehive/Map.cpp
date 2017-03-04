@@ -338,6 +338,34 @@ void Map::RemoveStamp(int x, int y)
 	}
 }
 
+void Map::StampBringToFront(StampId stampId)
+{
+	for(int i = 0; i < m_stamps.size(); i++)
+	{
+		if(m_stamps[i].m_id == stampId)
+		{
+			StampMapEntry stamp = m_stamps[i];
+			m_stamps.erase(m_stamps.begin() + i);
+			m_stamps.push_back(stamp);
+			return;
+		}
+	}
+}
+
+void Map::StampSendToBack(StampId stampId)
+{
+	for(int i = 0; i < m_stamps.size(); i++)
+	{
+		if(m_stamps[i].m_id == stampId)
+		{
+			StampMapEntry stamp = m_stamps[i];
+			m_stamps.erase(m_stamps.begin() + i);
+			m_stamps.insert(m_stamps.begin(), stamp);
+			return;
+		}
+	}
+}
+
 TStampPosMap& Map::GetStamps()
 {
 	return m_stamps;
