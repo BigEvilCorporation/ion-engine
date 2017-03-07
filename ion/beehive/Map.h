@@ -122,8 +122,8 @@ public:
 	int FindStamps(int x, int y, int width, int height, std::vector<const StampMapEntry*>& stamps) const;
 	void MoveStamp(StampId stampId, u32 mapEntryIndex, int x, int y, int& originalX, int& originalY);
 	void RemoveStamp(int x, int y);
-	void StampBringToFront(StampId stampId);
-	void StampSendToBack(StampId stampId);
+	void StampBringToFront(int x, int y, StampId stampId);
+	void StampSendToBack(int x, int y, StampId stampId);
 	TStampPosMap& GetStamps();
 	const TStampPosMap& GetStamps() const;
 

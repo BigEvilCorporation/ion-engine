@@ -338,11 +338,11 @@ void Map::RemoveStamp(int x, int y)
 	}
 }
 
-void Map::StampBringToFront(StampId stampId)
+void Map::StampBringToFront(int x, int y, StampId stampId)
 {
 	for(int i = 0; i < m_stamps.size(); i++)
 	{
-		if(m_stamps[i].m_id == stampId)
+		if(m_stamps[i].m_id == stampId && m_stamps[i].m_position.x == x && m_stamps[i].m_position.y == y)
 		{
 			StampMapEntry stamp = m_stamps[i];
 			m_stamps.erase(m_stamps.begin() + i);
@@ -352,11 +352,11 @@ void Map::StampBringToFront(StampId stampId)
 	}
 }
 
-void Map::StampSendToBack(StampId stampId)
+void Map::StampSendToBack(int x, int y, StampId stampId)
 {
 	for(int i = 0; i < m_stamps.size(); i++)
 	{
-		if(m_stamps[i].m_id == stampId)
+		if(m_stamps[i].m_id == stampId && m_stamps[i].m_position.x == x && m_stamps[i].m_position.y == y)
 		{
 			StampMapEntry stamp = m_stamps[i];
 			m_stamps.erase(m_stamps.begin() + i);
