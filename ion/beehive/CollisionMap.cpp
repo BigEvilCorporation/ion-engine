@@ -112,12 +112,26 @@ void CollisionMap::Resize(int width, int height, bool shiftRight, bool shiftDown
 			if(shiftDown && height > m_height)
 				destTileIdx += (height - m_height) * width;
 
-			terrainTiles[destTileIdx] = GetTerrainTile(x, y);
+			terrainTiles[destTileIdx] = GetTerrainTile(x, y) | GetCollisionTileFlags(x, y);
 		}
 	}
 	
 	//Set new
 	m_collisionTiles = terrainTiles;
+
+	//Move splines
+	for(int i = 0; i < m_terrainBeziers.size(); i++)
+	{
+		ion::Vector2 offset;
+
+		if(shiftRight && width > m_width)
+			offset.x += (float)(width - m_width) * 8.0f;
+		if(!shiftDown && height > m_height)
+			offset.y += (float)(height - m_height) * 8.0f;
+
+		m_terrainBeziers[i].Move(offset);
+	}
+
 	m_width = width;
 	m_height = height;
 }
