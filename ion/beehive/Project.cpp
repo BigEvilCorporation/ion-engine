@@ -3027,11 +3027,20 @@ bool Project::ExportGameObjects(MapId mapId, const std::string& filename) const
 
 		const TGameObjectPosMap& gameObjMap = map.GetGameObjects();
 
-		//Bake out all game object types, even if there's no game objects to go with them (still need the count and init subroutine)
+		//Sort by init priority
+		std::vector<const GameObjectType*> sortedTypes;
 		for(TGameObjectTypeMap::const_iterator it = m_gameObjectTypes.begin(), end = m_gameObjectTypes.end(); it != end; ++it)
 		{
-			const GameObjectType& gameObjectType = it->second;
-			const TGameObjectPosMap::const_iterator gameObjIt = gameObjMap.find(it->first);
+			sortedTypes.push_back(&it->second);
+		}
+
+		std::sort(sortedTypes.begin(), sortedTypes.end(), [](const GameObjectType* elemA, const GameObjectType* elemB) { return elemA->GetInitPriority() < elemB->GetInitPriority(); });
+
+		//Bake out all game object types, even if there's no game objects to go with them (still need the count and init subroutine)
+		for(int i = 0; i < sortedTypes.size(); i++)
+		{
+			const GameObjectType& gameObjectType = *sortedTypes[i];
+			const TGameObjectPosMap::const_iterator gameObjIt = gameObjMap.find(gameObjectType.GetId());
 			u32 count = (gameObjIt != gameObjMap.end()) ? gameObjIt->second.size() : 0;
 
 			//Export game object count
@@ -3062,10 +3071,10 @@ bool Project::ExportGameObjects(MapId mapId, const std::string& filename) const
 		//Start init subroutine
 		stream << mapName << "_LoadGameObjects:" << std::endl;
 
-		for(TGameObjectTypeMap::const_iterator it = m_gameObjectTypes.begin(), end = m_gameObjectTypes.end(); it != end; ++it)
+		for(int i = 0; i < sortedTypes.size(); i++)
 		{
-			const GameObjectType& gameObjectType = it->second;
-			const TGameObjectPosMap::const_iterator gameObjIt = gameObjMap.find(it->first);
+			const GameObjectType& gameObjectType = *sortedTypes[i];
+			const TGameObjectPosMap::const_iterator gameObjIt = gameObjMap.find(gameObjectType.GetId());
 
 			//Load array
 			stream << '\t' << "move.l #EntityArray_" << gameObjectType.GetName() << ", a0" << std::endl;

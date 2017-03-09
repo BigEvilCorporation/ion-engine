@@ -17,6 +17,7 @@ GameObjectType::GameObjectType()
 {
 	m_id = InvalidGameObjectTypeId;
 	m_previewSpriteSheet = InvalidSpriteSheetId;
+	m_initPriority = -1;
 }
 
 GameObjectType::GameObjectType(u32 id)
@@ -26,6 +27,7 @@ GameObjectType::GameObjectType(u32 id)
 	m_previewSpriteSheet = InvalidSpriteSheetId;
 	m_dimensions.x = 16;
 	m_dimensions.y = 16;
+	m_initPriority = m_id;
 }
 
 GameObjectVariable& GameObjectType::AddVariable()
@@ -59,7 +61,13 @@ void GameObjectType::Serialise(ion::io::Archive& archive)
 	archive.Serialise(m_name, "name");
 	archive.Serialise(m_previewSpriteSheet, "previewSpriteSheet");
 	archive.Serialise(m_variables, "variables");
+	archive.Serialise(m_initPriority, "initPriority");
 	archive.Serialise(m_dimensions, "dimensions");
+
+	if(m_initPriority < 0)
+	{
+		m_initPriority = m_id;
+	}
 }
 
 GameObject::GameObject()

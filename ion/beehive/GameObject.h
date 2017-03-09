@@ -71,6 +71,9 @@ public:
 	GameObjectVariable* GetVariable(u32 index);
 	const std::vector<GameObjectVariable>& GetVariables() const { return m_variables; }
 
+	int GetInitPriority() const { return m_initPriority; }
+	void SetInitPriority(int priority) { m_initPriority = priority; }
+
 	void Serialise(ion::io::Archive& archive);
 
 private:
@@ -79,6 +82,7 @@ private:
 	SpriteSheetId m_previewSpriteSheet;
 	std::vector<GameObjectVariable> m_variables;
 	ion::Vector2i m_dimensions;
+	int m_initPriority;
 };
 
 class GameObject
