@@ -1491,7 +1491,7 @@ bool Project::GenerateTerrainFromBeziers(int granularity)
 				for(int posIdx = 0; posIdx < points.size(); posIdx++)
 				{
 					//Get position
-					const ion::Vector2 pixelPos(points[posIdx].x, (float)mapHeightPixels - points[posIdx].y);
+					const ion::Vector2 pixelPos(ion::maths::Floor(points[posIdx].x), (float)mapHeightPixels - ion::maths::Round(points[posIdx].y));
 					const ion::Vector2i tilePos(ion::maths::Floor(pixelPos.x / (float)tileWidth), ion::maths::Floor(pixelPos.y / (float)tileHeight));
 
 					//Get tile under cursor (if changed)
