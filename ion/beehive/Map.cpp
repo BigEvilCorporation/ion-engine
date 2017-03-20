@@ -555,6 +555,16 @@ const TStampPosMap::const_iterator Map::StampsEnd() const
 	return m_stamps.end();
 }
 
+TStampPosMap::iterator Map::StampsBegin()
+{
+	return m_stamps.begin();
+}
+
+TStampPosMap::iterator Map::StampsEnd()
+{
+	return m_stamps.end();
+}
+
 void Map::Export(const Project& project, std::stringstream& stream) const
 {
 	//Copy tiles

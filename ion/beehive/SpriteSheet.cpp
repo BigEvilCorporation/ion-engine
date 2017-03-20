@@ -302,10 +302,10 @@ void SpriteSheet::ExportSpriteTiles(const PlatformConfig& config, std::stringstr
 				int subSprOffsetX = m_heightTiles * subSpriteWidthTiles * subSprX;
 				int topLeft = subSprOffsetY + subSprOffsetX;
 
-				//Column jamor for sprites
-				for(int y = 0; y < ion::maths::Min(subSpriteHeightTiles, m_heightTiles - (subSpriteHeightTiles * subSprY)); y++)
+				//Tiles column major
+				for(int x = 0; x < ion::maths::Min(subSpriteWidthTiles, m_widthTiles - (subSpriteWidthTiles * subSprX)); x++)
 				{
-					for(int x = 0; x < ion::maths::Min(subSpriteWidthTiles, m_widthTiles - (subSpriteWidthTiles * subSprX)); x++)
+					for(int y = 0; y < ion::maths::Min(subSpriteHeightTiles, m_heightTiles - (subSpriteHeightTiles * subSprY)); y++)
 					{
 						(*it)[topLeft + (x * m_heightTiles) + y].Export(config, stream);
 

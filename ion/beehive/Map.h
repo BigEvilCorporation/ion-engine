@@ -140,6 +140,8 @@ public:
 
 	const TStampPosMap::const_iterator StampsBegin() const;
 	const TStampPosMap::const_iterator StampsEnd() const;
+	TStampPosMap::iterator StampsBegin();
+	TStampPosMap::iterator StampsEnd();
 
 	// Generate NxN blocks and sort unique
 	void GenerateBlocks(const Project& project, int blockWidth, int blockHeight);

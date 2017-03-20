@@ -193,6 +193,18 @@ void Project::Serialise(ion::io::Archive& archive)
 			}
 		}
 	}
+
+	//Hack - fix for mismatched stamp sizes
+	for(TMapMap::iterator it = m_maps.begin(), end = m_maps.end(); it != end; ++it)
+	{
+		for(TStampPosMap::iterator stampIt = it->second.StampsBegin(), stampEnd = it->second.StampsEnd(); stampIt != stampEnd; ++stampIt)
+		{
+			if(Stamp* stamp = GetStamp(stampIt->m_id))
+			{
+				stampIt->m_size = ion::Vector2i(stamp->GetWidth(), stamp->GetHeight());
+			}
+		}
+	}
 }
 
 MapId Project::CreateMap()
