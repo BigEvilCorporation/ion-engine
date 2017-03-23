@@ -368,9 +368,11 @@ void SpriteSheet::ExportAnims(const PlatformConfig& config, std::stringstream& s
 	{
 		std::stringstream label;
 		label << "spriteanim_" << actorName << "_" << it->second.GetName();
+
+		int numKeyframes = it->second.m_trackSpriteFrame.GetNumKeyframes();
 		
 		stream << label.str() << ":" << std::endl;
-		stream << label.str() << "_numframes: equ 0x" << it->second.m_trackSpriteFrame.GetNumKeyframes() << std::endl;
+		stream << label.str() << "_numframes: equ 0x" << numKeyframes << std::endl;
 		stream << label.str() << "_speed: equ 0x" << it->second.GetSpeed() << std::endl;
 
 		stream << label.str() << "_track_frames:" << std::endl;
@@ -378,15 +380,15 @@ void SpriteSheet::ExportAnims(const PlatformConfig& config, std::stringstream& s
 		stream << "\tEven" << std::endl;
 
 		stream << label.str() << "_track_posx:" << std::endl;
-		it->second.m_trackPosition.ExportX(stream);
+		it->second.m_trackPosition.ExportX(stream, numKeyframes);
 		stream << "\tEven" << std::endl;
 
 		stream << label.str() << "_track_posy:" << std::endl;
-		it->second.m_trackPosition.ExportY(stream);
+		it->second.m_trackPosition.ExportY(stream, numKeyframes);
 		stream << "\tEven" << std::endl;
 
 		stream << label.str() << "_track_sfx:" << std::endl;
-		it->second.m_trackSFX.Export(stream);
+		it->second.m_trackSFX.Export(stream, numKeyframes);
 		stream << "\tEven" << std::endl;
 	}
 

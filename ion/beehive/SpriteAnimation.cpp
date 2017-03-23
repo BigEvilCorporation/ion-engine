@@ -116,50 +116,44 @@ const ion::Vector2i AnimTrackSpritePosition::GetValue(float time) const
 	return result;
 }
 
-void AnimTrackSpritePosition::ExportX(std::stringstream& stream) const
+void AnimTrackSpritePosition::ExportX(std::stringstream& stream, int numKeyframes) const
 {
-	if(GetNumKeyframes() > 0)
+	stream << "\tdc.b ";
+
+	for(int i = 0; i < numKeyframes; i++)
 	{
-		stream << "\tdc.b ";
+		u32 value = (i < GetNumKeyframes()) ? GetKeyframe(i).GetValue().x : 0;
+		stream << "0x" << value;
 
-		for(int i = 0; i < GetNumKeyframes(); i++)
-		{
-			u32 value = GetKeyframe(i).GetValue().x;
-			stream << "0x" << value;
-
-			if(i < GetNumKeyframes() - 1)
-				stream << ", ";
-		}
+		if(i < numKeyframes - 1)
+			stream << ", ";
 	}
 
 	stream << std::endl;
 }
 
-void AnimTrackSpritePosition::ExportY(std::stringstream& stream) const
+void AnimTrackSpritePosition::ExportY(std::stringstream& stream, int numKeyframes) const
 {
-	if(GetNumKeyframes() > 0)
+	stream << "\tdc.b ";
+
+	for(int i = 0; i < numKeyframes; i++)
 	{
-		stream << "\tdc.b ";
+		u32 value = (i < GetNumKeyframes()) ? GetKeyframe(i).GetValue().y : 0;
+		stream << "0x" << value;
 
-		for(int i = 0; i < GetNumKeyframes(); i++)
-		{
-			u32 value = GetKeyframe(i).GetValue().y;
-			stream << "0x" << value;
-
-			if(i < GetNumKeyframes() - 1)
-				stream << ", ";
-		}
+		if(i < numKeyframes - 1)
+			stream << ", ";
 	}
 
 	stream << std::endl;
 }
 
-void AnimTrackSpritePosition::ExportX(ion::io::File& file) const
+void AnimTrackSpritePosition::ExportX(ion::io::File& file, int numKeyframes) const
 {
 
 }
 
-void AnimTrackSpritePosition::ExportY(ion::io::File& file) const
+void AnimTrackSpritePosition::ExportY(ion::io::File& file, int numKeyframes) const
 {
 
 }
@@ -176,34 +170,31 @@ const std::string AnimTrackSFX::GetValue(float time) const
 	return value;
 }
 
-void AnimTrackSFX::Export(std::stringstream& stream) const
+void AnimTrackSFX::Export(std::stringstream& stream, int numKeyframes) const
 {
-	if(GetNumKeyframes() > 0)
+	stream << "\tdc.l ";
+
+	for(int i = 0; i < numKeyframes; i++)
 	{
-		stream << "\tdc.l ";
+		std::string value = (i < GetNumKeyframes()) ? GetKeyframe(i).GetValue() : "";
 
-		for(int i = 0; i < GetNumKeyframes(); i++)
+		if(value.size() > 0)
 		{
-			std::string value = GetKeyframe(i).GetValue();
-
-			if(value.size() > 0)
-			{
-				stream << value;
-			}
-			else
-			{
-				stream << "0x0";
-			}
-
-			if(i < GetNumKeyframes() - 1)
-				stream << ", ";
+			stream << value;
+		}
+		else
+		{
+			stream << "0x0";
 		}
 
-		stream << std::endl;
+		if(i < numKeyframes - 1)
+			stream << ", ";
 	}
+
+	stream << std::endl;
 }
 
-void AnimTrackSFX::Export(ion::io::File& file) const
+void AnimTrackSFX::Export(ion::io::File& file, int numKeyframes) const
 {
 
 }
