@@ -195,7 +195,7 @@ void GameObject::Export(std::stringstream& stream, const GameObjectType& gameObj
 
 void GameObject::ParseValueTokens(std::string& valueString) const
 {
-	const int screenToWorldSpaceShift = 8;
+	const int screenToWorldSpaceShift = 16;
 	const int spriteSheetBorderX = 128;
 	const int spriteSheetBorderY = 128;
 
