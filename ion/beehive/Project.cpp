@@ -1176,7 +1176,10 @@ int Project::CleanupStamps()
 
 	for(TStampMap::const_iterator it = m_stamps.begin(), end = m_stamps.end(); it != end; ++it)
 	{
-		unusedStamps.insert(it->first);
+		if(it->second.GetStampAnimSheetCount() == 0)
+		{
+			unusedStamps.insert(it->first);
+		}
 	}
 
 	for(TMapMap::const_iterator mapIt = m_maps.begin(), mapEnd = m_maps.end(); mapIt != mapEnd; ++mapIt)
