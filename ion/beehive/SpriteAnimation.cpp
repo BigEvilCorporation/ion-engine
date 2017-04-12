@@ -11,6 +11,11 @@
 
 #include "SpriteAnimation.h"
 
+#include <iostream>
+#include <iomanip>
+
+#define HEX2TRUNC(val) std::hex << std::setfill('0') << std::setw(2) << std::uppercase << ((int)val&0xFF)
+
 SpriteAnimation::SpriteAnimation()
 {
 	m_speed = 1;
@@ -123,7 +128,7 @@ void AnimTrackSpritePosition::ExportX(std::stringstream& stream, int numKeyframe
 	for(int i = 0; i < numKeyframes; i++)
 	{
 		u32 value = (i < GetNumKeyframes()) ? GetKeyframe(i).GetValue().x : 0;
-		stream << "0x" << value;
+		stream << "0x" << HEX2TRUNC(value);
 
 		if(i < numKeyframes - 1)
 			stream << ", ";
@@ -139,7 +144,7 @@ void AnimTrackSpritePosition::ExportY(std::stringstream& stream, int numKeyframe
 	for(int i = 0; i < numKeyframes; i++)
 	{
 		u32 value = (i < GetNumKeyframes()) ? GetKeyframe(i).GetValue().y : 0;
-		stream << "0x" << value;
+		stream << "0x" << HEX2TRUNC(value);
 
 		if(i < numKeyframes - 1)
 			stream << ", ";
