@@ -1013,7 +1013,7 @@ void Project::DeleteStamp(StampId stampId)
 
 		for(int i = 0; i < stampUseCoords.size(); i++)
 		{
-			map.RemoveStamp(stampUseCoords[i].x, stampUseCoords[i].y);
+			map.RemoveStamp(stampId, stampUseCoords[i].x, stampUseCoords[i].y);
 		}
 	}
 

@@ -121,7 +121,7 @@ public:
 	StampId FindStamp(int x, int y, ion::Vector2i& topLeft, u32& flags, u32& mapEntryIndex) const;
 	int FindStamps(int x, int y, int width, int height, std::vector<const StampMapEntry*>& stamps) const;
 	void MoveStamp(StampId stampId, u32 mapEntryIndex, int x, int y, int& originalX, int& originalY);
-	void RemoveStamp(int x, int y);
+	void RemoveStamp(StampId stampId, int x, int y);
 	void StampBringToFront(int x, int y, StampId stampId);
 	void StampSendToBack(int x, int y, StampId stampId);
 	TStampPosMap& GetStamps();

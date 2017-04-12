@@ -317,7 +317,7 @@ void Map::MoveStamp(StampId stampId, u32 mapEntryIndex, int x, int y, int& origi
 	m_stamps[mapEntryIndex].m_position.y = y;
 }
 
-void Map::RemoveStamp(int x, int y)
+void Map::RemoveStamp(StampId stampId, int x, int y)
 {
 	ion::Vector2i size;
 	ion::Vector2i bottomRight;
@@ -329,7 +329,7 @@ void Map::RemoveStamp(int x, int y)
 
 		bottomRight = topLeft + size;
 
-		if(x >= topLeft.x && y >= topLeft.y && x < bottomRight.x && y < bottomRight.y)
+		if(it->m_id == stampId && x >= topLeft.x && y >= topLeft.y && x < bottomRight.x && y < bottomRight.y)
 		{
 			m_stamps.erase(std::next(it).base());
 			
