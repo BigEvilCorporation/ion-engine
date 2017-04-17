@@ -134,9 +134,9 @@ namespace ion
 					for(int j = 0; j < m_handlers.size(); j++)
 					{
 						if(mCurrKeyStates[i])
-							m_handlers[j]->OnKeyDown(i);
+							m_handlers[j]->OnKeyDown((ion::input::Keycode)i);
 						else
-							m_handlers[j]->OnKeyUp(i);
+							m_handlers[j]->OnKeyUp((ion::input::Keycode)i);
 					}
 				}
 			}
