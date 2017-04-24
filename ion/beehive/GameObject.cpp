@@ -16,7 +16,7 @@
 GameObjectType::GameObjectType()
 {
 	m_id = InvalidGameObjectTypeId;
-	m_previewSpriteSheet = InvalidSpriteSheetId;
+	m_previewSpriteSheetId = InvalidSpriteSheetId;
 	m_initPriority = -1;
 }
 
@@ -24,10 +24,20 @@ GameObjectType::GameObjectType(u32 id)
 {
 	m_id = id;
 	m_name = "GameObj_";
-	m_previewSpriteSheet = InvalidSpriteSheetId;
+	m_previewSpriteSheetId = InvalidSpriteSheetId;
 	m_dimensions.x = 16;
 	m_dimensions.y = 16;
 	m_initPriority = m_id;
+}
+
+bool GameObjectType::LoadPreviewSprite(const std::string& filename)
+{
+	if(m_previewSpriteSheetId == InvalidSpriteSheetId)
+	{
+		m_previewSpriteSheetId = ion::GenerateUUID64();
+	}
+
+	return m_previewSpriteSheet.ImportBitmap(filename, m_name, 8, 8, 1, 1, 1);
 }
 
 GameObjectVariable& GameObjectType::AddVariable()
@@ -59,7 +69,8 @@ void GameObjectType::Serialise(ion::io::Archive& archive)
 {
 	archive.Serialise(m_id, "id");
 	archive.Serialise(m_name, "name");
-	archive.Serialise(m_previewSpriteSheet, "previewSpriteSheet");
+	archive.Serialise(m_previewSpriteSheetId, "previewSpriteSheetId");
+	archive.Serialise(m_previewSpriteSheet, "previewSpriteSheetData");
 	archive.Serialise(m_variables, "variables");
 	archive.Serialise(m_initPriority, "initPriority");
 	archive.Serialise(m_dimensions, "dimensions");
