@@ -2264,7 +2264,13 @@ bool Project::ImportBitmap(const std::string& filename, u32 importFlags, u32 pal
 				//Find duplicate or create new
 				TileId tileId = 0;
 				u32 tileFlags = 0;
-				TileId duplicateId = m_tileset.FindDuplicate(tile, tileFlags);
+				TileId duplicateId = InvalidTileId;
+				
+				if(!(importFlags & eBMPImportNoDuplicateTileCheck))
+				{
+					duplicateId = m_tileset.FindDuplicate(tile, tileFlags);
+				}
+
 				if(duplicateId != InvalidTileId)
 				{
 					//Tile already exists

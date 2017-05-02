@@ -45,16 +45,17 @@ class Project
 public:
 	enum BMPImportFlags
 	{
-		eBMPImportClearPalettes	= (1 << 0),
-		eBMPImportClearTiles	= (1 << 1),
-		eBMPImportClearMap		= (1 << 2),
-		eBMPImportDrawToMap		= (1 << 3),
-		eBMPImportToStamp		= (1 << 4),
-		eBMPImportReplaceStamp	= (1 << 5),
-		eBMPImportToSpriteSheet	= (1 << 6),
-		eBMPImportWholePalette	= (1 << 7),
-		eBMPImportInsertBGTile	= (1 << 8),
-		eBMPImportOnlyExisting	= (1 << 9),
+		eBMPImportClearPalettes			= (1 << 0),
+		eBMPImportClearTiles			= (1 << 1),
+		eBMPImportClearMap				= (1 << 2),
+		eBMPImportDrawToMap				= (1 << 3),
+		eBMPImportToStamp				= (1 << 4),
+		eBMPImportReplaceStamp			= (1 << 5),
+		eBMPImportToSpriteSheet			= (1 << 6),
+		eBMPImportWholePalette			= (1 << 7),
+		eBMPImportInsertBGTile			= (1 << 8),
+		eBMPImportOnlyExistingStamps	= (1 << 9),
+		eBMPImportNoDuplicateTileCheck	= (1 << 10),
 	};
 
 	Project(PlatformConfig& defaultPatformConfig);
