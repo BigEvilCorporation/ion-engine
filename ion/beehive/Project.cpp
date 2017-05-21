@@ -922,6 +922,26 @@ int Project::GetActorCount() const
 	return m_actors.size();
 }
 
+void Project::ExportActors(const std::string& filename)
+{
+	ion::io::File file(filename, ion::io::File::eOpenWrite);
+	if(file.IsOpen())
+	{
+		ion::io::Archive archive(file, ion::io::Archive::eOut);
+		archive.Serialise(m_actors, "actors");
+	}
+}
+
+void Project::ImportActors(const std::string& filename)
+{
+	ion::io::File file(filename, ion::io::File::eOpenRead);
+	if(file.IsOpen())
+	{
+		ion::io::Archive archive(file, ion::io::Archive::eIn);
+		archive.Serialise(m_actors, "actors");
+	}
+}
+
 AnimationId Project::CreateAnimation()
 {
 	AnimationId animationId = ion::GenerateUUID64();

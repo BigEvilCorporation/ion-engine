@@ -121,6 +121,10 @@ namespace ion
 			Keyframe<T>& GetKeyframe(int index);
 			const Keyframe<T>& GetKeyframe(int index) const;
 
+			//Find keyframe at exact time
+			Keyframe<T>* FindKeyframe(float time);
+			const Keyframe<T>* FindKeyframe(float time) const;
+
 			//Get num keyframes
 			int GetNumKeyframes() const;
 
@@ -231,6 +235,32 @@ namespace ion
 		{
 			debug::Assert(index < GetNumKeyframes(), "AnimationTrack::GetKeyframe() - Index out of range");
 			return m_keyframes[index];
+		}
+
+		template <class T> Keyframe<T>* AnimationTrack<T>::FindKeyframe(float time)
+		{
+			for(int i = 0; i < m_keyframes.size(); i++)
+			{
+				if(m_keyframes[i].GetTime() == time)
+				{
+					return &m_keyframes[i];
+				}
+			}
+
+			return NULL;
+		}
+
+		template <class T> const Keyframe<T>* AnimationTrack<T>::FindKeyframe(float time) const
+		{
+			for(int i = 0; i < m_keyframes.size(); i++)
+			{
+				if(m_keyframes[i].GetTime() == time)
+				{
+					return &m_keyframes[i];
+				}
+			}
+
+			return NULL;
 		}
 
 		template <class T> int AnimationTrack<T>::GetNumKeyframes() const

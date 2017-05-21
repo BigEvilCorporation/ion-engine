@@ -114,6 +114,7 @@ void AnimationActor::Serialise(ion::io::Archive& archive)
 {
 	archive.Serialise(m_gameObjectId);
 	archive.Serialise(m_trackPosition);
+	archive.Serialise(m_trackSpriteAnim);
 }
 
 const ion::Vector2i AnimTrackPosition::GetValue(float time) const
@@ -152,6 +153,31 @@ void AnimTrackPosition::Export(std::stringstream& stream) const
 }
 
 void AnimTrackPosition::Export(ion::io::File& file) const
+{
+
+}
+
+const std::pair<SpriteSheetId, SpriteAnimId> AnimTrackSpriteAnim::GetValue(float time) const
+{
+	std::pair<SpriteSheetId, SpriteAnimId> result;
+
+	const AnimKeyframeSpriteAnim* keyframeA = GetPrevKeyframe(time);
+	const AnimKeyframeSpriteAnim* keyframeB = GetNextKeyframe(time);
+
+	if(keyframeA && keyframeB)
+	{
+		result = keyframeA->GetValue();
+	}
+
+	return result;
+}
+
+void AnimTrackSpriteAnim::Export(std::stringstream& stream) const
+{
+
+}
+
+void AnimTrackSpriteAnim::Export(ion::io::File& file) const
 {
 
 }

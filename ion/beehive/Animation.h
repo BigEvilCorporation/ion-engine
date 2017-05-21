@@ -16,13 +16,18 @@
 #include <ion/core/Types.h>
 #include <ion/maths/Vector.h>
 #include <ion/renderer/Animation.h>
+#include <ion/beehive/SpriteAnimation.h>
+
+class SpriteSheet;
 
 //Keyframes
 typedef ion::render::Keyframe<ion::Vector2i> AnimKeyframePosition;
+typedef ion::render::Keyframe<std::pair<SpriteSheetId, SpriteAnimId>> AnimKeyframeSpriteAnim;
 
 enum AnimationTracks
 {
 	eTrackPosition,
+	eTrackSpriteAnim,
 
 	eTrackCount
 };
@@ -31,6 +36,14 @@ class AnimTrackPosition : public ion::render::AnimationTrack<ion::Vector2i>
 {
 public:
 	virtual const ion::Vector2i GetValue(float time) const;
+	void Export(std::stringstream& stream) const;
+	void Export(ion::io::File& file) const;
+};
+
+class AnimTrackSpriteAnim : public ion::render::AnimationTrack<std::pair<SpriteSheetId, SpriteAnimId>>
+{
+public:
+	virtual const std::pair<SpriteSheetId, SpriteAnimId> GetValue(float time) const;
 	void Export(std::stringstream& stream) const;
 	void Export(ion::io::File& file) const;
 };
@@ -46,6 +59,7 @@ public:
 	void Serialise(ion::io::Archive& archive);
 
 	AnimTrackPosition m_trackPosition;
+	AnimTrackSpriteAnim m_trackSpriteAnim;
 
 private:
 	GameObjectId m_gameObjectId;

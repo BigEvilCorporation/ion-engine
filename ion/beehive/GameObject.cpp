@@ -69,6 +69,7 @@ void GameObjectType::Serialise(ion::io::Archive& archive)
 {
 	archive.Serialise(m_id, "id");
 	archive.Serialise(m_name, "name");
+	archive.Serialise(m_spriteActorId, "spriteActorId");
 	archive.Serialise(m_previewSpriteSheetId, "previewSpriteSheetId");
 	archive.Serialise(m_previewSpriteSheet, "previewSpriteSheetData");
 	archive.Serialise(m_variables, "variables");

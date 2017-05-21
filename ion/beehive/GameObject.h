@@ -64,6 +64,9 @@ public:
 	SpriteSheetId GetPreviewSpriteSheetId() const { return m_previewSpriteSheetId; }
 	const SpriteSheet& GetPreviewSpriteSheet() const { return m_previewSpriteSheet; }
 
+	ActorId GetSpriteActorId() const { return m_spriteActorId; }
+	void SetSpriteActorId(ActorId id) { m_spriteActorId = id; }
+
 	const ion::Vector2i& GetDimensions() const { return m_dimensions; }
 	void SetDimensions(const ion::Vector2i& dimensions) { m_dimensions = dimensions; }
 
@@ -80,6 +83,7 @@ public:
 private:
 	GameObjectTypeId m_id;
 	std::string m_name;
+	ActorId m_spriteActorId;
 	SpriteSheetId m_previewSpriteSheetId;
 	SpriteSheet m_previewSpriteSheet;
 	std::vector<GameObjectVariable> m_variables;
@@ -105,6 +109,8 @@ public:
 
 	//Animation
 	//TODO: Poll from current anim+track during rendering, don't store here
+	SpriteSheetId GetSpriteSheetId() const { return m_spriteSheetId; }
+	void SetSpriteSheetId(SpriteSheetId id) { m_spriteSheetId = id; }
 	SpriteAnimId GetSpriteAnim() const { return m_spriteAnimId; }
 	void SetSpriteAnim(SpriteAnimId animId) { m_spriteAnimId = animId; }
 
@@ -130,6 +136,7 @@ private:
 
 	//Animation
 	//TODO: Poll from current anim+track during rendering, don't store here
+	SpriteSheetId m_spriteSheetId;
 	SpriteAnimId m_spriteAnimId;
 	u32 m_spriteAnimFrame;
 };

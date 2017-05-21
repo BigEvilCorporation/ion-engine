@@ -147,6 +147,8 @@ public:
 	const TActorMap::const_iterator ActorsBegin() const;
 	const TActorMap::const_iterator ActorsEnd() const;
 	int GetActorCount() const;
+	void ExportActors(const std::string& filename);
+	void ImportActors(const std::string& filename);
 
 	//Animations
 	AnimationId CreateAnimation();

@@ -17,11 +17,7 @@
 
 #include <ion/core/cryptography/UUID.h>
 
-typedef ion::UUID64 SpriteSheetId;
 typedef std::vector<Tile> SpriteSheetFrame;
-typedef std::map<SpriteAnimId, SpriteAnimation> TSpriteAnimMap;
-
-static const SpriteSheetId InvalidSpriteSheetId = 0;
 
 class Stamp;
 
