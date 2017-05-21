@@ -42,6 +42,7 @@ Project::Project(PlatformConfig& defaultPatformConfig)
 	m_tilesInvalidated = true;
 	m_terrainTilesInvalidated = true;
 	m_stampsInvalidated = true;
+	m_cameraInvalidated = true;
 	m_name = "untitled";
 	m_gridSize = 1;
 	m_showGrid = true;
@@ -924,7 +925,7 @@ int Project::GetActorCount() const
 AnimationId Project::CreateAnimation()
 {
 	AnimationId animationId = ion::GenerateUUID64();
-	m_animations.insert(std::make_pair(animationId, Animation()));
+	m_animations.insert(std::make_pair(animationId, Animation(animationId)));
 	return animationId;
 }
 

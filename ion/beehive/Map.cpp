@@ -420,8 +420,8 @@ GameObjectId Map::FindGameObject(int x, int y, ion::Vector2i& topLeft) const
 		for(std::vector<GameObjectMapEntry>::const_reverse_iterator itVec = itMap->second.rbegin(), endVec = itMap->second.rend(); itVec != endVec && !gameObjectId; ++itVec)
 		{
 			ion::Vector2i size(itVec->m_size.x / tileWidth, itVec->m_size.y / tileHeight);
-			ion::Vector2i drawOffset(ion::maths::Round((float)itVec->m_gameObject.GetAnimDrawOffset().x / tileWidth), ion::maths::Round((float)itVec->m_gameObject.GetAnimDrawOffset().y / tileHeight));
-			topLeft = itVec->m_position + drawOffset;
+			topLeft.x = itVec->m_gameObject.GetPosition().x / tileWidth;
+			topLeft.y = itVec->m_gameObject.GetPosition().y / tileHeight;
 			ion::Vector2i bottomRight = topLeft + size;
 
 			if(x >= topLeft.x && y >= topLeft.y
@@ -520,7 +520,7 @@ void Map::RemoveGameObject(int x, int y)
 		for(std::vector<GameObjectMapEntry>::reverse_iterator itVec = itMap->second.rbegin(), endVec = itMap->second.rend(); itVec != endVec; ++itVec)
 		{
 			ion::Vector2i size(itVec->m_size.x / tileWidth, itVec->m_size.y / tileHeight);
-			ion::Vector2i topLeft = itVec->m_position;
+			ion::Vector2i topLeft = itVec->m_gameObject.GetPosition();
 			ion::Vector2i bottomRight = topLeft + size;
 
 			if(x >= topLeft.x && y >= topLeft.y

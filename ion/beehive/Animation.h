@@ -57,9 +57,12 @@ class Animation : public ion::render::Animation
 {
 public:
 	Animation();
+	Animation(AnimationId animId);
 
 	void SetName(const std::string& name);
 	const std::string& GetName() const;
+
+	AnimationId GetId() const { return m_id; }
 
 	void AddActor(GameObjectId actorId);
 	void RemoveActor(GameObjectId actorId);
@@ -72,6 +75,7 @@ public:
 	void Serialise(ion::io::Archive& archive);
 
 private:
+	AnimationId m_id;
 	std::string m_name;
 	TAnimActorMap m_actors;
 };

@@ -105,9 +105,6 @@ public:
 
 	//Animation
 	//TODO: Poll from current anim+track during rendering, don't store here
-	const ion::Vector2i& GetAnimDrawOffset() const { return m_animDrawOffset; }
-	void SetAnimDrawOffset(const ion::Vector2i& offset) { m_animDrawOffset = offset; }
-
 	SpriteAnimId GetSpriteAnim() const { return m_spriteAnimId; }
 	void SetSpriteAnim(SpriteAnimId animId) { m_spriteAnimId = animId; }
 
@@ -133,7 +130,6 @@ private:
 
 	//Animation
 	//TODO: Poll from current anim+track during rendering, don't store here
-	ion::Vector2i m_animDrawOffset;
 	SpriteAnimId m_spriteAnimId;
 	u32 m_spriteAnimFrame;
 };

@@ -16,6 +16,11 @@ Animation::Animation()
 
 }
 
+Animation::Animation(AnimationId animId)
+{
+	m_id = animId;
+}
+
 void Animation::SetName(const std::string& name)
 {
 	m_name = name;
@@ -85,8 +90,9 @@ void Animation::Serialise(ion::io::Archive& archive)
 {
 	ion::render::Animation::Serialise(archive);
 
-	archive.Serialise(m_name);
-	archive.Serialise(m_actors);
+	archive.Serialise(m_id, "id");
+	archive.Serialise(m_name, "name");
+	archive.Serialise(m_actors, "actors");
 }
 
 AnimationActor::AnimationActor()
