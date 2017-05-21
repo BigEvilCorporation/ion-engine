@@ -77,6 +77,15 @@ namespace ion
 
 			if(m_direction == eIn)
 			{
+				u64 parentStart = block.parent ? (block.parent->startPos + sizeof(Block::Header)) : 0;
+				u64 parentEnd = block.parent ? (block.parent->startPos + block.parent->header.size) : m_stream.GetSize();
+
+				//If at end of parent, seek to start
+				if(block.parent && m_stream.GetPosition() >= parentEnd)
+				{
+					m_stream.Seek(block.parent->startPos + sizeof(Block::Header), eSeekModeStart);
+				}
+
 				//Record block position
 				block.startPos = m_stream.GetPosition();
 
@@ -90,21 +99,13 @@ namespace ion
 
 					do
 					{
-						//If end of parent or end of file
-						if(block.header.size == 0
-							|| (block.parent && (block.startPos + block.header.size) >= (block.parent->startPos + block.parent->header.size))
-							|| ((block.startPos + block.header.size) >= m_stream.GetSize()))
+						u64 blockEnd = (block.startPos + block.header.size);
+
+						//If end of parent block or end of file
+						if(block.header.size == 0 || blockEnd >= parentEnd)
 						{
-							if(block.parent)
-							{
-								//End of parent, seek back to first child
-								m_stream.Seek(block.parent->startPos + sizeof(Block::Header), eSeekModeStart);
-							}
-							else
-							{
-								//End of file, seek back to start
-								m_stream.Seek(0, eSeekModeStart);
-							}
+							//Seek back to first child block or start of file
+							m_stream.Seek(parentStart, eSeekModeStart);
 						}
 						else
 						{

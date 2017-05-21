@@ -141,7 +141,14 @@ namespace ion
 				{
 					//Read size too big for buffer, read directly
 					m_stream.seekg(m_currentPosition, std::ios::beg);
+					debug::Assert(m_currentPosition == m_stream.tellg(), "File::Read() - Seek error");
 					m_stream.read((char*)data, size);
+
+					//If EOF, reset error state
+					if(m_stream.eof())
+					{
+						m_stream.clear();
+					}
 
 					//Invalidate buffer
 					m_readBufferStart = 0;
@@ -209,9 +216,27 @@ namespace ion
 
 		void File::FillBuffer(s64 position)
 		{
+			//Get min size to read
 			int size = std::min((s64)s_bufferSize, m_size - m_currentPosition);
+
+			//Seek
 			m_stream.seekg(position, std::ios::beg);
+
+#if defined DEBUG
+			//Sanity check
+			int pos = m_stream.tellg();
+			debug::Assert(m_currentPosition == m_stream.tellg(), "File::FillBuffer() - Seek error");
+#endif
+
+			//Read
 			m_stream.read((char*)m_readBuffer, s_bufferSize);
+
+			//If EOF, reset error state
+			if(m_stream.eof())
+			{
+				m_stream.clear();
+			}
+
 			m_readBufferStart = position;
 			m_readBufferEnd = position + size;
 		}
