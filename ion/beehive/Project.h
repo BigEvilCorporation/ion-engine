@@ -148,7 +148,7 @@ public:
 	const TActorMap::const_iterator ActorsEnd() const;
 	int GetActorCount() const;
 	void ExportActors(const std::string& filename);
-	void ImportActors(const std::string& filename);
+	bool ImportActors(const std::string& filename);
 
 	//Animations
 	AnimationId CreateAnimation();
@@ -194,7 +194,7 @@ public:
 	const GameObjectType* GetGameObjectType(GameObjectTypeId typeId) const;
 	const TGameObjectTypeMap& GetGameObjectTypes() const;
 	void ExportGameObjectTypes(const std::string& filename);
-	void ImportGameObjectTypes(const std::string& filename);
+	bool ImportGameObjectTypes(const std::string& filename);
 
 	//Set current colour used for editing
 	void SetPaintColour(u8 colourIdx);
@@ -325,8 +325,22 @@ public:
 			archive.Serialise(spritePalettes, "exportDirSpritePalettes");
 		}
 	};
+
+	//Project settings
+	struct Settings
+	{
+		std::string gameObjectsExternalFile;
+		std::string spriteActorsExternalFile;
+
+		void Serialise(ion::io::Archive& archive)
+		{
+			archive.Serialise(gameObjectsExternalFile, "gameObjectsExternalFile");
+			archive.Serialise(spriteActorsExternalFile, "spriteActorsExternalFile");
+		}
+	};
 	
 	ExportFilenames m_exportFilenames;
+	Settings m_settings;
 
 private:
 	//Find palette matching 8x8 colour grid

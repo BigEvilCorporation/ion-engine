@@ -109,7 +109,24 @@ bool Project::Load(const std::string& filename)
 			tiles.insert(std::make_pair(tile.GetHash(), tile));
 		}
 
-		int countAfter = tiles.size();
+		//Load external resources
+		if(!m_settings.gameObjectsExternalFile.empty())
+		{
+			//Import game objects file
+			if(!ImportGameObjectTypes(m_settings.gameObjectsExternalFile))
+			{
+				ion::debug::Popup("Could not import external game object types, check settings.\nData may be lost if project is saved.", "Error");
+			}
+		}
+
+		if(!m_settings.spriteActorsExternalFile.empty())
+		{
+			//Import sprites file
+			if(!ImportActors(m_settings.spriteActorsExternalFile))
+			{
+				ion::debug::Popup("Could not import external sprite actors, check settings.\nData may be lost if project is saved.", "Error");
+			}
+		}
 
 		return true;
 	}
@@ -141,6 +158,7 @@ void Project::Serialise(ion::io::Archive& archive)
 		m_editingCollisionMapId = InvalidCollisionMapId;
 	}
 
+	archive.Serialise(m_settings, "settings");
 	archive.Serialise(m_platformConfig, "platformConfig");
 	archive.Serialise(m_name, "name");
 	archive.Serialise(m_palettes, "palettes");
@@ -154,12 +172,20 @@ void Project::Serialise(ion::io::Archive& archive)
 	archive.Serialise(m_defaultTerrainTile, "defaultTerrainTile");
 	archive.Serialise(m_collisionMaps, "collisionMaps");
 	archive.Serialise(m_stamps, "stamps");
-	archive.Serialise(m_actors, "actors");
 	archive.Serialise(m_animations, "animations");
-	archive.Serialise(m_gameObjectTypes, "gameObjectTypes");
 	archive.Serialise(m_nextFreeStampId, "nextFreeStampId");
 	archive.Serialise(m_nextFreeGameObjectTypeId, "nextFreeGameObjectTypeId");
 	archive.Serialise(m_exportFilenames, "exportFilenames");
+
+	if(m_settings.gameObjectsExternalFile.empty())
+	{
+		archive.Serialise(m_gameObjectTypes, "gameObjectTypes");
+	}
+
+	if(m_settings.spriteActorsExternalFile.empty())
+	{
+		archive.Serialise(m_actors, "actors");
+	}
 
 	if(archive.GetDirection() == ion::io::Archive::eIn && m_maps.size() == 0)
 	{
@@ -932,14 +958,17 @@ void Project::ExportActors(const std::string& filename)
 	}
 }
 
-void Project::ImportActors(const std::string& filename)
+bool Project::ImportActors(const std::string& filename)
 {
 	ion::io::File file(filename, ion::io::File::eOpenRead);
 	if(file.IsOpen())
 	{
 		ion::io::Archive archive(file, ion::io::Archive::eIn);
 		archive.Serialise(m_actors, "actors");
+		return true;
 	}
+
+	return false;
 }
 
 AnimationId Project::CreateAnimation()
@@ -1805,7 +1834,7 @@ void Project::ExportGameObjectTypes(const std::string& filename)
 	}
 }
 
-void Project::ImportGameObjectTypes(const std::string& filename)
+bool Project::ImportGameObjectTypes(const std::string& filename)
 {
 	ion::io::File file(filename, ion::io::File::eOpenRead);
 	if(file.IsOpen())
@@ -1813,7 +1842,10 @@ void Project::ImportGameObjectTypes(const std::string& filename)
 		ion::io::Archive archive(file, ion::io::Archive::eIn);
 		archive.Serialise(m_gameObjectTypes, "gameObjectTypes");
 		archive.Serialise(m_nextFreeGameObjectTypeId, "nextFreeGameObjTypeId");
+		return true;
 	}
+
+	return false;
 }
 
 void Project::SetPaintColour(u8 colourIdx)

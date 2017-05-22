@@ -17,7 +17,9 @@
 
 #include <iostream>
 
-#if defined ION_PLATFORM_DREAMCAST
+#if defined ION_PLATFORM_WINDOWS
+#include <Windows.h>
+#elif defined ION_PLATFORM_DREAMCAST
 #include <kos.h>
 #include <malloc.h>
 #include <assert.h>
@@ -74,6 +76,13 @@ namespace ion
 			assert_msg(0, message);
 #else
 			Break();
+#endif
+		}
+
+		void Popup(const char* message, const char* title)
+		{
+#if defined ION_PLATFORM_WINDOWS
+			::MessageBoxA(NULL, message, title, MB_OK);
 #endif
 		}
 

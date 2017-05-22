@@ -28,5 +28,6 @@
 #if defined ION_PLATFORM_WINDOWS
 #if defined DELETE
 #undef DELETE
+#undef MessageBox
 #endif
 #endif

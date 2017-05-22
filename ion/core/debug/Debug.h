@@ -28,6 +28,7 @@ namespace ion
 		void Log(const char* message);
 		void Flush();
 		void Error(const char* message);
+		void Popup(const char* message, const char* title);
 		void Break();
 
 		inline void Assert(bool condition, const char* message);
