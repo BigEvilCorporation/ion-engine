@@ -114,9 +114,6 @@ public:
 	SpriteAnimId GetSpriteAnim() const { return m_spriteAnimId; }
 	void SetSpriteAnim(SpriteAnimId animId) { m_spriteAnimId = animId; }
 
-	u32 GetSpriteAnimFrame() const { return m_spriteAnimFrame; }
-	void SetSpriteAnimFrame(u32 frame) { m_spriteAnimFrame = frame; }
-
 	GameObjectVariable& AddVariable();
 	void RemoveVariable(GameObjectVariable& variable);
 	GameObjectVariable* GetVariable(u32 index);
@@ -138,5 +135,4 @@ private:
 	//TODO: Poll from current anim+track during rendering, don't store here
 	SpriteSheetId m_spriteSheetId;
 	SpriteAnimId m_spriteAnimId;
-	u32 m_spriteAnimFrame;
 };

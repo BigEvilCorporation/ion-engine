@@ -149,6 +149,19 @@ SpriteAnimation* SpriteSheet::GetAnimation(SpriteAnimId animId)
 	return anim;
 }
 
+const SpriteAnimation* SpriteSheet::GetAnimation(SpriteAnimId animId) const
+{
+	const SpriteAnimation* anim = NULL;
+
+	TSpriteAnimMap::const_iterator it = m_animations.find(animId);
+	if(it != m_animations.end())
+	{
+		anim = &it->second;
+	}
+
+	return anim;
+}
+
 SpriteAnimation* SpriteSheet::FindAnimation(const std::string name)
 {
 	for(TSpriteAnimMap::iterator it = m_animations.begin(), end = m_animations.end(); it != end; ++it)

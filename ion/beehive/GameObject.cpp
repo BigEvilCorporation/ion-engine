@@ -86,6 +86,8 @@ GameObject::GameObject()
 {
 	m_objectId = InvalidGameObjectId;
 	m_typeId = InvalidGameObjectTypeId;
+	m_spriteSheetId = InvalidSpriteSheetId;
+	m_spriteAnimId = InvalidSpriteAnimId;
 }
 
 GameObject::GameObject(GameObjectId objectId, const GameObject& rhs)
@@ -94,8 +96,8 @@ GameObject::GameObject(GameObjectId objectId, const GameObject& rhs)
 	m_typeId = rhs.m_typeId;
 	m_position = rhs.m_position;
 	m_name = rhs.m_name;
+	m_spriteSheetId = rhs.m_spriteSheetId;
 	m_spriteAnimId = rhs.m_spriteAnimId;
-	m_spriteAnimFrame = rhs.m_spriteAnimFrame;
 	m_variables = rhs.m_variables;
 }
 
@@ -105,8 +107,8 @@ GameObject::GameObject(GameObjectId objectId, GameObjectTypeId typeId, const ion
 	m_typeId = typeId;
 	m_position = position;
 
-	m_spriteAnimId = 0;
-	m_spriteAnimFrame = 0;
+	m_spriteSheetId = InvalidSpriteSheetId;
+	m_spriteAnimId = InvalidSpriteAnimId;
 }
 
 GameObjectVariable& GameObject::AddVariable()
