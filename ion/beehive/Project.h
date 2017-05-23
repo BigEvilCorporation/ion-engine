@@ -147,7 +147,7 @@ public:
 	const TActorMap::const_iterator ActorsBegin() const;
 	const TActorMap::const_iterator ActorsEnd() const;
 	int GetActorCount() const;
-	void ExportActors(const std::string& filename);
+	bool ExportActors(const std::string& filename);
 	bool ImportActors(const std::string& filename);
 
 	//Animations
@@ -193,7 +193,7 @@ public:
 	GameObjectType* GetGameObjectType(GameObjectTypeId typeId);
 	const GameObjectType* GetGameObjectType(GameObjectTypeId typeId) const;
 	const TGameObjectTypeMap& GetGameObjectTypes() const;
-	void ExportGameObjectTypes(const std::string& filename);
+	bool ExportGameObjectTypes(const std::string& filename);
 	bool ImportGameObjectTypes(const std::string& filename);
 
 	//Set current colour used for editing

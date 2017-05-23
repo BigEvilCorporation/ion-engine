@@ -142,6 +142,26 @@ bool Project::Save(const std::string& filename)
 		ion::io::Archive archive(file, ion::io::Archive::eOut);
 		Serialise(archive);
 		m_filename = filename;
+
+		//Save external resources
+		if(!m_settings.gameObjectsExternalFile.empty())
+		{
+			//Import game objects file
+			if(!ExportGameObjectTypes(m_settings.gameObjectsExternalFile))
+			{
+				ion::debug::Popup("Could not export external game object types, check settings.\nData may be lost if project is closed.", "Error");
+			}
+		}
+
+		if(!m_settings.spriteActorsExternalFile.empty())
+		{
+			//Import sprites file
+			if(!ExportActors(m_settings.spriteActorsExternalFile))
+			{
+				ion::debug::Popup("Could not export external sprite actors, check settings.\nData may be lost if project is closed.", "Error");
+			}
+		}
+
 		return true;
 	}
 
@@ -948,14 +968,17 @@ int Project::GetActorCount() const
 	return m_actors.size();
 }
 
-void Project::ExportActors(const std::string& filename)
+bool Project::ExportActors(const std::string& filename)
 {
 	ion::io::File file(filename, ion::io::File::eOpenWrite);
 	if(file.IsOpen())
 	{
 		ion::io::Archive archive(file, ion::io::Archive::eOut);
 		archive.Serialise(m_actors, "actors");
+		return true;
 	}
+
+	return false;
 }
 
 bool Project::ImportActors(const std::string& filename)
@@ -1823,7 +1846,7 @@ const TGameObjectTypeMap& Project::GetGameObjectTypes() const
 	return m_gameObjectTypes;
 }
 
-void Project::ExportGameObjectTypes(const std::string& filename)
+bool Project::ExportGameObjectTypes(const std::string& filename)
 {
 	ion::io::File file(filename, ion::io::File::eOpenWrite);
 	if(file.IsOpen())
@@ -1831,7 +1854,10 @@ void Project::ExportGameObjectTypes(const std::string& filename)
 		ion::io::Archive archive(file, ion::io::Archive::eOut);
 		archive.Serialise(m_gameObjectTypes, "gameObjectTypes");
 		archive.Serialise(m_nextFreeGameObjectTypeId, "nextFreeGameObjTypeId");
+		return true;
 	}
+
+	return false;
 }
 
 bool Project::ImportGameObjectTypes(const std::string& filename)
