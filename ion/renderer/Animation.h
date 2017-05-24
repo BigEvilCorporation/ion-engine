@@ -92,6 +92,7 @@ namespace ion
 			Keyframe(float time, const T& value);
 
 			float GetTime() const;
+			void SetTime(float time);
 			const T& GetValue() const;
 			void SetValue(const T& value);
 
@@ -188,6 +189,11 @@ namespace ion
 		template <class T> float Keyframe<T>::GetTime() const
 		{
 			return m_time;
+		}
+
+		template <class T> void Keyframe<T>::SetTime(float time)
+		{
+			m_time = time;
 		}
 
 		template <class T> const T& Keyframe<T>::GetValue() const
