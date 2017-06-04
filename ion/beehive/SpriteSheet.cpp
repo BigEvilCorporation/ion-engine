@@ -386,7 +386,7 @@ void SpriteSheet::ExportAnims(const PlatformConfig& config, std::stringstream& s
 		
 		stream << label.str() << ":" << std::endl;
 		stream << label.str() << "_numframes: equ 0x" << numKeyframes << std::endl;
-		stream << label.str() << "_speed: equ 0x" << it->second.GetSpeed() << std::endl;
+		stream << label.str() << "_speed: equ 0x" << (int)it->second.GetPlaybackSpeed() << std::endl;
 
 		stream << label.str() << "_track_frames:" << std::endl;
 		it->second.m_trackSpriteFrame.Export(stream);

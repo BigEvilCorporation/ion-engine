@@ -147,8 +147,10 @@ void Map::Resize(int width, int height, bool shiftRight, bool shiftDown)
 		{
 			for(int i = 0; i < it->second.size(); i++)
 			{
-				it->second[i].m_position.x += (width - m_width);
-				it->second[i].m_gameObject.SetPosition(ion::Vector2i(it->second[i].m_position.x * tileWidth, it->second[i].m_position.y * tileHeight));
+				//it->second[i].m_position.x += (width - m_width);
+				ion::Vector2i pos = it->second[i].m_gameObject.GetPosition();
+				pos.x += ((width - m_width) * tileWidth);
+				it->second[i].m_gameObject.SetPosition(pos);
 			}
 		}
 	}
@@ -166,8 +168,10 @@ void Map::Resize(int width, int height, bool shiftRight, bool shiftDown)
 		{
 			for(int i = 0; i < it->second.size(); i++)
 			{
-				it->second[i].m_position.y += (height - m_height);
-				it->second[i].m_gameObject.SetPosition(ion::Vector2i(it->second[i].m_position.x * tileWidth, it->second[i].m_position.y * tileHeight));
+				//it->second[i].m_position.y += (height - m_height);
+				ion::Vector2i pos = it->second[i].m_gameObject.GetPosition();
+				pos.y += ((height - m_height) * tileWidth);
+				it->second[i].m_gameObject.SetPosition(pos);
 			}
 		}
 	}
@@ -397,8 +401,8 @@ GameObjectId Map::PlaceGameObject(int x, int y, const GameObject& object, const 
 	if(it == m_gameObjects.end())
 		it = m_gameObjects.insert(std::make_pair(object.GetTypeId(), std::vector<GameObjectMapEntry>())).first;
 
-	const int tileWidth = m_platformConfig.tileWidth;
-	const int tileHeight = m_platformConfig.tileHeight;
+	//const int tileWidth = m_platformConfig.tileWidth;
+	//const int tileHeight = m_platformConfig.tileHeight;
 
 	GameObjectId objectId = m_nextFreeGameObjectId++;
 	it->second.push_back(GameObjectMapEntry(GameObject(objectId, object), ion::Vector2i(x, y), ion::Vector2i(objectType.GetDimensions().x, objectType.GetDimensions().y)));
@@ -453,8 +457,11 @@ GameObject* Map::FindGameObject(const std::string& name)
 
 int Map::FindGameObjects(int x, int y, int width, int height, std::vector<const GameObjectMapEntry*>& gameObjects) const
 {
-	ion::Vector2i boundsMin(x, y);
-	ion::Vector2i boundsMax(x + width, y + height);
+	const int tileWidth = m_platformConfig.tileWidth;
+	const int tileHeight = m_platformConfig.tileHeight;
+
+	ion::Vector2i boundsMin(x * tileWidth, y * tileHeight);
+	ion::Vector2i boundsMax((x * tileWidth) + width, (y * tileHeight) + height);
 
 	for(TGameObjectPosMap::const_iterator it = m_gameObjects.begin(), end = m_gameObjects.end(); it != end; ++it)
 	{
@@ -463,7 +470,7 @@ int Map::FindGameObjects(int x, int y, int width, int height, std::vector<const 
 		for(int i = 0; i < gameObjectsOfType.size(); i++)
 		{
 			const GameObjectMapEntry& gameObject = gameObjectsOfType[i];
-			if(ion::maths::BoxIntersectsBox(boundsMin, boundsMax, gameObject.m_position, gameObject.m_position + gameObject.m_size))
+			if(ion::maths::BoxIntersectsBox(boundsMin, boundsMax, gameObject.m_gameObject.GetPosition(), gameObject.m_gameObject.GetPosition() + gameObject.m_size))
 			{
 				gameObjects.push_back(&gameObject);
 			}
@@ -502,7 +509,7 @@ void Map::MoveGameObject(GameObjectId gameObjectId, int x, int y)
 			{
 				if(it->m_gameObject.GetId() == gameObjectId)
 				{
-					it->m_position = ion::Vector2i(x, y);
+					it->m_gameObject.SetPosition(ion::Vector2i(x, y));
 					return;
 				}
 			}
@@ -514,6 +521,8 @@ void Map::RemoveGameObject(int x, int y)
 {
 	const int tileWidth = m_platformConfig.tileWidth;
 	const int tileHeight = m_platformConfig.tileHeight;
+	const int worldSpaceX = x * tileWidth;
+	const int worldSpaceY = y * tileHeight;
 
 	for(TGameObjectPosMap::iterator itMap = m_gameObjects.begin(), endMap = m_gameObjects.end(); itMap != endMap; ++itMap)
 	{
@@ -523,8 +532,8 @@ void Map::RemoveGameObject(int x, int y)
 			ion::Vector2i topLeft = itVec->m_gameObject.GetPosition();
 			ion::Vector2i bottomRight = topLeft + size;
 
-			if(x >= topLeft.x && y >= topLeft.y
-				&& x < bottomRight.x && y < bottomRight.y)
+			if(worldSpaceX >= topLeft.x && worldSpaceY >= topLeft.y
+				&& worldSpaceX < bottomRight.x && worldSpaceY < bottomRight.y)
 			{
 				std::swap(*itVec, itMap->second.back());
 				itMap->second.pop_back();

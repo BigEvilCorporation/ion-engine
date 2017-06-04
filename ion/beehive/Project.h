@@ -292,16 +292,16 @@ public:
 		std::string spriteAnims;
 		std::string spritePalettes;
 
-		bool palettesExportEnabled;
-		bool tilesetExportEnabled;
-		bool stampsExportEnabled;
-		bool stampAnimsExportEnabled;
-		bool terrainTilesExportEnabled;
-		bool spriteSheetsExportEnabled;
-		bool spriteAnimsExportEnabled;
-		bool spritePalettesExportEnabled;
+		bool palettesExportEnabled = false;
+		bool tilesetExportEnabled = false;
+		bool stampsExportEnabled = false;
+		bool stampAnimsExportEnabled = false;
+		bool terrainTilesExportEnabled = false;
+		bool spriteSheetsExportEnabled = false;
+		bool spriteAnimsExportEnabled = false;
+		bool spritePalettesExportEnabled = false;
 
-		bool exportBinary;
+		bool exportBinary = true;
 
 		void Serialise(ion::io::Archive& archive)
 		{

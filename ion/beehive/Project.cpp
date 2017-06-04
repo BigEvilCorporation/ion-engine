@@ -2622,18 +2622,21 @@ bool Project::ExportBlocks(MapId mapId, const std::string& filename, bool binary
 	if(binary)
 	{
 		std::string binaryFilename = filename.substr(0, filename.find_first_of('.'));
-		binaryFilename += ".bin";
+		if(binaryFilename.size() > 0)
+		{
+			binaryFilename += ".bin";
 
-		//Export binary data
-		ion::io::File binaryFile(binaryFilename, ion::io::File::eOpenWrite);
-		if(binaryFile.IsOpen())
-		{
-			map.ExportBlocks(*this, binaryFile, blockWidth, blockHeight);
-			binarySize = binaryFile.GetSize();
-		}
-		else
-		{
-			return false;
+			//Export binary data
+			ion::io::File binaryFile(binaryFilename, ion::io::File::eOpenWrite);
+			if(binaryFile.IsOpen())
+			{
+				map.ExportBlocks(*this, binaryFile, blockWidth, blockHeight);
+				binarySize = binaryFile.GetSize();
+			}
+			else
+			{
+				return false;
+			}
 		}
 	}
 
@@ -3163,6 +3166,21 @@ bool Project::ExportGameObjects(MapId mapId, const std::string& filename) const
 				}
 			}
 
+			stream << std::endl;
+		}
+
+		stream << std::endl;
+
+		//Output debug checks
+		for(int i = 0; i < sortedTypes.size(); i++)
+		{
+			const GameObjectType& gameObjectType = *sortedTypes[i];
+			const TGameObjectPosMap::const_iterator gameObjIt = gameObjMap.find(gameObjectType.GetId());
+			u32 count = (gameObjIt != gameObjMap.end()) ? gameObjIt->second.size() : 0;
+
+			stream << "\tIF " << mapName << "_" << gameObjectType.GetName() << "_count>" << gameObjectType.GetName() << "_MaxEntities" << std::endl;
+			stream << "\tinform 2,\"Entity array overflow(" << gameObjectType.GetName() << ") - array size: 0x\%d count : 0x\%d\"," << gameObjectType.GetName() << "_MaxEntities," << mapName << "_" << gameObjectType.GetName() << "_count" << std::endl;
+			stream << "\tENDIF" << std::endl;
 			stream << std::endl;
 		}
 

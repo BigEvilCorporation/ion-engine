@@ -31,16 +31,6 @@ const std::string& SpriteAnimation::GetName() const
 	return m_name;
 }
 
-void SpriteAnimation::SetSpeed(int speed)
-{
-	m_speed = speed;
-}
-
-int SpriteAnimation::GetSpeed() const
-{
-	return m_speed;
-}
-
 void SpriteAnimation::Serialise(ion::io::Archive& archive)
 {
 	ion::render::Animation::Serialise(archive);
@@ -50,6 +40,11 @@ void SpriteAnimation::Serialise(ion::io::Archive& archive)
 	archive.Serialise(m_trackSpriteFrame, "trackSpriteFrame");
 	archive.Serialise(m_trackSFX, "trackSFX");
 	archive.Serialise(m_trackPosition, "trackPosition");
+
+	if(archive.GetDirection() == ion::io::Archive::eIn)
+	{
+		//SetPlaybackSpeed((float)m_speed / 4.6f);
+	}
 }
 
 const u32 AnimTrackSpriteFrame::GetValue(float time) const

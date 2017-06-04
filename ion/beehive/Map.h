@@ -56,19 +56,19 @@ struct GameObjectMapEntry
 	GameObjectMapEntry(const GameObject& gameObject, const ion::Vector2i& position, const ion::Vector2i& size)
 	{
 		m_gameObject = gameObject;
-		m_position = position;
+		//m_position = position;
 		m_size = size;
 	}
 
 	void Serialise(ion::io::Archive& archive)
 	{
 		archive.Serialise(m_gameObject);
-		archive.Serialise(m_position);
+		//archive.Serialise(m_position);
 		archive.Serialise(m_size);
 	}
 
 	GameObject m_gameObject;
-	ion::Vector2i m_position;
+	//ion::Vector2i m_position;
 	ion::Vector2i m_size;
 };
 
@@ -168,14 +168,14 @@ public:
 		std::string terrainBlocks;
 		std::string terrainBlockMap;
 
-		bool mapExportEnabled;
-		bool stampMapExportEnabled;
-		bool collisionMapExportEnabled;
-		bool gameObjectsExportEnabled;
-		bool blocksExportEnabled;
-		bool blockMapExportEnabled;
-		bool terrainBlocksExportEnabled;
-		bool terrainBlockMapExportEnabled;
+		bool mapExportEnabled = false;
+		bool stampMapExportEnabled = false;
+		bool collisionMapExportEnabled = false;
+		bool gameObjectsExportEnabled = false;
+		bool blocksExportEnabled = false;
+		bool blockMapExportEnabled = false;
+		bool terrainBlocksExportEnabled = false;
+		bool terrainBlockMapExportEnabled = false;
 
 		void Serialise(ion::io::Archive& archive)
 		{

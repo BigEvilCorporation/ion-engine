@@ -62,9 +62,6 @@ public:
 	void SetName(const std::string& name);
 	const std::string& GetName() const;
 
-	void SetSpeed(int speed);
-	int GetSpeed() const;
-
 	void Serialise(ion::io::Archive& archive);
 
 	AnimTrackSpriteFrame m_trackSpriteFrame;
