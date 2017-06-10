@@ -118,6 +118,9 @@ namespace ion
 			//Add new keyframe
 			void InsertKeyframe(const Keyframe<T>& keyframe);
 
+			//Remove keyframe
+			void RemoveKeyframe(int index);
+
 			//Get keyframe
 			Keyframe<T>& GetKeyframe(int index);
 			const Keyframe<T>& GetKeyframe(int index) const;
@@ -229,6 +232,12 @@ namespace ion
 		template <class T> void AnimationTrack<T>::InsertKeyframe(const Keyframe<T>& keyframe)
 		{
 			m_keyframes.insert(std::upper_bound(m_keyframes.begin(), m_keyframes.end(), keyframe), keyframe);
+		}
+
+		template <class T> void AnimationTrack<T>::RemoveKeyframe(int index)
+		{
+			debug::Assert(index < GetNumKeyframes(), "AnimationTrack::RemoveKeyframe() - Index out of range");
+			m_keyframes.erase(m_keyframes.begin() + index);
 		}
 
 		template <class T> Keyframe<T>& AnimationTrack<T>::GetKeyframe(int index)

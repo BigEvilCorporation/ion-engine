@@ -84,6 +84,8 @@ public:
 	const AnimationActor* GetActor(GameObjectId actorId) const;
 	TAnimActorMap::iterator ActorsBegin();
 	TAnimActorMap::iterator ActorsEnd();
+	TAnimActorMap::const_iterator ActorsBegin() const;
+	TAnimActorMap::const_iterator ActorsEnd() const;
 	int GetActorCount() const;
 
 	void Serialise(ion::io::Archive& archive);

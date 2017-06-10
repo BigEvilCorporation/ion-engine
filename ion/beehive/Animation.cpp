@@ -81,6 +81,16 @@ TAnimActorMap::iterator Animation::ActorsEnd()
 	return m_actors.end();
 }
 
+TAnimActorMap::const_iterator Animation::ActorsBegin() const
+{
+	return m_actors.begin();
+}
+
+TAnimActorMap::const_iterator Animation::ActorsEnd() const
+{
+	return m_actors.end();
+}
+
 int Animation::GetActorCount() const
 {
 	return m_actors.size();
