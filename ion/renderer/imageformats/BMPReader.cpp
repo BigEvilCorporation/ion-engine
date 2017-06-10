@@ -48,38 +48,132 @@ bool BMPReader::Read(const std::string& filename)
 					m_height = bmpHeader.imageHeight;
 
 					//Set bits per pixel
-					if(bmpHeader.bitFormat == eIndexed16Colour)
-					{
-						m_bitsPerPixel = 4;
-					}
+					m_bitsPerPixel = bmpHeader.bitFormat;
 
-					if(m_bitsPerPixel > 0)
+					//Seek to data pos
+					if(file.Seek(fileHeader.dataOffset, ion::io::eSeekModeStart) == fileHeader.dataOffset)
 					{
-						//Seek to palette pos
-						u64 paletteDataPos = sizeof(FileHeader) + bmpHeader.headerSize;
-						if(file.Seek(paletteDataPos, ion::io::eSeekModeStart) == paletteDataPos)
+						//Alloc data buffer
+						std::vector<u8> imageData;
+						imageData.resize(bmpHeader.dataSizeBytes);
+
+						//Read pixel data
+						if(file.Read(imageData.data(), bmpHeader.dataSizeBytes) == bmpHeader.dataSizeBytes)
 						{
-							//Calc palette size and alloc
-							m_palette.resize(bmpHeader.importantColourCount);
+							//Reserve indexed data buffer
+							m_data.resize(m_width * m_height);
 
-							//Read palette
-							u64 paletteSizeBytes = bmpHeader.importantColourCount * sizeof(RGBQuad);
-							if(file.Read(m_palette.data(), paletteSizeBytes) == paletteSizeBytes)
+							//Determine palette type
+							if(m_bitsPerPixel >= eIndexed16Colour && m_bitsPerPixel <= eIndexed256Colour)
 							{
-								//Seek to data pos
-								if(file.Seek(fileHeader.dataOffset, ion::io::eSeekModeStart) == fileHeader.dataOffset)
+								//Indexed image, data already in correct format
+								m_data = std::move(imageData);
+								
+								//Seek to palette pos
+								u64 paletteDataPos = sizeof(FileHeader) + bmpHeader.headerSize;
+								if(file.Seek(paletteDataPos, ion::io::eSeekModeStart) == paletteDataPos)
 								{
-									//Alloc pixel data buffer
-									m_data.resize(bmpHeader.dataSizeBytes);
+									//Calc palette size and alloc
+									m_palette.resize(bmpHeader.importantColourCount);
 
-									//Read pixel data
-									if(file.Read(m_data.data(), bmpHeader.dataSizeBytes) == bmpHeader.dataSizeBytes)
+									//Read palette
+									u64 paletteSizeBytes = bmpHeader.importantColourCount * sizeof(RGBQuad);
+									if(file.Read(m_palette.data(), paletteSizeBytes) == paletteSizeBytes)
 									{
 										//Success
 										file.Close();
 										return true;
 									}
 								}
+							}
+							else if(m_bitsPerPixel >= eRGB16 && m_bitsPerPixel <= eRGB32)
+							{
+								//Seek to colour mask pos
+								u64 paletteDataPos = sizeof(FileHeader) + bmpHeader.headerSize;
+								u32 colourMaskR = 0;
+								u32 colourMaskG = 0;
+								u32 colourMaskB = 0;
+								if(file.Seek(paletteDataPos, ion::io::eSeekModeStart) == paletteDataPos)
+								{
+									file.Read(&colourMaskG, sizeof(u32));
+									file.Read(&colourMaskR, sizeof(u32));
+									file.Read(&colourMaskB, sizeof(u32));
+								}
+
+								//RGB image, extract all pixels as RGB32
+								const u8* dataPtr = imageData.data();
+
+								for(int y = 0; y < m_height; y++)
+								{
+									for(int x = 0; x < m_width; x++)
+									{
+										//Extract pixel
+										RGBQuad pixelColour;
+
+										switch(m_bitsPerPixel)
+										{
+											case eRGB16:
+											{
+												if(colourMaskR)
+												{
+													const u16& data = *(const u16*)dataPtr++;
+													pixelColour.r = (data >> 10) & colourMaskR;
+													pixelColour.g = (data >> 5) & colourMaskG;
+													pixelColour.b = (data) & colourMaskB;
+												}
+												else
+												{
+													//RGB16 = 0RRRRRGGGGGBBBBB
+													const u16& data = *(const u16*)dataPtr++;
+													pixelColour.r = (data >> 10) & 0x1F;
+													pixelColour.g = (data >> 5) & 0x1F;
+													pixelColour.b = (data)& 0x1F;
+												}
+												
+												break;
+											}
+											case eRGB24:
+											{
+												//RGB24 = BBBBBBBBGGGGGGGGRRRRRRRR
+												pixelColour.r = *dataPtr++;
+												pixelColour.g = *dataPtr++;
+												pixelColour.b = *dataPtr++;
+												break;
+											}
+											case eRGB32:
+											{
+												//RGB32 = 00000000RRRRRRRRGGGGGGGGBBBBBBBB
+												pixelColour.r = *dataPtr++;
+												pixelColour.g = *dataPtr++;
+												pixelColour.b = *dataPtr++;
+												*dataPtr++;
+												break;
+											}
+										};
+
+										//Build unique colour palette
+										int colourIndex = 0;
+										std::vector<RGBQuad>::iterator it = std::find(m_palette.begin(), m_palette.end(), pixelColour);
+										if(it == m_palette.end())
+										{
+											//New colour, add to palette
+											m_palette.push_back(pixelColour);
+											colourIndex = m_palette.size() - 1;
+										}
+										else
+										{
+											//Colour found
+											colourIndex = std::distance(m_palette.begin(), it);
+										}
+
+										//Add to indexed data
+										m_data[(y * m_width) + x] = colourIndex;
+									}
+								}
+
+								//Success
+								file.Close();
+								return true;
 							}
 						}
 					}

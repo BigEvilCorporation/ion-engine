@@ -27,7 +27,10 @@ public:
 		eUnspecified = 0,
 		eMonochrome1Bit = 1,
 		eIndexed16Colour = 4,
-		eIndexed256Colour = 8
+		eIndexed256Colour = 8,
+		eRGB16 = 16,
+		eRGB24 = 24,
+		eRGB32 = 32
 	};
 
 	enum FileType
@@ -113,6 +116,11 @@ private:
 		u8 g;
 		u8 r;
 		u8 reserved;
+
+		bool operator == (const RGBQuad& rhs)
+		{
+			return b == rhs.b && g == rhs.g && r == rhs.r;
+		}
 	};
 
 	int m_width;
