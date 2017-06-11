@@ -61,7 +61,7 @@ namespace ion
 
 			__try
 			{
-				RaiseException(MS_VC_EXCEPTION, 0, sizeof(nameInfo)/sizeof(DWORD), (DWORD*)&nameInfo);
+				RaiseException(MS_VC_EXCEPTION, 0, sizeof(nameInfo)/sizeof(DWORD), (ULONG_PTR*)&nameInfo);
 			}
 			__except(EXCEPTION_CONTINUE_EXECUTION)
 			{

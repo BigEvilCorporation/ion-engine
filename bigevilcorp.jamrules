@@ -31,6 +31,14 @@ rule ApplyIonDefines TARGET
 			;
 	}
 
+	if ( win64 in $(PLATFORM) )
+	{
+		C.Defines $(TARGET) :
+			ION_PLATFORM_WINDOWS
+			ION_ENDIAN_LITTLE
+			;
+	}
+
     if ( macosx64 in $(PLATFORM) )
     {
         C.Defines $(TARGET) :
@@ -77,6 +85,11 @@ rule ApplyIonCore TARGET
 		ApplyWin32SDK $(TARGET) ;
 	}
 
+	if ( win64 in $(PLATFORM) )
+	{
+		ApplyWin32SDK $(TARGET) ;
+	}
+
 	if ( dreamcast in $(PLATFORM) )
 	{
 		ApplyKOSSDK $(TARGET) ;
@@ -115,6 +128,12 @@ rule ApplyIonInput TARGET
 		ApplyWin32SDK $(TARGET) ;
 		ApplyXInputSDK $(TARGET) ;
 	}
+
+	if ( win64 in $(PLATFORM) )
+	{
+		ApplyWin32SDK $(TARGET) ;
+		ApplyXInputSDK $(TARGET) ;
+	}
 }
 
 rule ApplyIonIo TARGET
@@ -132,8 +151,14 @@ rule ApplyDefaultRenderer TARGET : LINK_OPT
 {
 	if ( win32 in $(PLATFORM) )
 	{
-		# ApplyRendererImpl $(TARGET) : opengl sdl cggl $(LINK_OPT) ;
-		ApplyRendererImpl $(TARGET) : opengl sdl $(LINK_OPT) ;
+		ApplyRendererImpl $(TARGET) : opengl sdl cggl $(LINK_OPT) ;
+		# ApplyRendererImpl $(TARGET) : opengl sdl $(LINK_OPT) ;
+	}
+
+	if ( win64 in $(PLATFORM) )
+	{
+		ApplyRendererImpl $(TARGET) : opengl sdl cggl $(LINK_OPT) ;
+		# ApplyRendererImpl $(TARGET) : opengl sdl $(LINK_OPT) ;
 	}
 
 	if ( macosx64 in $(PLATFORM) )
@@ -358,6 +383,19 @@ rule ApplyOpenGLSDK TARGET
 		C.LinkPrebuiltLibraries $(TARGET) : $(OPENGL_LIBS) ;
 	}
 
+	if ( win64 in $(PLATFORM) )
+	{
+		C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/OpenGL/include ;
+		C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/OpenGL/lib ;
+
+		local OPENGL_LIBS =
+			OpenGL32.lib
+			glu32.lib
+			;
+
+		C.LinkPrebuiltLibraries $(TARGET) : $(OPENGL_LIBS) ;
+	}
+
     if ( macosx64 in $(PLATFORM) )
     {
         C.macosx.LinkFrameworks $(TARGET) : OpenGL ;
@@ -462,6 +500,27 @@ rule ApplySDLSDK TARGET
 		C.LinkPrebuiltLibraries $(TARGET) : $(SDL_LIBS) ;
 	}
 
+	if ( win64 in $(PLATFORM) )
+	{
+		C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDL/include ;
+		C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDL/include/SDL ;
+		C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDL/lib ;
+
+		local SDL_LIBS =
+			SDL2main_d.lib
+			SDL2_d.lib
+			SDL2_image_d.lib
+			;
+
+
+		C.LinkFlags $(TARGET) :
+			/DelayLoad:SDL2.dll
+			/DelayLoad:SDL2main.dll
+			;
+
+		C.LinkPrebuiltLibraries $(TARGET) : $(SDL_LIBS) ;
+	}
+
     if ( macosx64 in $(PLATFORM) )
     {
         C.IncludeDirectories $(TARGET) : /Library/Frameworks/SDL2.framework/Headers ;
@@ -500,6 +559,20 @@ rule ApplySDLImageSDK TARGET
 			SDL2_image_d.lib
 			;
 
+		C.LinkFlags $(TARGET) :
+			/DelayLoad:SDL2_image.dll
+			;
+
+		C.LinkPrebuiltLibraries $(TARGET) : $(SDL_LIBS) ;
+	}
+
+	if ( win64 in $(PLATFORM) )
+	{
+		C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDLImage/include ;
+
+		local SDL_LIBS =
+			SDL2_image_d.lib
+			;
 
 		C.LinkFlags $(TARGET) :
 			/DelayLoad:SDL2_image.dll
@@ -516,17 +589,35 @@ rule ApplyCgSDK TARGET
 
 	C.Defines $(TARGET) : ION_RENDER_SUPPORTS_CGGL ;
 
-	local CG_LIBS =
-		cg.lib
-		cgGL.lib
-		;
+	if ( win32 in $(PLATFORM) )
+	{
+		local CG_LIBS =
+			win32/cg.lib
+			win32/cgGL.lib
+			;
 
-	C.LinkFlags $(TARGET) :
-		/DelayLoad:cg.dll
-		/DelayLoad:cgGL.dll
-		;
+		C.LinkFlags $(TARGET) :
+			/DelayLoad:cg.dll
+			/DelayLoad:cgGL.dll
+			;
 
-	C.LinkPrebuiltLibraries $(TARGET) : $(CG_LIBS) ;
+		C.LinkPrebuiltLibraries $(TARGET) : $(CG_LIBS) ;
+	}
+
+	if ( win64 in $(PLATFORM) )
+	{
+		local CG_LIBS =
+			win64/cg.lib
+			win64/cgGL.lib
+			;
+
+		C.LinkFlags $(TARGET) :
+			/DelayLoad:cg.dll
+			/DelayLoad:cgGL.dll
+			;
+
+		C.LinkPrebuiltLibraries $(TARGET) : $(CG_LIBS) ;
+	}
 }
 
 rule ApplyTinyXMLSDK TARGET
@@ -629,25 +720,25 @@ rule ApplyWxSDK TARGET
 	C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/wx/include/wx ;
 	C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/wx/lib/vc120 ;
 
-	C.Defines $(TARGET) : WXUSINGDLL wxMSVC_VERSION_AUTO UNICODE _UNICODE ;
+	C.Defines $(TARGET) : WXUSINGDLL __WXMSW__ wxMSVC_VERSION_AUTO UNICODE _UNICODE ;
 
 	WX_LIBS_DEBUG =
-		wxbase30ud.lib
-		wxbase30ud_net.lib
-		wxbase30ud_xml.lib
-		wxmsw30ud_adv.lib
-		wxmsw30ud_aui.lib
-		wxmsw30ud_core.lib
-		wxmsw30ud_gl.lib
-		wxmsw30ud_html.lib
-		wxmsw30ud_media.lib
-		wxmsw30ud_propgrid.lib
-		wxmsw30ud_qa.lib
-		wxmsw30ud_ribbon.lib
-		wxmsw30ud_richtext.lib
-		wxmsw30ud_stc.lib
-		wxmsw30ud_webview.lib
-		wxmsw30ud_xrc.lib
+		wxbase31ud.lib
+		wxbase31ud_net.lib
+		wxbase31ud_xml.lib
+		wxmsw31ud_adv.lib
+		wxmsw31ud_aui.lib
+		wxmsw31ud_core.lib
+		wxmsw31ud_gl.lib
+		wxmsw31ud_html.lib
+		wxmsw31ud_media.lib
+		wxmsw31ud_propgrid.lib
+		wxmsw31ud_qa.lib
+		wxmsw31ud_ribbon.lib
+		wxmsw31ud_richtext.lib
+		wxmsw31ud_stc.lib
+		wxmsw31ud_webview.lib
+		wxmsw31ud_xrc.lib
 		wxexpatd.lib
 		wxjpegd.lib
 		wxpngd.lib
@@ -658,22 +749,22 @@ rule ApplyWxSDK TARGET
 		;
 
 	WX_LIBS_RELEASE =
-		wxbase30u.lib
-		wxbase30u_net.lib
-		wxbase30u_xml.lib
-		wxmsw30u_adv.lib
-		wxmsw30u_aui.lib
-		wxmsw30u_core.lib
-		wxmsw30u_gl.lib
-		wxmsw30u_html.lib
-		wxmsw30u_media.lib
-		wxmsw30u_propgrid.lib
-		wxmsw30u_qa.lib
-		wxmsw30u_ribbon.lib
-		wxmsw30u_richtext.lib
-		wxmsw30u_stc.lib
-		wxmsw30u_webview.lib
-		wxmsw30u_xrc.lib
+		wxbase31u.lib
+		wxbase31u_net.lib
+		wxbase31u_xml.lib
+		wxmsw31u_adv.lib
+		wxmsw31u_aui.lib
+		wxmsw31u_core.lib
+		wxmsw31u_gl.lib
+		wxmsw31u_html.lib
+		wxmsw31u_media.lib
+		wxmsw31u_propgrid.lib
+		wxmsw31u_qa.lib
+		wxmsw31u_ribbon.lib
+		wxmsw31u_richtext.lib
+		wxmsw31u_stc.lib
+		wxmsw31u_webview.lib
+		wxmsw31u_xrc.lib
 		wxexpat.lib
 		wxjpeg.lib
 		wxpng.lib

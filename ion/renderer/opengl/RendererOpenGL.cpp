@@ -98,7 +98,7 @@ namespace ion
 		void RendererOpenGL::InitContext(DeviceContext deviceContext)
 		{
 			//Lock context
-			LockGLContext(deviceContext);
+			LockContext(deviceContext);
 
 			//Intialise OpenGL extensions
 #if defined ION_RENDER_SUPPORTS_GLEW
@@ -166,7 +166,7 @@ namespace ion
 #endif
 
 			//Unlock context (binds global DC)
-			UnlockGLContext();
+			UnlockContext();
 		}
 
 		void RendererOpenGL::SetupViewport(const Viewport& viewport)
@@ -226,7 +226,7 @@ namespace ion
 			SetClearColour(viewport.GetClearColour());
 		}
 
-		void RendererOpenGL::LockGLContext(DeviceContext deviceContext)
+		void RendererOpenGL::LockContext(const DeviceContext& deviceContext)
 		{
 			//m_contextCriticalSection.Begin();
 
@@ -255,7 +255,7 @@ namespace ion
 			m_contextLockStack++;
 		}
 
-		void RendererOpenGL::UnlockGLContext()
+		void RendererOpenGL::UnlockContext()
 		{
 			debug::Assert(m_contextLockStack > 0, "Bad OpenGL context lock count");
 
@@ -317,13 +317,13 @@ namespace ion
 
 		void RendererOpenGL::BeginFrame(const Viewport& viewport, const DeviceContext& deviceContext)
 		{
-			LockGLContext(deviceContext);
+			LockContext(deviceContext);
 			SetupViewport(viewport);
 		}
 
 		void RendererOpenGL::EndFrame()
 		{
-			UnlockGLContext();
+			UnlockContext();
 		}
 
 		void RendererOpenGL::SwapBuffers()

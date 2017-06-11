@@ -43,7 +43,7 @@ void SpriteAnimation::Serialise(ion::io::Archive& archive)
 
 	if(archive.GetDirection() == ion::io::Archive::eIn)
 	{
-		//SetPlaybackSpeed((float)m_speed / 4.6f);
+		SetPlaybackSpeed((float)m_speed / 4.6f);
 	}
 }
 

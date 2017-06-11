@@ -67,6 +67,10 @@ namespace ion
 			virtual void SetMatrix(const Matrix4& matrix);
 			virtual Matrix4 GetProjectionMatrix();
 
+			//Thread context lock/unlock
+			virtual void LockContext(const DeviceContext& deviceContext);
+			virtual void UnlockContext();
+
 			//Rendering - general
 			virtual void BeginFrame(const Viewport& viewport, const DeviceContext& deviceContext);
 			virtual void EndFrame();
@@ -94,10 +98,6 @@ namespace ion
 			void CreateContext(DeviceContext deviceContext);
 			void InitContext(DeviceContext deviceContext);
 			void SetupViewport(const Viewport& viewport);
-
-			//Lock/unlock context for device context
-			void LockGLContext(DeviceContext deviceContext);
-			void UnlockGLContext();
 
 			//OpenGL context
 #if defined ION_PLATFORM_WINDOWS

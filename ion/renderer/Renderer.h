@@ -65,6 +65,10 @@ namespace ion
 			virtual void SetMatrix(const Matrix4& matrix) = 0;
 			virtual Matrix4 GetProjectionMatrix() = 0;
 
+			//Thread context lock/unlock
+			virtual void LockContext(const DeviceContext& deviceContext) = 0;
+			virtual void UnlockContext() = 0;
+
 			//Rendering - general
 			virtual void BeginFrame(const Viewport& viewport, const DeviceContext& deviceContext) = 0;
 			virtual void EndFrame() = 0;
