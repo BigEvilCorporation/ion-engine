@@ -20,6 +20,8 @@
 #include <string.h>
 #elif defined ION_PLATFORM_LINUX
 #include <memory.h>
+#elif defined ION_PLATFORM_RASPBERRYPI
+#include <memory.h>
 #elif defined ION_PLATFORM_DREAMCAST
 #include <memory>
 #endif

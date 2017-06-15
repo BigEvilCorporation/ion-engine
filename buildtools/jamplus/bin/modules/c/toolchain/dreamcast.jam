@@ -105,7 +105,7 @@ actions C.kos.Archive
 actions C.kos.Link
 {
 	set PATH=$(COMPILER_RUNTIME_PATH);%PATH%
-	"$(C.LINK)" $(LINKFLAGS) -o $(<[1]:C) $(>:C) $(NEEDLIBS:TC) $(NEEDLIBS:TC) -Wl,--start-group $(LINKLIBS:TC) -Wl,--end-group
+	"$(C.LINK)" $(LINKFLAGS) -o $(<[1]:C) $(>:C) $(NEEDLIBS:TC) $(NEEDLIBS:TC) -Wl,--start-group $(LINKLIBS:TC) -Wl,--end-group $(LINKFLAGS)
 }
 
 actions together C.kos.Ranlib

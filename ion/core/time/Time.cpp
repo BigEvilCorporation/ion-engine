@@ -35,6 +35,10 @@ namespace ion
 			timeval time;
 			gettimeofday(&time, NULL);
 			return (time.tv_sec * 1000000) + time.tv_usec;
+#elif defined ION_PLATFORM_RASPBERRYPI
+			timeval time;
+			gettimeofday(&time, NULL);
+			return (time.tv_sec * 1000000) + time.tv_usec;
 #elif defined ION_PLATFORM_DREAMCAST
 			return timer_us_gettime64();
 #endif
@@ -56,6 +60,8 @@ namespace ion
 #elif defined ION_PLATFORM_MACOSX
 			return (float)ticks / 1000000.0f;
 #elif defined ION_PLATFORM_LINUX
+			return (float)ticks / 1000000.0f;
+#elif defined ION_PLATFORM_RASPBERRYPI
 			return (float)ticks / 1000000.0f;
 #elif defined ION_PLATFORM_DREAMCAST
 			return (float)ticks / 1000000.0f;

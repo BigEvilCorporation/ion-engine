@@ -84,7 +84,9 @@ namespace ion
 #elif defined ION_PLATFORM_MACOSX
             m_openGLContext = SDL_GL_CreateContext(deviceContext);
 #elif defined ION_PLATFORM_LINUX
-	    m_openGLContext = SDL_GL_CreateContext(deviceContext);
+			m_openGLContext = SDL_GL_CreateContext(deviceContext);
+#elif defined ION_PLATFORM_RASPBERRYPI
+			m_openGLContext = SDL_GL_CreateContext(deviceContext);
 #elif defined ION_PLATFORM_DREAMCAST
             m_openGLContext = 1;
 #endif
@@ -134,7 +136,10 @@ namespace ion
 			glEnable(GL_DEPTH_TEST);
 
 			//Depth buffer setup
+			#if !defined ION_RENDERER_OPENGLES
 			glClearDepth(1.0f);
+			#endif
+
 			glDepthFunc(GL_LEQUAL);
 
 			//Set default vertex winding
@@ -145,13 +150,16 @@ namespace ion
 
 			//Shading and perspective
 			glShadeModel(GL_SMOOTH);
+
+#if !defined ION_RENDERER_OPENGLES
 			glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+#endif
 
 			//Set default blending mode
 			glBlendFunc(GL_ONE, GL_ONE);
 
 			//Check for OpenGL errors
-			if(!CheckGLError())
+			if(!CheckGLError("RendererOpenGL::InitContext()"))
 			{
 				debug::Error("Could not initialise OpenGL");
 			}
@@ -194,18 +202,39 @@ namespace ion
 			//Set perspective mode
 			switch(viewport.GetPerspectiveMode())
 			{
-			case Viewport::ePerspective3D:
-				//TODO: Expose FOV and near/far
-				gluPerspective(45.0f, aspectRatio, 0.1f, 1000.0f);
-				break;
+				case Viewport::ePerspective3D:
+				{
+					//TODO: Expose FOV and near/far
+#if defined ION_RENDERER_OPENGLES
+					m_projectionMatrix = ion::Matrix4(45.0f, aspectRatio, 0.1f, 1000.0f);
+					glLoadMatrixf(m_projectionMatrix.GetAsFloatArray());
+#else
+					gluPerspective(45.0f, aspectRatio, 0.1f, 1000.0f);
+#endif
+					break;
+				}
 
-			case Viewport::eOrtho2DNormalised:
-				glOrtho(0.0f, 1.0f, 0.0f, 1.0f, -1.0f, 1.0f);
-				break;
+				case Viewport::eOrtho2DNormalised:
+				{
+#if defined ION_RENDERER_OPENGLES
+					m_projectionMatrix = ion::Matrix4(0.0f, 1.0f, 0.0f, 1.0f, -1.0f, 1.0f);
+					glLoadMatrixf(m_projectionMatrix.GetAsFloatArray());
+#else
+					glOrtho(0.0f, 1.0f, 0.0f, 1.0f, -1.0f, 1.0f);
+#endif
+					break;
+				}
 
-			case Viewport::eOrtho2DAbsolute:
-				glOrtho(0.0f, width, 0.0f, height, -1.0f, 1.0f);
-				break;
+				case Viewport::eOrtho2DAbsolute:
+				{
+#if defined ION_RENDERER_OPENGLES
+					m_projectionMatrix = ion::Matrix4(0.0f, width, 0.0f, height, -1.0f, 1.0f);
+					glLoadMatrixf(m_projectionMatrix.GetAsFloatArray());
+#else
+					glOrtho(0.0f, width, 0.0f, height, -1.0f, 1.0f);
+#endif
+					break;
+				}
 			}
 
 			//Select the modelview matrix
@@ -215,12 +244,16 @@ namespace ion
 			glLoadIdentity();
 
 			//Setup default lighting
+#if !defined ION_RENDERER_OPENGLES
 			float ambient[] = { 1.0f, 1.0f, 1.0f, 1.0f };
 			float diffuse[] = { 1.0f, 1.0f, 1.0f, 1.0f };
 			glLightfv(GL_LIGHT0, GL_AMBIENT, ambient);
 			glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse);
 			glEnable(GL_LIGHT0);
 			glEnable(GL_LIGHTING);
+#endif
+
+			CheckGLError("RendererOpenGL::SetupViewport");
 
 			//Set clear colour
 			SetClearColour(viewport.GetClearColour());
@@ -252,6 +285,8 @@ namespace ion
 				}
 			}
 
+			CheckGLError("RendererOpenGL::LockContext");
+
 			m_contextLockStack++;
 		}
 
@@ -273,18 +308,23 @@ namespace ion
 				m_currentDC = NULL;
 			}
 
+			CheckGLError("RendererOpenGL::UnlockContext");
+
 			//m_contextCriticalSection.End();
 		}
 
-		bool RendererOpenGL::CheckGLError()
+		bool RendererOpenGL::CheckGLError(const char* message)
 		{
 			GLenum error = glGetError();
 
 			if(error != GL_NO_ERROR)
 			{
+#if defined ION_RENDERER_OPENGLES
+				debug::error << message << " - OpenGL error: " << error << debug::end;
+#else
 				const char* errString = (const char*)gluErrorString(error);
-				debug::Log("OpenGL error");
-				debug::Error(errString);
+				debug::error << message << " - OpenGL error: " << error << " - " << errString << debug::end;
+#endif
 			}
 
 			return error == GL_NO_ERROR;
@@ -304,15 +344,21 @@ namespace ion
 		{
 			debug::Assert(m_contextLockStack > 0, "OpenGL context is not locked");
 			glLoadMatrixf(matrix.GetAsFloatArray());
+			CheckGLError("RendererOpenGL::SetMatrix");
 		}
 
 		Matrix4 RendererOpenGL::GetProjectionMatrix()
 		{
 			debug::Assert(m_contextLockStack > 0, "OpenGL context is not locked");
 
+#if defined ION_RENDERER_OPENGLES
+			return m_projectionMatrix;
+#else
 			float matrix[16] = { 0.0f };
 			glGetFloatv(GL_PROJECTION_MATRIX, matrix);
+			CheckGLError("RendererOpenGL::GetProjectionMatrix");
 			return Matrix4(matrix);
+#endif
 		}
 
 		void RendererOpenGL::BeginFrame(const Viewport& viewport, const DeviceContext& deviceContext)
@@ -336,14 +382,20 @@ namespace ion
 			SDL_GL_SwapWindow(m_currentDC);
 #elif defined ION_PLATFORM_LINUX
 			SDL_GL_SwapWindow(m_currentDC);
+#elif defined ION_PLATFORM_RASPBERRYPI
+			SDL_GL_SwapWindow(m_currentDC);
 #elif defined ION_PLATFORM_DREAMCAST
 			glutSwapBuffers();
 #endif
+
+			CheckGLError("RendererOpenGL::SwapBuffers");
 		}
 
 		void RendererOpenGL::SetClearColour(const Colour& colour)
 		{
 			glClearColor(colour.r, colour.g, colour.b, colour.a);
+
+			CheckGLError("RendererOpenGL::SetClearColour");
 		}
 
 		void RendererOpenGL::ClearColour()
@@ -352,6 +404,8 @@ namespace ion
 
 			//Clear colour buffer
 			glClear(GL_COLOR_BUFFER_BIT);
+
+			CheckGLError("RendererOpenGL::ClearColour");
 		}
 
 		void RendererOpenGL::ClearDepth()
@@ -360,6 +414,8 @@ namespace ion
 
 			//Clear depth buffer
 			glClear(GL_DEPTH_BUFFER_BIT);
+
+			CheckGLError("RendererOpenGL::ClearDepth");
 		}
 
 		void RendererOpenGL::SetAlphaBlending(AlphaBlendType alphaBlendType)
@@ -385,6 +441,8 @@ namespace ion
 			default:
 				break;
 			}
+
+			CheckGLError("RendererOpenGL::SetAlphaBlending");
 		}
 
 		void RendererOpenGL::SetFaceCulling(CullingMode cullingMode)
@@ -410,6 +468,8 @@ namespace ion
 			default:
 				break;
 			}
+
+			CheckGLError("RendererOpenGL::SetFaceCulling");
 		}
 
 		void RendererOpenGL::SetDepthTest(DepthTest depthTest)
@@ -434,6 +494,8 @@ namespace ion
 					break;
 				}
 			}
+
+			CheckGLError("RendererOpenGL::SetDepthTest");
 		}
 
 		void RendererOpenGL::SetLineWidth(float width)
@@ -442,6 +504,8 @@ namespace ion
 #if !defined ION_PLATFORM_DREAMCAST
 			glLineWidth(width);
 #endif
+
+			CheckGLError("RendererOpenGL::SetLineWidth");
 		}
 
 		void RendererOpenGL::DrawVertexBuffer(const VertexBuffer& vertexBuffer)
@@ -495,7 +559,7 @@ namespace ion
 			glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 			glDisableClientState(GL_COLOR_ARRAY);
 
-			if(!CheckGLError())
+			if(!CheckGLError("RendererOpenGL::DrawVertexBuffer(const VertexBuffer&)"))
 			{
 				debug::Error("Could not draw vertex buffer");
 			}
@@ -542,6 +606,8 @@ namespace ion
             glDrawElements(drawPattern, indexBuffer.GetSize(), GL_UNSIGNED_INT, indexBuffer.GetAddress());
 #elif defined ION_PLATFORM_LINUX
             glDrawElements(drawPattern, indexBuffer.GetSize(), GL_UNSIGNED_INT, indexBuffer.GetAddress());
+#elif defined ION_PLATFORM_RASPBERRYPI
+			glDrawElements(drawPattern, indexBuffer.GetSize(), GL_UNSIGNED_SHORT, indexBuffer.GetAddress());
 #elif defined ION_PLATFORM_DREAMCAST
 			glDrawElements(drawPattern, indexBuffer.GetSize(), GL_UNSIGNED_SHORT, indexBuffer.GetAddress());
 #endif
@@ -552,7 +618,7 @@ namespace ion
 			glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 			glDisableClientState(GL_COLOR_ARRAY);
 
-			CheckGLError();
+			CheckGLError("RendererOpenGL::DrawVertexBuffer(const VertexBuffer&, const IndexBuffer&)");
 		}
 	}
 }

@@ -1,0 +1,10 @@
+rule C.Toolchain.raspi.raspberrypi-release
+{
+	# Add optimisation flags
+	C.Flags * : CC	: -g -O2 ;
+	C.Flags * : C++	: -g -O2 ;
+	C.Flags * : M	: -g -O2 ;
+	C.Flags * : MM	: -g -O2 ;
+	
+	C.Toolchain.Helper.ReleaseSettings ;
+}

@@ -22,6 +22,8 @@
 #include <SDL.h>
 #elif defined ION_PLATFORM_LINUX
 #include <SDL2/SDL.h>
+#elif defined ION_PLATFORM_RASPBERRYPI
+#include <SDL2/SDL.h>
 #else
 #include <SDL/SDL.h>
 #endif
@@ -154,6 +156,7 @@ namespace ion
 			glBindTexture(GL_TEXTURE_2D, m_glTextureId);
 
 			//Generate mipmaps
+#if !defined ION_RENDERER_OPENGLES
 #if defined ION_RENDERER_KGL && defined ION_RENDER_SUPPORTS_GLUT
 			if(generateMipmaps)
 			{
@@ -162,6 +165,7 @@ namespace ion
 #else
 			glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, generateMipmaps ? GL_TRUE : GL_FALSE);
 #endif
+#endif //ION_RENDERER_OPENGLES
 
 			//Set default filters
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -199,7 +203,7 @@ namespace ion
 			//Unbind texture
 			glBindTexture(GL_TEXTURE_2D, 0);
 
-			RendererOpenGL::CheckGLError();
+			RendererOpenGL::CheckGLError("TextureOpenGL::Load");
 
 			return m_glTextureId != 0;
 		}
@@ -232,7 +236,7 @@ namespace ion
 			glTexSubImage2D(GL_TEXTURE_2D, 0, position.x, position.y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, data);
 			glBindTexture(GL_TEXTURE_2D, 0);
 
-			RendererOpenGL::CheckGLError();
+			RendererOpenGL::CheckGLError("TextureOpenGL::SetPixel");
 #endif
 		}
 
@@ -246,13 +250,13 @@ namespace ion
 			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_width, m_height, glMode, glByteFormat, data);
 			glBindTexture(GL_TEXTURE_2D, 0);
 
-			RendererOpenGL::CheckGLError();
+			RendererOpenGL::CheckGLError("TextureOpenGL::SetPixels");
 #endif
 		}
 
 		void TextureOpenGL::GetPixels(const ion::Vector2i& position, const ion::Vector2i& size, Format format, BitsPerPixel bitsPerPixel, u8* data) const
 		{
-#if !defined ION_RENDERER_KGL
+#if !defined ION_RENDERER_KGL && !defined ION_RENDERER_OPENGLES
 			const u32 bytesPerPixel = (u32)bitsPerPixel / 8;
 			const u32 bufferSize = size.x * size.y * bytesPerPixel;
 			u8* buffer = new u8[bufferSize];
@@ -267,7 +271,7 @@ namespace ion
 			glGetTexImage(GL_TEXTURE_2D, 0, glMode, glByteFormat, buffer);
 			glBindTexture(GL_TEXTURE_2D, 0);
 
-			RendererOpenGL::CheckGLError();
+			RendererOpenGL::CheckGLError("TextureOpenGL::GetPixels");
 
 			for(int y = position.y; y < size.y; y++)
 			{
@@ -304,7 +308,7 @@ namespace ion
 
 			glBindTexture(GL_TEXTURE_2D, 0);
 
-			RendererOpenGL::CheckGLError();
+			RendererOpenGL::CheckGLError("TextureOpenGL::SetMinifyFilter");
 		}
 
 		void TextureOpenGL::SetMagnifyFilter(Filter filter)
@@ -330,7 +334,7 @@ namespace ion
 
 			glBindTexture(GL_TEXTURE_2D, 0);
 
-			RendererOpenGL::CheckGLError();
+			RendererOpenGL::CheckGLError("TextureOpenGL::SetMagnifyFilter");
 		}
 
 		void TextureOpenGL::SetWrapping(Wrapping wrapping)
@@ -342,10 +346,18 @@ namespace ion
 			switch(wrapping)
 			{
 			case eWrapClamp:
+#if defined ION_RENDERER_OPENGLES
+				wrapMode = GL_CLAMP_TO_EDGE;
+#else
 				wrapMode = GL_CLAMP;
+#endif
 				break;
 			case eWrapRepeat:
+#if defined ION_RENDERER_OPENGLES
+				wrapMode = GL_MIRRORED_REPEAT;
+#else
 				wrapMode = GL_REPEAT;
+#endif
 				break;
 #if !defined ION_RENDERER_KGL
 			case eWrapMirror:
@@ -359,7 +371,7 @@ namespace ion
 
 			glBindTexture(GL_TEXTURE_2D, 0);
 
-			RendererOpenGL::CheckGLError();
+			RendererOpenGL::CheckGLError("TextureOpenGL::SetWrapping");
 		}
 
 		void TextureOpenGL::GetOpenGLMode(Format format, BitsPerPixel bitsPerPixel, int& mode, int& byteFormat)

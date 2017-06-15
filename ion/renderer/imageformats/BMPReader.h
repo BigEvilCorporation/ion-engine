@@ -117,7 +117,7 @@ private:
 		u8 r;
 		u8 reserved;
 
-		bool operator == (const RGBQuad& rhs)
+		bool operator == (const RGBQuad& rhs) const
 		{
 			return b == rhs.b && g == rhs.g && r == rhs.r;
 		}

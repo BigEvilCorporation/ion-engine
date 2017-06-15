@@ -16,6 +16,8 @@
 #include <SDL.h>
 #elif defined ION_PLATFORM_LINUX
 #include <SDL2/SDL.h>
+#elif defined ION_PLATFORM_RASPBERRYPI
+#include <SDL2/SDL.h>
 #endif
 
 #include <vector>

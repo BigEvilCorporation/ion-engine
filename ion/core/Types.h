@@ -30,4 +30,6 @@ typedef long long s64;
 #include <cstddef>
 #elif defined ION_PLATFORM_LINUX
 #include <cstddef>
+#elif defined ION_PLATFORM_RASPBERRYPI
+#include <cstddef>
 #endif

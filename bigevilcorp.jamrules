@@ -64,6 +64,14 @@ rule ApplyIonDefines TARGET
 			;
 	}
 
+	if ( raspberrypi in $(PLATFORM) )
+	{
+		C.Defines $(TARGET) :
+			ION_PLATFORM_RASPBERRYPI
+			ION_ENDIAN_LITTLE
+			;
+	}
+
 	ApplyDefaultRenderer $(TARGET) : defines ;
 }
 
@@ -151,8 +159,8 @@ rule ApplyDefaultRenderer TARGET : LINK_OPT
 {
 	if ( win32 in $(PLATFORM) )
 	{
-		ApplyRendererImpl $(TARGET) : opengl sdl cggl $(LINK_OPT) ;
-		# ApplyRendererImpl $(TARGET) : opengl sdl $(LINK_OPT) ;
+		# ApplyRendererImpl $(TARGET) : opengl sdl cggl $(LINK_OPT) ;
+		ApplyRendererImpl $(TARGET) : opengl sdl $(LINK_OPT) ;
 	}
 
 	if ( win64 in $(PLATFORM) )
@@ -171,6 +179,11 @@ rule ApplyDefaultRenderer TARGET : LINK_OPT
 		ApplyRendererImpl $(TARGET) : opengl sdl $(LINK_OPT) ;
 	}
 
+	if ( raspberrypi in $(PLATFORM) )
+	{
+		ApplyRendererImpl $(TARGET) : opengles sdl $(LINK_OPT) ;
+	}
+
 	if ( dreamcast in $(PLATFORM) )
 	{
 		ApplyRendererImpl $(TARGET) : opengl glut $(LINK_OPT) ;
@@ -187,6 +200,11 @@ rule ApplyRendererImpl TARGET : RENDER_IMPL_OPTS
 	if ( opengl in $(RENDER_IMPL_OPTS) )
 	{
 		ApplyIonRendererOpenGL $(TARGET) : $(RENDER_IMPL_OPTS) ;
+	}
+
+	if ( opengles in $(RENDER_IMPL_OPTS) )
+	{
+		ApplyIonRendererOpenGLES $(TARGET) : $(RENDER_IMPL_OPTS) ;
 	}
 
 	if ( cggl in $(RENDER_IMPL_OPTS) )
@@ -259,6 +277,29 @@ rule ApplyIonRendererOpenGL TARGET : RENDER_IMPL_OPTS
 	{
 		ApplyIonIncludes $(TARGET) ;
 		ApplyOpenGLSDK $(TARGET) ;
+	}
+
+	if ( link in $(RENDER_IMPL_OPTS) )
+	{
+		if ! ( opengl in $(TARGET) )
+		{
+			SubInclude bigevilcorp ion renderer opengl : opengl ;
+			C.LinkLibraries $(TARGET) : opengl ;
+		}
+	}
+}
+
+rule ApplyIonRendererOpenGLES TARGET : RENDER_IMPL_OPTS
+{
+	if ( defines in $(RENDER_IMPL_OPTS) )
+	{
+		C.Defines $(TARGET) : ION_RENDERER_OPENGLES ;
+	}
+
+	if ( sdk in $(RENDER_IMPL_OPTS) )
+	{
+		ApplyIonIncludes $(TARGET) ;
+		ApplyOpenGLESSDK $(TARGET) ;
 	}
 
 	if ( link in $(RENDER_IMPL_OPTS) )
@@ -423,6 +464,14 @@ rule ApplyOpenGLSDK TARGET
 	}
 }
 
+rule ApplyOpenGLESSDK TARGET
+{
+	if ( raspberrypi in $(PLATFORM) )
+	{
+		# Uses OpenGL ES 2, linked as part of prebuilt libs in modules/c/toolchain/raspberrypi.jam
+	}
+}
+
 rule ApplyOpenALSDK TARGET
 {
 	C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/OpenAL/include ;
@@ -532,6 +581,15 @@ rule ApplySDLSDK TARGET
 	{
 		local SDL_LIBS =
 			SDL2
+			;
+
+		C.LinkPrebuiltLibraries $(TARGET) : $(SDL_LIBS) ;
+	}
+
+	if ( raspberrypi in $(PLATFORM) )
+	{
+		local SDL_LIBS =
+			libSDL2
 			;
 
 		C.LinkPrebuiltLibraries $(TARGET) : $(SDL_LIBS) ;

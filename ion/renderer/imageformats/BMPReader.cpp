@@ -15,6 +15,8 @@
 
 #include "BMPReader.h"
 
+#include <algorithm>
+
 BMPReader::BMPReader()
 {
 	m_width = 0;

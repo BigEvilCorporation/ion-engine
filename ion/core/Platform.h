@@ -15,11 +15,11 @@
 #include <sys/time.h>
 #elif defined ION_PLATFORM_LINUX
 #include <sys/time.h>
+#elif defined ION_PLATFORM_RASPBERRYPI
+#include <sys/time.h>
 #elif defined ION_PLATFORM_DREAMCAST
 #include <kos.h>
 #include <time.h>
-#elif defined ION_PLATFORM_LINUX
-
 #else
 #error Unsupported Platform
 #endif

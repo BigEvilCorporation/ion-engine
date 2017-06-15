@@ -62,6 +62,62 @@ namespace ion
 		m_matrix[15] = 1.0f;
 	}
 
+	Matrix4::Matrix4(float left, float right, float bottom, float top, float near, float far)
+	{
+		float r_l = right - left;
+		float t_b = top - bottom;
+		float f_n = far - near;
+		float tx = -(right + left) / (right - left);
+		float ty = -(top + bottom) / (top - bottom);
+		float tz = -(far + near) / (far - near);
+
+		m_matrix[0] = 2.0f / r_l;
+		m_matrix[1] = 0.0f;
+		m_matrix[2] = 0.0f;
+		m_matrix[3] = tx;
+
+		m_matrix[4] = 0.0f;
+		m_matrix[5] = 2.0f / t_b;
+		m_matrix[6] = 0.0f;
+		m_matrix[7] = ty;
+
+		m_matrix[8] = 0.0f;
+		m_matrix[9] = 0.0f;
+		m_matrix[10] = 2.0f / f_n;
+		m_matrix[11] = tz;
+
+		m_matrix[12] = 0.0f;
+		m_matrix[13] = 0.0f;
+		m_matrix[14] = 0.0f;
+		m_matrix[15] = 1.0f;
+	}
+
+	Matrix4::Matrix4(float aspect, float fovy, float near, float far)
+	{
+		float h = near * tan(maths::DegreesToRadians(fovy));
+		float fmn = far - near;
+
+		m_matrix[0] = h * aspect;
+		m_matrix[1] = 0.0f;
+		m_matrix[2] = 0.0f;
+		m_matrix[3] = 0.0f;
+
+		m_matrix[4] = 0.0f;
+		m_matrix[5] = h;
+		m_matrix[6] = 0.0f;
+		m_matrix[7] = 0.0f;
+
+		m_matrix[8] = 0.0f;
+		m_matrix[9] = 0.0f;
+		m_matrix[10] = (far + near) / fmn;
+		m_matrix[11] = 1.0f;
+
+		m_matrix[12] = 0.0f;
+		m_matrix[13] = 0.0f;
+		m_matrix[14] = (2 * near*far) / fmn;
+		m_matrix[15] = 0.0f;
+	}
+
 	Matrix4::~Matrix4()
 	{
 

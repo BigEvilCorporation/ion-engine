@@ -36,6 +36,14 @@ if ( linux64 in $(PLATFORM) )
     ;
 }
 
+if ( raspberrypi in $(PLATFORM) )
+{
+    SRC +=
+    ../raspberrypi/WindowRaspberryPi.cpp
+    ../raspberrypi/WindowRaspberryPi.h
+    ;
+}
+
 if ( dreamcast in $(PLATFORM) )
 {
 	SRC +=

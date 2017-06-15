@@ -38,6 +38,12 @@
 #include <GL/glext.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengl.h>
+#elif defined ION_PLATFORM_RASPBERRYPI
+#include <GL/gl.h>
+#include <GL/glu.h>
+#include <GL/glext.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_opengl.h>
 #else
 #include <GL/gl.h>
 #include <GL/glu.h>
@@ -90,7 +96,7 @@ namespace ion
 			virtual void DrawVertexBuffer(const VertexBuffer& vertexBuffer, const IndexBuffer& indexBuffer);
 
 			//Check for OpenGL errors
-			static bool CheckGLError();
+			static bool CheckGLError(const char* message);
 
 		protected:
 			//Setup
@@ -106,6 +112,8 @@ namespace ion
             SDL_GLContext m_openGLContext;
 #elif defined ION_PLATFORM_LINUX
             SDL_GLContext m_openGLContext;
+#elif defined ION_PLATFORM_RASPBERRYPI
+			SDL_GLContext m_openGLContext;
 #elif defined ION_PLATFORM_DREAMCAST
             int m_openGLContext;
 #endif
@@ -118,6 +126,10 @@ namespace ion
 
 			thread::CriticalSection m_contextCriticalSection;
 			u32 m_contextLockStack;
+
+#if defined ION_RENDERER_OPENGLES
+			Matrix4 m_projectionMatrix;
+#endif
 		};
 	}
 }

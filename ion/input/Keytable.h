@@ -85,7 +85,7 @@ namespace ion
 			DIK_DOWN,
 			DIK_UP
         };
-#elif defined ION_PLATFORM_MACOSX || defined ION_PLATFORM_LINUX
+#elif defined ION_PLATFORM_MACOSX || defined ION_PLATFORM_LINUX || defined ION_PLATFORM_RASPBERRYPI
         static int KeycodeTable[Keycode::COUNT] =
         {
             //Alpha
