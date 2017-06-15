@@ -525,10 +525,12 @@ void Stamp::ExportStampAnimSetup(const PlatformConfig& config, std::stringstream
 		stream << "\tmove.l #" << animSheetLabel.str() << "_size_t, d1" << std::endl;
 		stream << "\tjsr    SceneAnimLoadStampAnim" << std::endl;
 
+		stream << std::endl;
+
 		stream << "\t; Set scene animations" << std::endl;
 		stream << "\tmove.w #" << animSheetLabel.str() << "_" << animationName << "_frameoffset, Animation_FirstFrameOffset(a1)" << std::endl;
 		stream << "\tmove.l #spriteanim_" << m_name << "_" << animationName << "_track_frames, Animation_AnimTrackSpriteFrame(a1)" << std::endl;
-		stream << "\tmove.b #spriteanim_" << m_name << "_" << animationName << "_speed, Animation_Speed(a1)" << std::endl;
+		stream << "\tmove.w #spriteanim_" << m_name << "_" << animationName << "_speed, Animation_Speed(a1)" << std::endl;
 		stream << "\tmove.b #spriteanim_" << m_name << "_" << animationName << "_numframes, Animation_Length(a1)" << std::endl;
 		stream << "\tmove.b #0x1, Animation_Looping(a1)" << std::endl;
 		stream << "\tjsr    AnimObjSetAnimation" << std::endl;

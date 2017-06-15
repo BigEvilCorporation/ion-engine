@@ -383,10 +383,14 @@ void SpriteSheet::ExportAnims(const PlatformConfig& config, std::stringstream& s
 		label << "spriteanim_" << actorName << "_" << it->second.GetName();
 
 		int numKeyframes = it->second.m_trackSpriteFrame.GetNumKeyframes();
+
+		//1 Mega Drive anim frame == 0x0100 subframes (at 50fps)
+		int framesPerSecond = (int)it->second.GetPlaybackSpeed();
+		int speed = (framesPerSecond << 8) / 50;
 		
 		stream << label.str() << ":" << std::endl;
 		stream << label.str() << "_numframes: equ 0x" << numKeyframes << std::endl;
-		stream << label.str() << "_speed: equ 0x" << (int)it->second.GetPlaybackSpeed() << std::endl;
+		stream << label.str() << "_speed: equ 0x" << speed << std::endl;
 
 		stream << label.str() << "_track_frames:" << std::endl;
 		it->second.m_trackSpriteFrame.Export(stream);

@@ -70,7 +70,6 @@ public:
 
 private:
 	std::string m_name;
-	int m_speed;
 };
 
 typedef std::map<SpriteAnimId, SpriteAnimation> TSpriteAnimMap;

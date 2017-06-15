@@ -18,7 +18,7 @@
 
 SpriteAnimation::SpriteAnimation()
 {
-	m_speed = 1;
+
 }
 
 void SpriteAnimation::SetName(const std::string& name)
@@ -36,14 +36,20 @@ void SpriteAnimation::Serialise(ion::io::Archive& archive)
 	ion::render::Animation::Serialise(archive);
 
 	archive.Serialise(m_name, "name");
-	archive.Serialise(m_speed, "speed");
 	archive.Serialise(m_trackSpriteFrame, "trackSpriteFrame");
 	archive.Serialise(m_trackSFX, "trackSFX");
 	archive.Serialise(m_trackPosition, "trackPosition");
 
 	if(archive.GetDirection() == ion::io::Archive::eIn)
 	{
-		SetPlaybackSpeed((float)m_speed / 4.6f);
+		//Legacy
+		int speed = 1;
+		archive.Serialise(speed, "speed");
+
+		if(speed != 1)
+		{
+			SetPlaybackSpeed((float)speed / 4.6f);
+		}
 	}
 }
 
