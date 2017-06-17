@@ -44,6 +44,7 @@ namespace ion
 
 		float Cos(float value);
 		float Sin(float value);
+		float Tan(float value);
 		float Acos(float value);
 		float Asin(float value);
 		float Atan(float value);

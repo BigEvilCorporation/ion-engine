@@ -133,6 +133,11 @@ namespace ion
 #endif
 		}
 
+		float Tan(float value)
+		{
+			return tanf(value);
+		}
+
 		float Acos(float value)
 		{
 			return acosf(value);

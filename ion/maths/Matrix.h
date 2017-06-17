@@ -23,8 +23,8 @@ namespace ion
 		Matrix4(float* float16);
 		Matrix4(const Matrix4& mat);
 		Matrix4(const Vector3& position, const Vector3& up, const Vector3& forward);
-		Matrix4(float left, float right, float bottom, float top, float near, float far);
-		Matrix4(float aspect, float fovy, float near, float far);
+		Matrix4(float left, float right, float bottom, float top, float nearPlane, float farPlane);
+		Matrix4(float aspect, float fovy, float nearPlane, float farPlane);
 		~Matrix4();
 
 		void SetIdentity();
