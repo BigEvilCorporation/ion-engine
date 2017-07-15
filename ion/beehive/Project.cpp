@@ -3453,7 +3453,18 @@ bool Project::ExportStampBitmaps(const std::string& directory) const
 		BMPReader writer;
 		writer.SetDimensions(stamp.GetWidth() * m_platformConfig.tileWidth, stamp.GetHeight() * m_platformConfig.tileHeight);
 
-		const Palette& palette = *GetPalette(m_tileset.GetTile(stamp.GetTile(0, 0))->GetPaletteId());
+		const Tile* firstTile = m_tileset.GetTile(stamp.GetTile(0, 0));
+		if(!firstTile)
+		{
+			firstTile = m_tileset.GetTile(GetBackgroundTile());
+		}
+
+		if(!firstTile)
+		{
+			firstTile = m_tileset.GetTile(0);
+		}
+
+		const Palette& palette = *GetPalette(firstTile->GetPaletteId());
 		for(int i = 0; i < Palette::coloursPerPalette && palette.IsColourUsed(i); i++)
 		{
 			Colour colour = palette.GetColour(i);
@@ -3468,14 +3479,27 @@ bool Project::ExportStampBitmaps(const std::string& directory) const
 				u32 tileFlags = stamp.GetTileFlags(tileX, tileY);
 				const Tile* tile = m_tileset.GetTile(tileId);
 
-				for(int x = 0; x < m_platformConfig.tileWidth; x++)
+				if(!tile)
 				{
-					for(int y = 0; y < m_platformConfig.tileHeight; y++)
+					tile = m_tileset.GetTile(GetBackgroundTile());
+				}
+
+				if(!tile)
+				{
+					tile = m_tileset.GetTile(0);
+				}
+
+				if(tile)
+				{
+					for(int x = 0; x < m_platformConfig.tileWidth; x++)
 					{
-						u8 colourIndex = tile->GetPixelColour(x, y);
-						int pixelX = (tileFlags & Map::eFlipX) ? (m_platformConfig.tileWidth - x - 1) : x;
-						int pixelY = (tileFlags & Map::eFlipY) ? (m_platformConfig.tileHeight - y - 1) : y;
-						writer.SetColourIndex((tileX * m_platformConfig.tileWidth) + pixelX, (tileY * m_platformConfig.tileHeight) + pixelY, colourIndex);
+						for(int y = 0; y < m_platformConfig.tileHeight; y++)
+						{
+							u8 colourIndex = tile->GetPixelColour(x, y);
+							int pixelX = (tileFlags & Map::eFlipX) ? (m_platformConfig.tileWidth - x - 1) : x;
+							int pixelY = (tileFlags & Map::eFlipY) ? (m_platformConfig.tileHeight - y - 1) : y;
+							writer.SetColourIndex((tileX * m_platformConfig.tileWidth) + pixelX, (tileY * m_platformConfig.tileHeight) + pixelY, colourIndex);
+						}
 					}
 				}
 			}

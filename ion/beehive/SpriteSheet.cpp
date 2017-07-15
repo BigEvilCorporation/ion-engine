@@ -27,6 +27,9 @@ SpriteSheet::SpriteSheet()
 
 bool SpriteSheet::ImportBitmap(const std::string& filename, const std::string& name, int tileWidth, int tileHeight, int widthFrames, int heightFrames, int maxFrames)
 {
+	//Clear frames
+	m_frames.clear();
+
 	//Read BMP
 	BMPReader reader;
 	if(reader.Read(filename))
