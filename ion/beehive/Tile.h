@@ -26,6 +26,8 @@ public:
 	Tile();
 	Tile(u8 width, u8 height);
 
+	bool operator == (const Tile& rhs) const;
+
 	void SetIndex(u32 index);
 	u32 GetIndex() const;
 
@@ -39,6 +41,9 @@ public:
 	u8 GetPixelColour(int x, int y) const;
 	void CopyPixels(const Tile& tile);
 	void GetPixels(std::vector<u8>& pixels) const;
+
+	void FlipX();
+	void FlipY();
 
 	void SetPaletteId(PaletteId palette);
 	PaletteId GetPaletteId() const;

@@ -55,8 +55,20 @@ void CollisionMap::Serialise(ion::io::Archive& archive)
 {
 	archive.Serialise(m_width, "width");
 	archive.Serialise(m_height, "height");
-	archive.Serialise(m_terrainBeziers, "terrainBeziers");
+	archive.Serialise(m_terrainBeziers, "beziers");
 	archive.Serialise(m_collisionTiles, "collisionTiles");
+
+	if(archive.GetDirection() == ion::io::Archive::eIn && m_terrainBeziers.size() == 0)
+	{
+		//Legacy, no bezier flags
+		std::vector<ion::gamekit::BezierPath> beziers;
+		archive.Serialise(beziers, "terrainBeziers");
+
+		for(int i = 0; i < beziers.size(); i++)
+		{
+			m_terrainBeziers.push_back(TerrainBezier({ beziers[i], 0 }));
+		}
+	}
 }
 
 int CollisionMap::GetWidth() const
@@ -129,7 +141,7 @@ void CollisionMap::Resize(int width, int height, bool shiftRight, bool shiftDown
 		if(!shiftDown && height > m_height)
 			offset.y += (float)(height - m_height) * 8.0f;
 
-		m_terrainBeziers[i].Move(offset);
+		m_terrainBeziers[i].bezier.Move(offset);
 	}
 
 	m_width = width;
@@ -138,25 +150,37 @@ void CollisionMap::Resize(int width, int height, bool shiftRight, bool shiftDown
 
 ion::gamekit::BezierPath* CollisionMap::AddTerrainBezier()
 {
-	m_terrainBeziers.push_back(ion::gamekit::BezierPath());
-	return &m_terrainBeziers.back();
+	m_terrainBeziers.push_back(TerrainBezier({ ion::gamekit::BezierPath(), 0 }));
+	return &m_terrainBeziers.back().bezier;
 }
 
 void CollisionMap::AddTerrainBezier(const ion::gamekit::BezierPath& bezier)
 {
-	m_terrainBeziers.push_back(bezier);
+	m_terrainBeziers.push_back(TerrainBezier({ bezier, 0 }));
 }
 
 ion::gamekit::BezierPath* CollisionMap::GetTerrainBezier(u32 index)
 {
 	ion::debug::Assert(index < m_terrainBeziers.size(), "CollisionMap::GetTerrainBezier() - Out of range");
-	return &m_terrainBeziers[index];
+	return &m_terrainBeziers[index].bezier;
 }
 
 const ion::gamekit::BezierPath* CollisionMap::GetTerrainBezier(u32 index) const
 {
 	ion::debug::Assert(index < m_terrainBeziers.size(), "CollisionMap::GetTerrainBezier() - Out of range");
-	return &m_terrainBeziers[index];
+	return &m_terrainBeziers[index].bezier;
+}
+
+void CollisionMap::SetTerrainBezierFlags(u32 index, u16 flags)
+{
+	ion::debug::Assert(index < m_terrainBeziers.size(), "CollisionMap::SetTerrainBezierFlags() - Out of range");
+	m_terrainBeziers[index].terrainFlags = flags;
+}
+
+u16 CollisionMap::GetTerrainBezierFlags(u32 index)
+{
+	ion::debug::Assert(index < m_terrainBeziers.size(), "CollisionMap::GetTerrainBezierFlags() - Out of range");
+	return m_terrainBeziers[index].terrainFlags;
 }
 
 const ion::gamekit::BezierPath* CollisionMap::FindTerrainBezier(int x, int y, ion::Vector2i& topLeft) const
@@ -169,12 +193,12 @@ const ion::gamekit::BezierPath* CollisionMap::FindTerrainBezier(int x, int y, io
 
 	for(int i = 0; i < m_terrainBeziers.size() && !bezier; i++)
 	{
-		m_terrainBeziers[i].GetBounds(bezierBoundsMin, bezierBoundsMax);
+		m_terrainBeziers[i].bezier.GetBounds(bezierBoundsMin, bezierBoundsMax);
 
 		if(x >= topLeft.x && y >= topLeft.y
 			&& x < bottomRight.x && y < bottomRight.y)
 		{
-			bezier = &m_terrainBeziers[i];
+			bezier = &m_terrainBeziers[i].bezier;
 			topLeft.x = bezierBoundsMin.x;
 			topLeft.y = bezierBoundsMin.y;
 		}
@@ -193,7 +217,7 @@ int CollisionMap::FindTerrainBeziers(int x, int y, int width, int height, std::v
 
 	for(int i = 0; i < m_terrainBeziers.size(); i++)
 	{
-		const ion::gamekit::BezierPath& bezier = m_terrainBeziers[i];
+		const ion::gamekit::BezierPath& bezier = m_terrainBeziers[i].bezier;
 		bezier.GetBounds(bezierBoundsMin, bezierBoundsMax);
 
 		//Invert Y

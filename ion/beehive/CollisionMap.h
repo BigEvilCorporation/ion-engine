@@ -66,6 +66,8 @@ public:
 	const ion::gamekit::BezierPath* GetTerrainBezier(u32 index) const;
 	const ion::gamekit::BezierPath* FindTerrainBezier(int x, int y, ion::Vector2i& topLeft) const;
 	int FindTerrainBeziers(int x, int y, int width, int height, std::vector<const ion::gamekit::BezierPath*>& beziers) const;
+	void SetTerrainBezierFlags(u32 index, u16 flags);
+	u16 GetTerrainBezierFlags(u32 index);
 	void RemoveTerrainBezier(u32 index);
 	int GetNumTerrainBeziers() const;
 
@@ -93,6 +95,18 @@ private:
 		void Export(const Project& project, ion::io::File& file, int blockWidth, int blockHeight);
 	};
 
+	struct TerrainBezier
+	{
+		ion::gamekit::BezierPath bezier;
+		u16 terrainFlags;
+
+		void Serialise(ion::io::Archive& archive)
+		{
+			archive.Serialise(bezier, "bezier");
+			archive.Serialise(terrainFlags, "flags");
+		}
+	};
+
 	int m_width;
 	int m_height;
 
@@ -104,7 +118,7 @@ private:
 	std::vector<Block*> m_uniqueBlocks;
 
 	//Terrain beziers
-	std::vector<ion::gamekit::BezierPath> m_terrainBeziers;
+	std::vector<TerrainBezier> m_terrainBeziers;
 };
 
 void CollisionMap::SetTerrainTile(int x, int y, TerrainTileId tile)

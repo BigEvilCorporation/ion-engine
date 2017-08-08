@@ -22,7 +22,7 @@
 
 class Tileset
 {
-	typedef std::map<u64, TileId> HashMap;
+	typedef std::map<u64, std::vector<TileId>> HashMap;
 
 public:
 	enum HashOrientation

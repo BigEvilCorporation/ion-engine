@@ -37,8 +37,9 @@ TileId Tileset::AddTile()
 
 void Tileset::PopBackTile()
 {
+	TileId tileId = m_tiles.size() - 1;
+	RemoveFromHashMap(tileId);
 	m_tiles.pop_back();
-	RemoveFromHashMap(m_tiles.size() - 1);
 }
 
 void Tileset::HashChanged(TileId tileId)
@@ -50,12 +51,38 @@ void Tileset::HashChanged(TileId tileId)
 
 void Tileset::AddToHashMap(TileId tileId)
 {
-	m_hashMap.insert(std::make_pair(m_tiles[tileId].GetHash(), tileId));
+	u64 hash = m_tiles[tileId].GetHash();
+
+	HashMap::iterator it = m_hashMap.find(hash);
+	if(it == m_hashMap.end())
+	{
+		it = m_hashMap.insert(std::make_pair(hash, std::vector<TileId>())).first;
+	}
+
+	if(std::find(it->second.begin(), it->second.end(), tileId) == it->second.end())
+	{
+		it->second.push_back(tileId);
+	}
 }
 
 void Tileset::RemoveFromHashMap(TileId tileId)
 {
-	m_hashMap.erase(m_tiles[tileId].GetHash());
+	u64 hash = m_tiles[tileId].GetHash();
+
+	HashMap::iterator it = m_hashMap.find(hash);
+	if(it != m_hashMap.end())
+	{
+		std::vector<TileId>::iterator eraseit = std::remove_if(it->second.begin(), it->second.end(), [&](const TileId& rhs) { return rhs == tileId; });
+		if(eraseit != it->second.end())
+		{
+			it->second.erase(eraseit);
+		}
+
+		if(it->second.empty())
+		{
+			m_hashMap.erase(it);
+		}
+	}
 }
 
 void Tileset::CalculateHashes(const Tile& tile, u64 hashes[Tileset::eNumHashOrientations]) const
@@ -122,15 +149,38 @@ TileId Tileset::FindDuplicate(const Tile& tile, u32& tileFlags) const
 	u64 hashes[eNumHashOrientations];
 	CalculateHashes(tile, hashes);
 
-	//Find duplicate
+	//Find duplicate hash of any orientation
 	for(int i = 0; i < eNumHashOrientations; i++)
 	{
 		HashMap::const_iterator it = m_hashMap.find(hashes[i]);
 
 		if(it != m_hashMap.end())
 		{
-			tileFlags = s_orientationFlags[i];
-			return it->second;
+			//Hash match, find exact match of this orientation
+			for(int j = 0; j < it->second.size(); j++)
+			{
+				Tile tempTile = m_tiles[it->second[j]];
+
+				if(i == eFlipX)
+				{
+					tempTile.FlipX();
+				}
+				else if(i == eFlipY)
+				{
+					tempTile.FlipY();
+				}
+				else if(i == eFlipXY)
+				{
+					tempTile.FlipX();
+					tempTile.FlipY();
+				}
+
+				if(tempTile == tile)
+				{
+					tileFlags = s_orientationFlags[i];
+					return it->second[j];
+				}
+			}
 		}
 	}
 
@@ -169,8 +219,12 @@ int Tileset::GetCount() const
 void Tileset::Serialise(ion::io::Archive& archive)
 {
 	archive.Serialise(m_tiles, "tiles");
-	archive.Serialise(m_hashMap, "hashMap");
-	RebuildHashMap();
+	archive.Serialise(m_hashMap, "multiHashMap");
+
+	if(archive.GetDirection() == ion::io::Archive::eIn)
+	{
+		RebuildHashMap();
+	}
 }
 
 void Tileset::Export(const PlatformConfig& config, std::stringstream& stream) const

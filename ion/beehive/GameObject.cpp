@@ -145,7 +145,7 @@ void GameObject::Serialise(ion::io::Archive& archive)
 	archive.Serialise(m_variables, "variables");
 }
 
-void GameObject::Export(std::stringstream& stream, const GameObjectType& gameObjectType) const
+void GameObject::Export(std::stringstream& stream, const GameObjectType& gameObjectType, const std::string& name) const
 {
 	stream << '\t' << "jsr " << gameObjectType.GetName() << "Init" << std::endl;
 
@@ -175,6 +175,16 @@ void GameObject::Export(std::stringstream& stream, const GameObjectType& gameObj
 
 		stream << "#" << valueString << ", " << templateVariables[i].m_name << "(a0)" << std::endl;
 	}
+
+	//Copy debug name
+	static const int maxDebugNameSize = 16;
+	stream << '\t' << "IFND FINAL" << std::endl;
+	stream << '\t' << "lea " << name << "_name, a3" << std::endl;
+	stream << '\t' << "move.l a0, a2" << std::endl;
+	stream << '\t' << "add.l #Entity_DebugName, a2" << std::endl;
+	stream << '\t' << "move.l #0x" << ion::maths::Min((int)name.size(), maxDebugNameSize) << ", d0" << std::endl;
+	stream << '\t' << "MEMCPYB a2,a3,d0" << std::endl;
+	stream << '\t' << "ENDIF" << std::endl;
 
 	const std::vector<GameObjectVariable>& instanceVariables = GetVariables();
 

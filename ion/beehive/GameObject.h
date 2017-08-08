@@ -120,7 +120,7 @@ public:
 	const std::vector<GameObjectVariable>& GetVariables() const { return m_variables; }
 
 	void Serialise(ion::io::Archive& archive);
-	void Export(std::stringstream& stream, const GameObjectType& gameObjectType) const;
+	void Export(std::stringstream& stream, const GameObjectType& gameObjectType, const std::string& name) const;
 
 private:
 	void ParseValueTokens(std::string& valueString) const;

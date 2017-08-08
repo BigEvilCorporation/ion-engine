@@ -18,8 +18,9 @@ enum eCollisionTileFlags
 {
 	eCollisionTileFlagSolid = (1 << 13),
 	eCollisionTileFlagHole = (1 << 14),
+	eCollisionTileFlagSpecial = (1 << 15),
 
-	eCollisionTileFlagAll = (eCollisionTileFlagSolid | eCollisionTileFlagHole),
+	eCollisionTileFlagAll = (eCollisionTileFlagSolid | eCollisionTileFlagHole | eCollisionTileFlagSpecial),
 	eCollisionTileFlagNone = (eCollisionTileFlagSolid - 1)
 };
 

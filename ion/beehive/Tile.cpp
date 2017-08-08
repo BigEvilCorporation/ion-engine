@@ -38,6 +38,11 @@ Tile::Tile(u8 width, u8 height)
 	m_pixels.resize(width * height);
 }
 
+bool Tile::operator == (const Tile& rhs) const
+{
+	return m_pixels == rhs.m_pixels;
+}
+
 void Tile::SetIndex(u32 index)
 {
 	m_index = index;
@@ -71,6 +76,46 @@ void Tile::GetPixels(std::vector<u8>& pixels) const
 {
 	pixels.resize(m_pixels.size());
 	ion::memory::MemCopy(pixels.data(), m_pixels.data(), m_pixels.size());
+}
+
+void Tile::FlipX()
+{
+	std::vector<u8> temp;
+	temp.resize(m_width * m_height);
+
+	for(int sourceX = 0; sourceX < m_width; sourceX++)
+	{
+		for(int sourceY = 0; sourceY < m_height; sourceY++)
+		{
+			int destX = m_width - 1 - sourceX;
+			int destY = sourceY;
+			int pixelSourceIdx = (sourceY * m_height) + sourceX;
+			int pixelDestIdx = (destY * m_height) + destX;
+			temp[pixelDestIdx] = m_pixels[pixelSourceIdx];
+		}
+	}
+
+	m_pixels = std::move(temp);
+}
+
+void Tile::FlipY()
+{
+	std::vector<u8> temp;
+	temp.resize(m_width * m_height);
+
+	for(int sourceX = 0; sourceX < m_width; sourceX++)
+	{
+		for(int sourceY = 0; sourceY < m_height; sourceY++)
+		{
+			int destX = sourceX;
+			int destY = m_height - 1 - sourceY;
+			int pixelSourceIdx = (sourceY * m_height) + sourceX;
+			int pixelDestIdx = (destY * m_height) + destX;
+			temp[pixelDestIdx] = m_pixels[pixelSourceIdx];
+		}
+	}
+
+	m_pixels = std::move(temp);
 }
 
 void Tile::SetPaletteId(PaletteId palette)

@@ -581,10 +581,9 @@ void Project::DeleteTile(TileId tileId)
 		*tile1 = *tile2;
 		*tile2 = tmpTile;
 
+		//Erase last tile
+		m_tileset.PopBackTile();
 	}
-
-	//Erase last tile
-	m_tileset.PopBackTile();
 
 	//Clear paint tile
 	SetPaintTile(InvalidTileId);
@@ -1568,6 +1567,7 @@ bool Project::GenerateTerrainFromBeziers(int granularity)
 		for(int i = 0; i < collisionMap.GetNumTerrainBeziers(); i++)
 		{
 			const ion::gamekit::BezierPath* bezier = collisionMap.GetTerrainBezier(i);
+			u16 terrainFlags = collisionMap.GetTerrainBezierFlags(i);
 			const int maxPoints = bezier->GetNumPoints();
 
 			if(maxPoints > 0)
@@ -1601,6 +1601,7 @@ bool Project::GenerateTerrainFromBeziers(int granularity)
 
 							//Set on map
 							collisionMap.SetTerrainTile(tilePos.x, tilePos.y, tileId);
+							collisionMap.SetCollisionTileFlags(tilePos.x, tilePos.y, collisionMap.GetCollisionTileFlags(tilePos.x, tilePos.y) | terrainFlags);
 						}
 
 						//Get collision tile
@@ -3117,6 +3118,26 @@ bool Project::ExportCollisionMap(MapId mapId, const std::string& filename, bool 
 	return false;
 }
 
+namespace
+{
+	std::string GenerateObjectName(const std::string& mapName, const GameObject& gameObject, const GameObjectType& gameObjectType)
+	{
+		std::stringstream name;
+
+		if(gameObject.GetName().size() > 0)
+		{
+			name << mapName << "_" << gameObject.GetName();
+		}
+		else
+		{
+			//No name, generate one
+			name << mapName << "_" << gameObjectType.GetName() << "_" << std::dec << (u32)gameObject.GetId();
+		}
+
+		return name.str();
+	}
+}
+
 bool Project::ExportGameObjects(MapId mapId, const std::string& filename) const
 {
 	const Map& map = m_maps.find(mapId)->second;
@@ -3154,16 +3175,30 @@ bool Project::ExportGameObjects(MapId mapId, const std::string& filename) const
 			{
 				for(int i = 0; i < gameObjIt->second.size(); i++)
 				{
-					if(gameObjIt->second[i].m_gameObject.GetName().size() > 0)
-					{
-						stream << mapName << "_" << gameObjIt->second[i].m_gameObject.GetName() << "_idx\tequ 0x" << std::hex << i << std::endl;
-					}
-					else
-					{
-						//No name, generate one
-						stream << mapName << "_" << gameObjectType.GetName() << "_" << std::dec << (u32)gameObjIt->second[i].m_gameObject.GetId() << "_idx\tequ 0x" << std::hex << i << std::endl;
-					}
+					std::string name = GenerateObjectName(mapName, gameObjIt->second[i].m_gameObject, gameObjectType);
+					stream << name << "_idx\tequ 0x" << std::hex << i << std::endl;
 				}
+
+				stream << std::endl;
+
+				stream << '\t' << "IFND FINAL" << std::endl;
+
+				for(int i = 0; i < gameObjIt->second.size(); i++)
+				{
+					std::string name = GenerateObjectName(mapName, gameObjIt->second[i].m_gameObject, gameObjectType);
+
+					stream << name << "_name\tdc.b \"";
+					for(int i = 0; i < name.size(); i++)
+					{
+						stream << name[i];
+					}
+
+					stream << "\",0" << std::endl;
+				}
+
+				stream << "\teven" << std::endl;
+
+				stream << '\t' << "ENDIF" << std::endl;
 			}
 
 			stream << std::endl;
@@ -3202,7 +3237,8 @@ bool Project::ExportGameObjects(MapId mapId, const std::string& filename) const
 			{
 				for(int i = 0; i < gameObjIt->second.size(); i++)
 				{
-					gameObjIt->second[i].m_gameObject.Export(stream, gameObjectType);
+					std::string name = GenerateObjectName(mapName, gameObjIt->second[i].m_gameObject, gameObjectType);
+					gameObjIt->second[i].m_gameObject.Export(stream, gameObjectType, name);
 					stream << '\t' << "add.l #" << gameObjectType.GetName() << "_Struct_Size, a0" << std::endl;
 				}
 			}
