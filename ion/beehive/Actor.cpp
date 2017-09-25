@@ -153,17 +153,17 @@ void Actor::ExportSpriteSheets(const PlatformConfig& config, std::stringstream& 
 
 		stream << std::endl;
 
-		stream << "; Subsprite offsets from 0,0 (in pixels) - unflipped (bb) and flipped X (bb)" << std::endl;
+		stream << "; Subsprite offsets from 0,0 (in pixels) - unflipped (ww) and flipped X (ww)" << std::endl;
 		stream << label.str() << "_subsprite_pos_offsets:" << std::endl;
 
 		for(int i = 0; i < subSprOffsetsUnflipped.size(); i++)
 		{
-			stream << "\tdc.w 0x"
-				<< HEX2(subSprOffsetsUnflipped[i].x)
-				<< HEX2(subSprOffsetsUnflipped[i].y)
+			stream << "\tdc.l 0x"
+				<< HEX4(subSprOffsetsUnflipped[i].x)
+				<< HEX4(subSprOffsetsUnflipped[i].y)
 				<< ", 0x"
-				<< HEX2(subSprOffsetsFlippedX[i].x)
-				<< HEX2(subSprOffsetsFlippedX[i].y)
+				<< HEX4(subSprOffsetsFlippedX[i].x)
+				<< HEX4(subSprOffsetsFlippedX[i].y)
 				<< std::endl;
 		}
 
@@ -201,8 +201,12 @@ void Actor::ExportSpriteSheets(const PlatformConfig& config, std::stringstream& 
 		label << "spritesheet_" << m_name << "_" << it->second.GetName();
 
 		u32 size = it->second.GetBinarySizeTiles();
+		u32 width = it->second.GetWidthTiles() * 8;
+		u32 height = it->second.GetHeightTiles() * 8;
 
 		stream << label.str() << "_frameoffset\tequ 0x" << HEX2(frameIndex) << "\t; Offset to first frame in sprite sheet" << std::endl;
+		stream << label.str() << "_width\t\tequ 0x" << HEX2(width) << "\t; Width in pixels" << std::endl;
+		stream << label.str() << "_height\t\tequ 0x" << HEX2(height) << "\t; Width in pixels" << std::endl;
 		stream << label.str() << "_size_b\t\tequ 0x" << HEX2(size) << "\t; Size in bytes" << std::endl;
 		stream << label.str() << "_size_w\t\tequ 0x" << HEX2(size/2) << "\t; Size in words" << std::endl;
 		stream << label.str() << "_size_l\t\tequ 0x" << HEX2(size/4) << "\t; Size in longwords" << std::endl;

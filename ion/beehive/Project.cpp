@@ -1601,7 +1601,12 @@ bool Project::GenerateTerrainFromBeziers(int granularity)
 
 							//Set on map
 							collisionMap.SetTerrainTile(tilePos.x, tilePos.y, tileId);
-							collisionMap.SetCollisionTileFlags(tilePos.x, tilePos.y, collisionMap.GetCollisionTileFlags(tilePos.x, tilePos.y) | terrainFlags);
+
+							//Clear special flag
+							u16 originalFlags = collisionMap.GetCollisionTileFlags(tilePos.x, tilePos.y);
+							originalFlags &= ~eCollisionTileFlagSpecial;
+
+							collisionMap.SetCollisionTileFlags(tilePos.x, tilePos.y, originalFlags | terrainFlags);
 						}
 
 						//Get collision tile
@@ -2433,10 +2438,8 @@ bool Project::ExportPalettes(const std::string& filename) const
 	return false;
 }
 
-bool Project::ExportTiles(const std::string& filename, bool binary) const
+bool Project::ExportTiles(const std::string& filename, bool binary, bool compressed) const
 {
-	u32 binarySize = 0;
-
 	if(binary)
 	{
 		std::string binaryFilename = filename.substr(0, filename.find_first_of('.'));
@@ -2446,8 +2449,7 @@ bool Project::ExportTiles(const std::string& filename, bool binary) const
 		ion::io::File binaryFile(binaryFilename, ion::io::File::eOpenWrite);
 		if(binaryFile.IsOpen())
 		{
-			m_tileset.Export(m_platformConfig, binaryFile);
-			binarySize = binaryFile.GetSize();
+			m_tileset.Export(m_platformConfig, binaryFile, compressed);
 		}
 		else
 		{
@@ -2461,9 +2463,11 @@ bool Project::ExportTiles(const std::string& filename, bool binary) const
 		std::stringstream stream;
 		WriteFileHeader(stream);
 
+		u32 binarySize = m_tileset.GetBinarySize(m_platformConfig);
+
 		if(binary)
 		{
-			//Export size of binary file
+			//Export (uncompressed) size of binary file
 			stream << "tiles_" << m_name << "_size_b\tequ 0x" << std::hex << std::setfill('0') << std::uppercase << std::setw(8) << binarySize << std::dec << "\t; Size in bytes" << std::endl;
 		}
 		else
@@ -2809,6 +2813,9 @@ bool Project::ExportTerrainBlockMap(MapId mapId, const std::string& filename, bo
 	const CollisionMap& collisionMap = m_collisionMaps.find(mapId)->second;
 	int mapWidth = collisionMap.GetBlockAlignedWidth(blockWidth);
 	int mapHeight = collisionMap.GetBlockAlignedHeight(blockHeight);
+	const int tileWidth = GetPlatformConfig().tileWidth;
+	const int tileHeight = GetPlatformConfig().tileHeight;
+	const int mapHeightPixels = (collisionMap.GetHeight() * tileHeight);
 	const std::string& mapName = map.GetName();
 
 	u32 binarySize = 0;
@@ -2863,6 +2870,45 @@ bool Project::ExportTerrainBlockMap(MapId mapId, const std::string& filename, bo
 		stream << "terrainmap_blockmap_" << mapName << "_width\tequ " << "0x" << std::setw(2) << map.GetWidthBlocks(blockWidth) << std::endl;
 		stream << "terrainmap_blockmap_" << mapName << "_height\tequ " << "0x" << std::setw(2) << map.GetHeightBlocks(blockHeight) << std::endl;
 		stream << std::dec;
+		stream << std::endl;
+
+		//Export bezier metadata for 'special' terrain
+		std::vector<std::pair<ion::Vector2i,ion::Vector2i>> specialTerrainStartEndPositions;
+		ion::Vector2 p1;
+		ion::Vector2 p2;
+		ion::Vector2 controlA;
+		ion::Vector2 controlB;
+
+		for(int i = 0; i < collisionMap.GetNumTerrainBeziers(); i++)
+		{
+			if(collisionMap.GetTerrainBezierFlags(i) & eCollisionTileFlagSpecial)
+			{
+				if(const ion::gamekit::BezierPath* path = collisionMap.GetTerrainBezier(i))
+				{
+					if(path->GetNumPoints() >= 2)
+					{
+						path->GetPoint(0, p1, controlA, controlB);
+						path->GetPoint(path->GetNumPoints() - 1, p2, controlA, controlB);
+						specialTerrainStartEndPositions.push_back(std::make_pair(ion::Vector2i(p1.x, mapHeightPixels - 1 - p1.y), ion::Vector2i(p2.x, mapHeightPixels - 1 - p2.y)));
+					}
+				}
+			}
+		}
+
+		stream << "; Terrain beziers start/end positions" << std::endl;
+		stream << "terrainmap_" << mapName << "_num_special_terrain_descs\tequ " << "0x" << std::setw(2) << specialTerrainStartEndPositions.size() << std::endl;
+		stream << "terrainmap_" << mapName << "_special_terrain_descs:" << std::endl;
+
+		for(int i = 0; i < specialTerrainStartEndPositions.size(); i++)
+		{
+			stream << "\tdc.w "
+				<< "0x" << HEX4(specialTerrainStartEndPositions[i].first.x) << ", "
+				<< "0x" << HEX4(specialTerrainStartEndPositions[i].first.y) << ", "
+				<< "0x" << HEX4(specialTerrainStartEndPositions[i].second.x) << ", "
+				<< "0x" << HEX4(specialTerrainStartEndPositions[i].second.y) << "\t; Start X, start Y, end X, end Y" << std::endl;
+		}
+
+		stream << std::endl;
 
 		file.Write(stream.str().c_str(), stream.str().size());
 
@@ -3207,6 +3253,7 @@ bool Project::ExportGameObjects(MapId mapId, const std::string& filename) const
 		stream << std::endl;
 
 		//Output debug checks
+#if defined OUTPUT_GAMEOBJ_DEBUG_CHECKS
 		for(int i = 0; i < sortedTypes.size(); i++)
 		{
 			const GameObjectType& gameObjectType = *sortedTypes[i];
@@ -3218,6 +3265,7 @@ bool Project::ExportGameObjects(MapId mapId, const std::string& filename) const
 			stream << "\tENDIF" << std::endl;
 			stream << std::endl;
 		}
+#endif
 
 		stream << std::endl;
 
@@ -3229,17 +3277,25 @@ bool Project::ExportGameObjects(MapId mapId, const std::string& filename) const
 			const GameObjectType& gameObjectType = *sortedTypes[i];
 			const TGameObjectPosMap::const_iterator gameObjIt = gameObjMap.find(gameObjectType.GetId());
 
-			//Load array
-			stream << '\t' << "move.l #EntityArray_" << gameObjectType.GetName() << ", a0" << std::endl;
-
 			//Export all game objects of this type
 			if(gameObjIt != gameObjMap.end())
 			{
-				for(int i = 0; i < gameObjIt->second.size(); i++)
+				if(gameObjIt->second.size() > 0)
 				{
-					std::string name = GenerateObjectName(mapName, gameObjIt->second[i].m_gameObject, gameObjectType);
-					gameObjIt->second[i].m_gameObject.Export(stream, gameObjectType, name);
-					stream << '\t' << "add.l #" << gameObjectType.GetName() << "_Struct_Size, a0" << std::endl;
+					//Alloc memory from entity pool
+					stream << '\t' << "PUSHL  a1" << std::endl;
+					stream << '\t' << "RAMPOOL_ALLOC Pool_Entities, #(" << gameObjectType.GetName() << "_Struct_Size*" << mapName << "_" << gameObjectType.GetName() << "_count)" << std::endl;
+					stream << '\t' << "move.l a1, EntityPoolStart_" << gameObjectType.GetName() << std::endl;
+					stream << '\t' << "move.l a1, a0" << std::endl;
+					stream << '\t' << "POPL   a1" << std::endl;
+					stream << std::endl;
+
+					for(int i = 0; i < gameObjIt->second.size(); i++)
+					{
+						std::string name = GenerateObjectName(mapName, gameObjIt->second[i].m_gameObject, gameObjectType);
+						gameObjIt->second[i].m_gameObject.Export(stream, gameObjectType, name);
+						stream << '\t' << "add.l #" << gameObjectType.GetName() << "_Struct_Size, a0" << std::endl;
+					}
 				}
 			}
 

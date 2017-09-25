@@ -258,7 +258,7 @@ public:
 
 	//Export
 	bool ExportPalettes(const std::string& filename) const;
-	bool ExportTiles(const std::string& filename, bool binary) const;
+	bool ExportTiles(const std::string& filename, bool binary, bool compressed) const;
 	bool ExportStampAnims(const std::string& filename, bool binary) const;
 	bool ExportTerrainTiles(const std::string& filename, bool binary) const;
 	bool ExportSpriteSheets(const std::string& directory, bool binary) const;
@@ -301,7 +301,8 @@ public:
 		bool spriteAnimsExportEnabled = false;
 		bool spritePalettesExportEnabled = false;
 
-		bool exportBinary = true;
+		bool exportBinary = false;
+		bool exportCompressed = true;
 
 		void Serialise(ion::io::Archive& archive)
 		{
@@ -314,6 +315,7 @@ public:
 			archive.Serialise(spriteAnimsExportEnabled, "spriteAnimsExportEnabled");
 			archive.Serialise(spritePalettesExportEnabled, "spritePalettesExportEnabled");
 			archive.Serialise(exportBinary, "exportBinary");
+			archive.Serialise(exportCompressed, "exportCompressed");
 
 			archive.Serialise(palettes, "exportFNamePalettes");
 			archive.Serialise(tileset, "exportFNameTileset");

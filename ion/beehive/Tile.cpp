@@ -186,6 +186,30 @@ void Tile::Export(const PlatformConfig& config, ion::io::File& file) const
 	}
 }
 
+void Tile::Export(const PlatformConfig& config, std::vector<u8>& buffer) const
+{
+	buffer.reserve(buffer.capacity() + (m_width * m_height));
+
+	//if(config.platform == ePlatformMegaDrive)
+	{
+		for(int y = 0; y < m_height; y++)
+		{
+			for(int x = 0; x < m_width; x += 2)
+			{
+				u8 nybble1 = (u8)GetPixelColour(x, y) << 4;
+				u8 nybble2 = ((x + 1) < m_width) ? (u8)GetPixelColour(x + 1, y) : 0;
+
+				u8 byte = nybble1 | nybble2;
+				buffer.push_back(byte);
+			}
+		}
+	}
+	//else if(config.platform == ePlatformSNES)
+	{
+		//TODO: SNES binary export goes here
+	}
+}
+
 u32 Tile::GetBinarySize() const
 {
 	//4 bits per pixel

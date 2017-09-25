@@ -529,6 +529,10 @@ void Map::RemoveGameObject(int x, int y)
 		for(std::vector<GameObjectMapEntry>::reverse_iterator itVec = itMap->second.rbegin(), endVec = itMap->second.rend(); itVec != endVec; ++itVec)
 		{
 			ion::Vector2i size(itVec->m_size.x / tileWidth, itVec->m_size.y / tileHeight);
+			if(size.x == 0)
+				size.x = 1;
+			if(size.y == 0)
+				size.y = 1;
 			ion::Vector2i topLeft = itVec->m_gameObject.GetPosition();
 			ion::Vector2i bottomRight = topLeft + size;
 

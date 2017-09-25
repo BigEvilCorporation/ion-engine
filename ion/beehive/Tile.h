@@ -51,6 +51,7 @@ public:
 	void Serialise(ion::io::Archive& archive);
 	void Export(const PlatformConfig& config, std::stringstream& stream) const;
 	void Export(const PlatformConfig& config, ion::io::File& file) const;
+	void Export(const PlatformConfig& config, std::vector<u8>& buffer) const;
 	u32 GetBinarySize() const;
 
 private:

@@ -12,6 +12,9 @@
 #include "Tileset.h"
 #include "Map.h"
 #include <ion/core/cryptography/Hash.h>
+#include <ion/dependencies/slz/tool/main.h>
+#include <ion/dependencies/slz/tool/compress.h>
+#include <ion/dependencies/slz/tool/decompress.h>
 
 const u32 Tileset::s_orientationFlags[eNumHashOrientations] = { 0, Map::eFlipX, Map::eFlipY, Map::eFlipX | Map::eFlipY };
 
@@ -227,6 +230,11 @@ void Tileset::Serialise(ion::io::Archive& archive)
 	}
 }
 
+int Tileset::GetBinarySize(const PlatformConfig& config) const
+{
+	return (m_tiles.size() * config.tileWidth * config.tileHeight) / 2;
+}
+
 void Tileset::Export(const PlatformConfig& config, std::stringstream& stream) const
 {
 	for(int i = 0; i < m_tiles.size(); i++)
@@ -236,10 +244,36 @@ void Tileset::Export(const PlatformConfig& config, std::stringstream& stream) co
 	}
 }
 
-void Tileset::Export(const PlatformConfig& config, ion::io::File& file) const
+void Tileset::Export(const PlatformConfig& config, ion::io::File& file, bool compress) const
 {
-	for(int i = 0; i < m_tiles.size(); i++)
+	if(compress)
 	{
-		m_tiles[i].Export(config, file);
+		std::vector<u8> buffer;
+		buffer.reserve(config.tileWidth * config.tileWidth * m_tiles.size());
+
+		for(int i = 0; i < m_tiles.size(); i++)
+		{
+			m_tiles[i].Export(config, buffer);
+		}
+
+		//Alloc compressed buffer
+		const int outBufferSize = buffer.size() + 2;
+		u8* compressedData = new u8[outBufferSize];
+		
+		//Compress
+		int compressedSize = compress_memory(buffer.data(), compressedData, buffer.size(), outBufferSize, FORMAT_SLZ16);
+
+		//Write
+		file.Write(compressedData, compressedSize);
+
+		//Done with buffer
+		delete compressedData;
+	}
+	else
+	{
+		for(int i = 0; i < m_tiles.size(); i++)
+		{
+			m_tiles[i].Export(config, file);
+		}
 	}
 }

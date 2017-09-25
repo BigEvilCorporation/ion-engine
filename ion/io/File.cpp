@@ -209,6 +209,11 @@ namespace ion
 			return m_openMode;
 		}
 
+		const std::string& File::GetFilename() const
+		{
+			return m_filename;
+		}
+
 		bool File::IsOpen() const
 		{
 			return m_open;

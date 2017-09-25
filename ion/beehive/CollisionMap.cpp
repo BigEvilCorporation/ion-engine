@@ -177,7 +177,7 @@ void CollisionMap::SetTerrainBezierFlags(u32 index, u16 flags)
 	m_terrainBeziers[index].terrainFlags = flags;
 }
 
-u16 CollisionMap::GetTerrainBezierFlags(u32 index)
+u16 CollisionMap::GetTerrainBezierFlags(u32 index) const
 {
 	ion::debug::Assert(index < m_terrainBeziers.size(), "CollisionMap::GetTerrainBezierFlags() - Out of range");
 	return m_terrainBeziers[index].terrainFlags;

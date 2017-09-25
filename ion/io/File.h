@@ -48,6 +48,8 @@ namespace ion
 
 			OpenMode GetOpenMode() const;
 
+			const std::string& GetFilename() const;
+
 		protected:
 			void FillBuffer(s64 position);
 
