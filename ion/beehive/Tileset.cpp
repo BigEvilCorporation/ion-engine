@@ -257,14 +257,14 @@ void Tileset::Export(const PlatformConfig& config, ion::io::File& file, bool com
 		}
 
 		//Alloc compressed buffer
-		const int outBufferSize = buffer.size() + 2;
+		const int outBufferSize = ion::maths::RoundUpToNearest(buffer.size() + 2, 4);
 		u8* compressedData = new u8[outBufferSize];
 		
 		//Compress
 		int compressedSize = compress_memory(buffer.data(), compressedData, buffer.size(), outBufferSize, FORMAT_SLZ16);
 
 		//Write
-		file.Write(compressedData, compressedSize);
+		file.Write(compressedData, ion::maths::RoundUpToNearest(compressedSize, 4));
 
 		//Done with buffer
 		delete compressedData;
