@@ -2785,11 +2785,44 @@ bool Project::ExportBlockMap(MapId mapId, const std::string& filename, bool bina
 	return false;
 }
 
-bool Project::ExportTerrainBlocks(MapId mapId, const std::string& filename, bool binary, int blockWidth, int blockHeight) const
+bool Project::ExportTerrainBlocks(const std::string& filename, bool binary, int blockWidth, int blockHeight)
 {
-	const Map& map = m_maps.find(mapId)->second;
-	const CollisionMap& collisionMap = m_collisionMaps.find(mapId)->second;
-	const std::string& mapName = map.GetName();
+	//Generate map blocks and concatenate into one list
+	std::vector<CollisionMap::Block*> blocks;
+	for(TCollisionMapMap::iterator it = m_collisionMaps.begin(), end = m_collisionMaps.end(); it != end; ++it)
+	{
+		if(it->second.GetNumTerrainBeziers() > 0)
+		{
+			it->second.GenerateBlocks(*this, blockWidth, blockHeight);
+
+			std::vector<CollisionMap::Block>& currBlocks = it->second.GetBlocks();
+			blocks.reserve(blocks.size() + currBlocks.size());
+			for(int i = 0; i < currBlocks.size(); i++)
+			{
+				blocks.push_back(&currBlocks[i]);
+			}
+		}
+	}
+
+	//Find unique blocks
+	std::vector<CollisionMap::Block*> uniqueBlocks;
+
+	for(int i = 0; i < blocks.size(); i++)
+	{
+		if(blocks[i]->uniqueIndex == -1)
+		{
+			blocks[i]->uniqueIndex = uniqueBlocks.size();
+			uniqueBlocks.push_back(blocks[i]);
+
+			for(int j = i + 1; j < blocks.size(); j++)
+			{
+				if(*blocks[i] == *blocks[j])
+				{
+					blocks[j]->uniqueIndex = blocks[i]->uniqueIndex;
+				}
+			}
+		}
+	}
 
 	u32 binarySize = 0;
 
@@ -2802,7 +2835,11 @@ bool Project::ExportTerrainBlocks(MapId mapId, const std::string& filename, bool
 		ion::io::File binaryFile(binaryFilename, ion::io::File::eOpenWrite);
 		if(binaryFile.IsOpen())
 		{
-			collisionMap.ExportBlocks(*this, binaryFile, blockWidth, blockHeight);
+			for(int i = 0; i < uniqueBlocks.size(); i++)
+			{
+				uniqueBlocks[i]->Export(*this, binaryFile, blockWidth, blockHeight);
+			}
+
 			binarySize = binaryFile.GetSize();
 		}
 		else
@@ -2820,22 +2857,25 @@ bool Project::ExportTerrainBlocks(MapId mapId, const std::string& filename, bool
 		if(binary)
 		{
 			//Export size of binary file
-			stream << "terrainmap_blocks_" << mapName << "_size_b\tequ 0x" << std::hex << std::setfill('0') << std::uppercase << std::setw(8) << binarySize << std::dec << "\t; Size in bytes" << std::endl;
+			stream << "terrainmap_blocks_" << m_name << "_size_b\tequ 0x" << std::hex << std::setfill('0') << std::uppercase << std::setw(8) << binarySize << std::dec << "\t; Size in bytes" << std::endl;
 		}
 		else
 		{
 			//Export label, data and size as inline text
-			stream << "terrainmap_blocks_" << mapName << ":" << std::endl;
+			stream << "terrainmap_blocks_" << m_name << ":" << std::endl;
 
-			collisionMap.ExportBlocks(*this, stream, blockWidth, blockHeight);
+			for(int i = 0; i < uniqueBlocks.size(); i++)
+			{
+				uniqueBlocks[i]->Export(*this, stream, blockWidth, blockHeight);
+			}
 
 			stream << std::endl;
-			stream << "terrainmap_blocks_" << mapName << "_end:" << std::endl;
-			stream << "terrainmap_blocks_" << mapName << "_size_b\tequ (terrainmap_blocks_" << mapName << "_end-terrainmap_" << mapName << ")\t; Size in bytes" << std::endl;
+			stream << "terrainmap_blocks_" << m_name << "_end:" << std::endl;
+			stream << "terrainmap_blocks_" << m_name << "_size_b\tequ (terrainmap_blocks_" << m_name << "_end-terrainmap_" << m_name << ")\t; Size in bytes" << std::endl;
 		}
 
-		stream << "terrainmap_blocks_" << mapName << "_size_w\tequ (terrainmap_blocks_" << mapName << "_size_b/2)\t; Size in words" << std::endl;
-		stream << "terrainmap_blocks_" << mapName << "_size_l\tequ (terrainmap_blocks_" << mapName << "_size_b/4)\t; Size in longwords" << std::endl;
+		stream << "terrainmap_blocks_" << m_name << "_size_w\tequ (terrainmap_blocks_" << m_name << "_size_b/2)\t; Size in words" << std::endl;
+		stream << "terrainmap_blocks_" << m_name << "_size_l\tequ (terrainmap_blocks_" << m_name << "_size_b/4)\t; Size in longwords" << std::endl;
 
 		file.Write(stream.str().c_str(), stream.str().size());
 
@@ -2856,101 +2896,104 @@ bool Project::ExportTerrainBlockMap(MapId mapId, const std::string& filename, bo
 	const int mapHeightPixels = (collisionMap.GetHeight() * tileHeight);
 	const std::string& mapName = map.GetName();
 
-	u32 binarySize = 0;
-
-	if(binary)
+	if(collisionMap.GetNumTerrainBeziers() > 0)
 	{
-		std::string binaryFilename = filename.substr(0, filename.find_first_of('.'));
-		binaryFilename += ".bin";
-
-		//Export binary data
-		ion::io::File binaryFile(binaryFilename, ion::io::File::eOpenWrite);
-		if(binaryFile.IsOpen())
-		{
-			collisionMap.ExportBlockMap(*this, binaryFile, blockWidth, blockHeight);
-			binarySize = binaryFile.GetSize();
-		}
-		else
-		{
-			return false;
-		}
-	}
-
-	ion::io::File file(filename, ion::io::File::eOpenWrite);
-	if(file.IsOpen())
-	{
-		std::stringstream stream;
-		WriteFileHeader(stream);
+		u32 binarySize = 0;
 
 		if(binary)
 		{
-			//Export size of binary file
-			stream << "terrainmap_blockmap_" << mapName << "_size_b\tequ 0x" << std::hex << std::setfill('0') << std::uppercase << std::setw(8) << binarySize << std::dec << "\t; Size in bytes" << std::endl;
-		}
-		else
-		{
-			//Export label, data and size as inline text
-			stream << "terrainmap_blockmap_" << mapName << ":" << std::endl;
+			std::string binaryFilename = filename.substr(0, filename.find_first_of('.'));
+			binaryFilename += ".bin";
 
-			collisionMap.ExportBlockMap(*this, stream, blockWidth, blockHeight);
-
-			stream << std::endl;
-			stream << "terrainmap_blockmap_" << mapName << "_end:" << std::endl;
-			stream << "terrainmap_blockmap_" << mapName << "_size_b\tequ (terrainmap_blockmap_" << mapName << "_end-terrainmap_" << mapName << ")\t; Size in bytes" << std::endl;
-		}
-
-		stream << "terrainmap_blockmap_" << mapName << "_size_w\tequ (terrainmap_blockmap_" << mapName << "_size_b/2)\t; Size in words" << std::endl;
-		stream << "terrainmap_blockmap_" << mapName << "_size_l\tequ (terrainmap_blockmap_" << mapName << "_size_b/4)\t; Size in longwords" << std::endl;
-
-		stream << std::hex << std::setfill('0') << std::uppercase;
-		stream << "terrainmap_" << mapName << "_width\tequ " << "0x" << std::setw(2) << mapWidth << std::endl;
-		stream << "terrainmap_" << mapName << "_height\tequ " << "0x" << std::setw(2) << mapHeight << std::endl;
-		stream << "terrainmap_blockmap_" << mapName << "_width\tequ " << "0x" << std::setw(2) << map.GetWidthBlocks(blockWidth) << std::endl;
-		stream << "terrainmap_blockmap_" << mapName << "_height\tequ " << "0x" << std::setw(2) << map.GetHeightBlocks(blockHeight) << std::endl;
-		stream << std::dec;
-		stream << std::endl;
-
-		//Export bezier metadata for 'special' terrain
-		std::vector<std::pair<ion::Vector2i,ion::Vector2i>> specialTerrainStartEndPositions;
-		ion::Vector2 p1;
-		ion::Vector2 p2;
-		ion::Vector2 controlA;
-		ion::Vector2 controlB;
-
-		for(int i = 0; i < collisionMap.GetNumTerrainBeziers(); i++)
-		{
-			if(collisionMap.GetTerrainBezierFlags(i) & eCollisionTileFlagSpecial)
+			//Export binary data
+			ion::io::File binaryFile(binaryFilename, ion::io::File::eOpenWrite);
+			if(binaryFile.IsOpen())
 			{
-				if(const ion::gamekit::BezierPath* path = collisionMap.GetTerrainBezier(i))
-				{
-					if(path->GetNumPoints() >= 2)
-					{
-						path->GetPoint(0, p1, controlA, controlB);
-						path->GetPoint(path->GetNumPoints() - 1, p2, controlA, controlB);
-						specialTerrainStartEndPositions.push_back(std::make_pair(ion::Vector2i(p1.x, mapHeightPixels - 1 - p1.y), ion::Vector2i(p2.x, mapHeightPixels - 1 - p2.y)));
-					}
-				}
+				collisionMap.ExportBlockMap(*this, binaryFile, blockWidth, blockHeight);
+				binarySize = binaryFile.GetSize();
+			}
+			else
+			{
+				return false;
 			}
 		}
 
-		stream << "; Terrain beziers start/end positions" << std::endl;
-		stream << "terrainmap_" << mapName << "_num_special_terrain_descs\tequ " << "0x" << std::setw(2) << specialTerrainStartEndPositions.size() << std::endl;
-		stream << "terrainmap_" << mapName << "_special_terrain_descs:" << std::endl;
-
-		for(int i = 0; i < specialTerrainStartEndPositions.size(); i++)
+		ion::io::File file(filename, ion::io::File::eOpenWrite);
+		if(file.IsOpen())
 		{
-			stream << "\tdc.w "
-				<< "0x" << HEX4(specialTerrainStartEndPositions[i].first.x) << ", "
-				<< "0x" << HEX4(specialTerrainStartEndPositions[i].first.y) << ", "
-				<< "0x" << HEX4(specialTerrainStartEndPositions[i].second.x) << ", "
-				<< "0x" << HEX4(specialTerrainStartEndPositions[i].second.y) << "\t; Start X, start Y, end X, end Y" << std::endl;
+			std::stringstream stream;
+			WriteFileHeader(stream);
+
+			if(binary)
+			{
+				//Export size of binary file
+				stream << "terrainmap_blockmap_" << mapName << "_size_b\tequ 0x" << std::hex << std::setfill('0') << std::uppercase << std::setw(8) << binarySize << std::dec << "\t; Size in bytes" << std::endl;
+			}
+			else
+			{
+				//Export label, data and size as inline text
+				stream << "terrainmap_blockmap_" << mapName << ":" << std::endl;
+
+				collisionMap.ExportBlockMap(*this, stream, blockWidth, blockHeight);
+
+				stream << std::endl;
+				stream << "terrainmap_blockmap_" << mapName << "_end:" << std::endl;
+				stream << "terrainmap_blockmap_" << mapName << "_size_b\tequ (terrainmap_blockmap_" << mapName << "_end-terrainmap_" << mapName << ")\t; Size in bytes" << std::endl;
+			}
+
+			stream << "terrainmap_blockmap_" << mapName << "_size_w\tequ (terrainmap_blockmap_" << mapName << "_size_b/2)\t; Size in words" << std::endl;
+			stream << "terrainmap_blockmap_" << mapName << "_size_l\tequ (terrainmap_blockmap_" << mapName << "_size_b/4)\t; Size in longwords" << std::endl;
+
+			stream << std::hex << std::setfill('0') << std::uppercase;
+			stream << "terrainmap_" << mapName << "_width\tequ " << "0x" << std::setw(2) << mapWidth << std::endl;
+			stream << "terrainmap_" << mapName << "_height\tequ " << "0x" << std::setw(2) << mapHeight << std::endl;
+			stream << "terrainmap_blockmap_" << mapName << "_width\tequ " << "0x" << std::setw(2) << map.GetWidthBlocks(blockWidth) << std::endl;
+			stream << "terrainmap_blockmap_" << mapName << "_height\tequ " << "0x" << std::setw(2) << map.GetHeightBlocks(blockHeight) << std::endl;
+			stream << std::dec;
+			stream << std::endl;
+
+			//Export bezier metadata for 'special' terrain
+			std::vector<std::pair<ion::Vector2i, ion::Vector2i>> specialTerrainStartEndPositions;
+			ion::Vector2 p1;
+			ion::Vector2 p2;
+			ion::Vector2 controlA;
+			ion::Vector2 controlB;
+
+			for(int i = 0; i < collisionMap.GetNumTerrainBeziers(); i++)
+			{
+				if(collisionMap.GetTerrainBezierFlags(i) & eCollisionTileFlagSpecial)
+				{
+					if(const ion::gamekit::BezierPath* path = collisionMap.GetTerrainBezier(i))
+					{
+						if(path->GetNumPoints() >= 2)
+						{
+							path->GetPoint(0, p1, controlA, controlB);
+							path->GetPoint(path->GetNumPoints() - 1, p2, controlA, controlB);
+							specialTerrainStartEndPositions.push_back(std::make_pair(ion::Vector2i(p1.x, mapHeightPixels - 1 - p1.y), ion::Vector2i(p2.x, mapHeightPixels - 1 - p2.y)));
+						}
+					}
+				}
+			}
+
+			stream << "; Terrain beziers start/end positions" << std::endl;
+			stream << "terrainmap_" << mapName << "_num_special_terrain_descs\tequ " << "0x" << std::setw(2) << specialTerrainStartEndPositions.size() << std::endl;
+			stream << "terrainmap_" << mapName << "_special_terrain_descs:" << std::endl;
+
+			for(int i = 0; i < specialTerrainStartEndPositions.size(); i++)
+			{
+				stream << "\tdc.w "
+					<< "0x" << HEX4(specialTerrainStartEndPositions[i].first.x) << ", "
+					<< "0x" << HEX4(specialTerrainStartEndPositions[i].first.y) << ", "
+					<< "0x" << HEX4(specialTerrainStartEndPositions[i].second.x) << ", "
+					<< "0x" << HEX4(specialTerrainStartEndPositions[i].second.y) << "\t; Start X, start Y, end X, end Y" << std::endl;
+			}
+
+			stream << std::endl;
+
+			file.Write(stream.str().c_str(), stream.str().size());
+
+			return true;
 		}
-
-		stream << std::endl;
-
-		file.Write(stream.str().c_str(), stream.str().size());
-
-		return true;
 	}
 
 	return false;

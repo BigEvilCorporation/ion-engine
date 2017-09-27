@@ -308,26 +308,11 @@ void CollisionMap::GenerateBlocks(const Project& project, int blockWidth, int bl
 			}
 		}
 	}
+}
 
-	//Find duplicates
-	m_uniqueBlocks.clear();
-
-	for(int i = 0; i < m_blocks.size(); i++)
-	{
-		if(m_blocks[i].uniqueIndex == -1)
-		{
-			m_blocks[i].uniqueIndex = m_uniqueBlocks.size();
-			m_uniqueBlocks.push_back(&m_blocks[i]);
-
-			for(int j = i + 1; j < m_blocks.size(); j++)
-			{
-				if(m_blocks[i] == m_blocks[j])
-				{
-					m_blocks[j].uniqueIndex = m_blocks[i].uniqueIndex;
-				}
-			}
-		}
-	}
+std::vector<CollisionMap::Block>& CollisionMap::GetBlocks()
+{
+	return m_blocks;
 }
 
 void CollisionMap::Export(const Project& project, std::stringstream& stream) const
@@ -390,26 +375,6 @@ void CollisionMap::Export(const Project& project, ion::io::File& file) const
 			ion::memory::EndianSwap(word);
 			file.Write(&word, sizeof(u16));
 		}
-	}
-}
-
-void CollisionMap::ExportBlocks(const Project& project, std::stringstream& stream, int blockWidth, int blockHeight) const
-{
-	//Export unique blocks
-	for(int i = 0; i < m_uniqueBlocks.size(); i++)
-	{
-		stream << "Terrain_Block_" << i << ":" << std::endl;
-		m_uniqueBlocks[i]->Export(project, stream, blockWidth, blockHeight);
-		stream << std::endl;
-	}
-}
-
-void CollisionMap::ExportBlocks(const Project& project, ion::io::File& file, int blockWidth, int blockHeight) const
-{
-	//Export unique blocks
-	for(int i = 0; i < m_uniqueBlocks.size(); i++)
-	{
-		m_uniqueBlocks[i]->Export(project, file, blockWidth, blockHeight);
 	}
 }
 

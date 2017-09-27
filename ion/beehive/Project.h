@@ -273,7 +273,7 @@ public:
 	bool ExportStamps(const std::string& filename, bool binary) const;
 	bool ExportStampMap(MapId mapId, const std::string& filename, bool binary) const;
 	bool ExportCollisionMap(MapId mapId, const std::string& filename, bool binary) const;
-	bool ExportTerrainBlocks(MapId mapId, const std::string& filename, bool binary, int blockWidth, int blockHeight) const;
+	bool ExportTerrainBlocks(const std::string& filename, bool binary, int blockWidth, int blockHeight);
 	bool ExportTerrainBlockMap(MapId mapId, const std::string& filename, bool binary, int blockWidth, int blockHeight) const;
 	bool ExportGameObjects(MapId mapId, const std::string& filename) const;
 
@@ -289,6 +289,7 @@ public:
 		std::string stamps;
 		std::string stampAnims;
 		std::string terrainTiles;
+		std::string terrainBlocks;
 		std::string spriteSheets;
 		std::string spriteAnims;
 		std::string spritePalettes;
@@ -299,6 +300,7 @@ public:
 		bool stampsExportEnabled = false;
 		bool stampAnimsExportEnabled = false;
 		bool terrainTilesExportEnabled = false;
+		bool terrainBlockExportEnabled = false;
 		bool spriteSheetsExportEnabled = false;
 		bool spriteAnimsExportEnabled = false;
 		bool spritePalettesExportEnabled = false;
@@ -314,6 +316,7 @@ public:
 			archive.Serialise(stampsExportEnabled, "stampsExportEnabled");
 			archive.Serialise(stampAnimsExportEnabled, "stampAnimsExportEnabled");
 			archive.Serialise(terrainTilesExportEnabled, "terrainTilesExportEnabled");
+			archive.Serialise(terrainBlockExportEnabled, "terrainBlockExportEnabled");
 			archive.Serialise(spriteSheetsExportEnabled, "spriteSheetsExportEnabled");
 			archive.Serialise(spriteAnimsExportEnabled, "spriteAnimsExportEnabled");
 			archive.Serialise(spritePalettesExportEnabled, "spritePalettesExportEnabled");
@@ -326,6 +329,7 @@ public:
 			archive.Serialise(stamps, "exportFNameStamps");
 			archive.Serialise(stampAnims, "exportFNameStampAnims");
 			archive.Serialise(terrainTiles, "exportFNameTerrainTiles");
+			archive.Serialise(terrainBlocks, "exportFNameTerrainBlocks");
 			archive.Serialise(spriteSheets, "exportDirSpriteSheets");
 			archive.Serialise(spriteAnims, "exportDirSpriteAnims");
 			archive.Serialise(spritePalettes, "exportDirSpritePalettes");

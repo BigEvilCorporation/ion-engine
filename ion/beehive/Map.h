@@ -242,5 +242,4 @@ private:
 	GameObjectId m_nextFreeGameObjectId;
 
 	std::vector<Block> m_blocks;
-	std::vector<Block*> m_uniqueBlocks;
 };
