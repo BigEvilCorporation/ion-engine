@@ -85,6 +85,36 @@ public:
 		eHighPlane = 1<<2
 	};
 
+	struct TileDesc
+	{
+		TileDesc() { m_id = InvalidTileId; m_flags = 0; }
+		TileDesc(TileId id, u32 flags) { m_id = id; m_flags = flags; }
+
+		void Serialise(ion::io::Archive& archive)
+		{
+			archive.Serialise(m_id);
+			archive.Serialise(m_flags);
+		}
+
+		bool operator ==(const TileDesc& rhs) const
+		{
+			return m_id == rhs.m_id && m_flags == rhs.m_flags;
+		}
+
+		TileId m_id;
+		u32 m_flags;
+	};
+
+	struct Block
+	{
+		std::vector<TileDesc> m_tiles;
+		int uniqueIndex = -1;
+
+		bool operator ==(const Block& rhs) const;
+		void Export(const Project& project, std::stringstream& stream, int blockWidth, int blockHeight);
+		void Export(const Project& project, ion::io::File& file, int blockWidth, int blockHeight);
+	};
+
 	Map();
 	Map(const PlatformConfig& platformConfig);
 
@@ -145,12 +175,11 @@ public:
 
 	// Generate NxN blocks and sort unique
 	void GenerateBlocks(const Project& project, int blockWidth, int blockHeight);
+	std::vector<Block>& GetBlocks();
 
 	void Serialise(ion::io::Archive& archive);
 	void Export(const Project& project, std::stringstream& stream) const;
 	void Export(const Project& project, ion::io::File& file) const;
-	void ExportBlocks(const Project& project, std::stringstream& stream, int blockWidth, int blockHeight) const;
-	void ExportBlocks(const Project& project, ion::io::File& file, int blockWidth, int blockHeight) const;
 	void ExportBlockMap(const Project& project, std::stringstream& stream, int blockWidth, int blockHeight) const;
 	void ExportBlockMap(const Project& project, ion::io::File& file, int blockWidth, int blockHeight) const;
 	void ExportStampMap(const Project& project, std::stringstream& stream) const;
@@ -181,7 +210,6 @@ public:
 		{
 			archive.Serialise(mapExportEnabled, "mapExportEnabled");
 			archive.Serialise(stampMapExportEnabled, "stampMapExportEnabled");
-			archive.Serialise(blocksExportEnabled, "blocksExportEnabled");
 			archive.Serialise(blockMapExportEnabled, "blockMapExportEnabled");
 			archive.Serialise(terrainBlocksExportEnabled, "terrainBlocksExportEnabled");
 			archive.Serialise(terrainBlockMapExportEnabled, "terrainBlockMapExportEnabled");
@@ -190,7 +218,6 @@ public:
 
 			archive.Serialise(map, "exportFNameMap");
 			archive.Serialise(stampMap, "exportFNameStampMap");
-			archive.Serialise(blocks, "exportFNameblocks");
 			archive.Serialise(blockMap, "exportFNameblockMap");
 			archive.Serialise(terrainBlocks, "exportFNameTerrainBlocks");
 			archive.Serialise(terrainBlockMap, "exportFNameTerrainBlockMap");
@@ -202,35 +229,6 @@ public:
 	ExportFilenames m_exportFilenames;
 
 private:
-	struct TileDesc
-	{
-		TileDesc() { m_id = InvalidTileId; m_flags = 0; }
-		TileDesc(TileId id, u32 flags) { m_id = id; m_flags = flags; }
-
-		void Serialise(ion::io::Archive& archive)
-		{
-			archive.Serialise(m_id);
-			archive.Serialise(m_flags);
-		}
-
-		bool operator ==(const TileDesc& rhs) const
-		{
-			return m_id == rhs.m_id && m_flags == rhs.m_flags;
-		}
-
-		TileId m_id;
-		u32 m_flags;
-	};
-
-	struct Block
-	{
-		std::vector<TileDesc> m_tiles;
-		int uniqueIndex = -1;
-
-		bool operator ==(const Block& rhs) const;
-		void Export(const Project& project, std::stringstream& stream, int blockWidth, int blockHeight);
-		void Export(const Project& project, ion::io::File& file, int blockWidth, int blockHeight);
-	};
 
 	void BakeStamp(std::vector<TileDesc>& tiles, int mapWidth, int mapHeight, int x, int y, const Stamp& stamp, u32 flipFlags) const;
 

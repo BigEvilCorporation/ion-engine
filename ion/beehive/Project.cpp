@@ -2617,10 +2617,41 @@ bool Project::ExportMap(MapId mapId, const std::string& filename, bool binary) c
 	return false;
 }
 
-bool Project::ExportBlocks(MapId mapId, const std::string& filename, bool binary, int blockWidth, int blockHeight) const
+bool Project::ExportBlocks(const std::string& filename, bool binary, int blockWidth, int blockHeight)
 {
-	const Map& map = m_maps.find(mapId)->second;
-	const std::string& mapName = map.GetName();
+	//Generate map blocks and concatenate into one list
+	std::vector<Map::Block*> blocks;
+	for(TMapMap::iterator it = m_maps.begin(), end = m_maps.end(); it != end; ++it)
+	{
+		it->second.GenerateBlocks(*this, blockWidth, blockHeight);
+
+		std::vector<Map::Block>& currBlocks = it->second.GetBlocks();
+		blocks.reserve(blocks.size() + currBlocks.size());
+		for(int i = 0; i < currBlocks.size(); i++)
+		{
+			blocks.push_back(&currBlocks[i]);
+		}
+	}
+
+	//Find unique blocks
+	std::vector<Map::Block*> uniqueBlocks;
+
+	for(int i = 0; i < blocks.size(); i++)
+	{
+		if(blocks[i]->uniqueIndex == -1)
+		{
+			blocks[i]->uniqueIndex = uniqueBlocks.size();
+			uniqueBlocks.push_back(blocks[i]);
+
+			for(int j = i + 1; j < blocks.size(); j++)
+			{
+				if(*blocks[i] == *blocks[j])
+				{
+					blocks[j]->uniqueIndex = blocks[i]->uniqueIndex;
+				}
+			}
+		}
+	}
 
 	u32 binarySize = 0;
 
@@ -2635,7 +2666,11 @@ bool Project::ExportBlocks(MapId mapId, const std::string& filename, bool binary
 			ion::io::File binaryFile(binaryFilename, ion::io::File::eOpenWrite);
 			if(binaryFile.IsOpen())
 			{
-				map.ExportBlocks(*this, binaryFile, blockWidth, blockHeight);
+				for(int i = 0; i < uniqueBlocks.size(); i++)
+				{
+					uniqueBlocks[i]->Export(*this, binaryFile, blockWidth, blockHeight);
+				}
+
 				binarySize = binaryFile.GetSize();
 			}
 			else
@@ -2654,22 +2689,25 @@ bool Project::ExportBlocks(MapId mapId, const std::string& filename, bool binary
 		if(binary)
 		{
 			//Export size of binary file
-			stream << "map_blocks_" << mapName << "_size_b\tequ 0x" << std::hex << std::setfill('0') << std::uppercase << std::setw(8) << binarySize << std::dec << "\t; Size in bytes" << std::endl;
+			stream << "map_blocks_" << m_name << "_size_b\tequ 0x" << std::hex << std::setfill('0') << std::uppercase << std::setw(8) << binarySize << std::dec << "\t; Size in bytes" << std::endl;
 		}
 		else
 		{
 			//Export label, data and size as inline text
-			stream << "map_blocks_" << mapName << ":" << std::endl;
-
-			map.ExportBlocks(*this, stream, blockWidth, blockHeight);
-
+			stream << "map_blocks_" << m_name << ":" << std::endl;
+		
+			for(int i = 0; i < uniqueBlocks.size(); i++)
+			{
+				uniqueBlocks[i]->Export(*this, stream, blockWidth, blockHeight);
+			}
+		
 			stream << std::endl;
-			stream << "map_blocks_" << mapName << "_end:" << std::endl;
-			stream << "map_blocks_" << mapName << "_size_b\tequ (map_blocks_" << mapName << "_end-map_" << mapName << ")\t; Size in bytes" << std::endl;
+			stream << "map_blocks_" << m_name << "_end:" << std::endl;
+			stream << "map_blocks_" << m_name << "_size_b\tequ (map_blocks_" << m_name << "_end-map_" << m_name << ")\t; Size in bytes" << std::endl;
 		}
 
-		stream << "map_blocks_" << mapName << "_size_w\tequ (map_blocks_" << mapName << "_size_b/2)\t; Size in words" << std::endl;
-		stream << "map_blocks_" << mapName << "_size_l\tequ (map_blocks_" << mapName << "_size_b/4)\t; Size in longwords" << std::endl;
+		stream << "map_blocks_" << m_name << "_size_w\tequ (map_blocks_" << m_name << "_size_b/2)\t; Size in words" << std::endl;
+		stream << "map_blocks_" << m_name << "_size_l\tequ (map_blocks_" << m_name << "_size_b/4)\t; Size in longwords" << std::endl;
 
 		file.Write(stream.str().c_str(), stream.str().size());
 
