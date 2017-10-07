@@ -83,9 +83,13 @@ public:
 	void RemoveTerrainBezier(u32 index);
 	int GetNumTerrainBeziers() const;
 
-	// Generate NxN blocks and sort unique
+	//Generate NxN blocks and sort unique
 	void GenerateBlocks(const Project& project, int blockWidth, int blockHeight);
 	std::vector<Block>& GetBlocks();
+
+	//Get populated collision area
+	void GetPhysicsWorldBounds(ion::Vector2i& topLeft, ion::Vector2i& size, int tileWidth, int tileHeight, int blockWidth, int blockHeight) const;
+	void GetPhysicsWorldBoundsBlocks(ion::Vector2i& topLeft, ion::Vector2i& size, int tileWidth, int tileHeight, int blockWidth, int blockHeight) const;
 
 	void Serialise(ion::io::Archive& archive);
 	void Export(const Project& project, std::stringstream& stream) const;

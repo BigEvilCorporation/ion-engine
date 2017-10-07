@@ -41,6 +41,11 @@ namespace ion
 			return value + nearest - modulus;
 		}
 
+		float RoundDownToNearest(float value, int nearest)
+		{
+			return value - Fmod(value, nearest);
+		}
+
 		int NextPowerOfTwo(int x)
 		{
 			x--;

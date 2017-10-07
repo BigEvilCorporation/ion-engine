@@ -26,8 +26,13 @@
 
 //Defines/undefs
 #if defined ION_PLATFORM_WINDOWS
-#if defined DELETE
+
+#ifdef DELETE
 #undef DELETE
+#endif
+
+#ifdef MessageBox
 #undef MessageBox
 #endif
+
 #endif

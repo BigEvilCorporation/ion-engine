@@ -2889,12 +2889,18 @@ bool Project::ExportTerrainBlockMap(MapId mapId, const std::string& filename, bo
 {
 	const Map& map = m_maps.find(mapId)->second;
 	const CollisionMap& collisionMap = m_collisionMaps.find(mapId)->second;
-	int mapWidth = collisionMap.GetBlockAlignedWidth(blockWidth);
-	int mapHeight = collisionMap.GetBlockAlignedHeight(blockHeight);
 	const int tileWidth = GetPlatformConfig().tileWidth;
 	const int tileHeight = GetPlatformConfig().tileHeight;
 	const int mapHeightPixels = (collisionMap.GetHeight() * tileHeight);
 	const std::string& mapName = map.GetName();
+
+	ion::Vector2i topLeft;
+	ion::Vector2i size;
+	collisionMap.GetPhysicsWorldBounds(topLeft, size, tileWidth, tileHeight, blockWidth, blockHeight);
+
+	ion::Vector2i topLeftBlocks;
+	ion::Vector2i sizeBlocks;
+	collisionMap.GetPhysicsWorldBoundsBlocks(topLeftBlocks, sizeBlocks, tileWidth, tileHeight, blockWidth, blockHeight);
 
 	if(collisionMap.GetNumTerrainBeziers() > 0)
 	{
@@ -2945,10 +2951,14 @@ bool Project::ExportTerrainBlockMap(MapId mapId, const std::string& filename, bo
 			stream << "terrainmap_blockmap_" << mapName << "_size_l\tequ (terrainmap_blockmap_" << mapName << "_size_b/4)\t; Size in longwords" << std::endl;
 
 			stream << std::hex << std::setfill('0') << std::uppercase;
-			stream << "terrainmap_" << mapName << "_width\tequ " << "0x" << std::setw(2) << mapWidth << std::endl;
-			stream << "terrainmap_" << mapName << "_height\tequ " << "0x" << std::setw(2) << mapHeight << std::endl;
-			stream << "terrainmap_blockmap_" << mapName << "_width\tequ " << "0x" << std::setw(2) << map.GetWidthBlocks(blockWidth) << std::endl;
-			stream << "terrainmap_blockmap_" << mapName << "_height\tequ " << "0x" << std::setw(2) << map.GetHeightBlocks(blockHeight) << std::endl;
+			stream << "terrainmap_" << mapName << "_left\tequ " << "0x" << std::setw(2) << topLeft.x << std::endl;
+			stream << "terrainmap_" << mapName << "_top\tequ " << "0x" << std::setw(2) << topLeft.y << std::endl;
+			stream << "terrainmap_" << mapName << "_width\tequ " << "0x" << std::setw(2) << size.x << std::endl;
+			stream << "terrainmap_" << mapName << "_height\tequ " << "0x" << std::setw(2) << size.y << std::endl;
+			stream << "terrainmap_blockmap_" << mapName << "_left\tequ " << "0x" << std::setw(2) << topLeftBlocks.x << std::endl;
+			stream << "terrainmap_blockmap_" << mapName << "_top\tequ " << "0x" << std::setw(2) << topLeftBlocks.y << std::endl;
+			stream << "terrainmap_blockmap_" << mapName << "_width\tequ " << "0x" << std::setw(2) << sizeBlocks.x << std::endl;
+			stream << "terrainmap_blockmap_" << mapName << "_height\tequ " << "0x" << std::setw(2) << sizeBlocks.y << std::endl;
 			stream << std::dec;
 			stream << std::endl;
 

@@ -25,10 +25,13 @@ namespace ion
 		const float FLOAT_MIN = 1.175494351e-38f;
 		const float FLOAT_MAX = 3.402823466e+38f;
 		const float FLOAT_EPSILON = 1.19209290e-7f;
+		const int S32_MIN = (-2147483647 - 1);
+		const int S32_MAX = 2147483647;
 
 		int Round(float x);
 		float RoundToNearest(float value, int nearest);
 		float RoundUpToNearest(float value, int nearest);
+		float RoundDownToNearest(float value, int nearest);
 		int NextPowerOfTwo(int x);
 		float Sqrt(float value);
 		float Floor(float value);
