@@ -14,6 +14,7 @@
 
 #include "Bezier.h"
 #include "ion/core/debug/Debug.h"
+#include "ion/maths/Maths.h"
 
 namespace ion
 {
@@ -60,6 +61,8 @@ namespace ion
 			{
 				m_controlPoints[i] += offset;
 			}
+
+			CalculateBounds();
 		}
 
 		int BezierPath::GetNumCurves() const
@@ -147,6 +150,94 @@ namespace ion
 			return position;
 		}
 
+		void AddBounds(const ion::Vector2& point, ion::Vector2& boundsMin, ion::Vector2& boundMax)
+		{
+			if(point.x > boundMax.x)
+				boundMax.x = point.x;
+			if(point.x < boundsMin.x)
+				boundsMin.x = point.x;
+			if(point.y > boundMax.y)
+				boundMax.y = point.y;
+			if(point.y < boundsMin.y)
+				boundsMin.y = point.y;
+		}
+
+		void BezierMinMax(const ion::Vector2& p0, const ion::Vector2& p1, const ion::Vector2& p2, const ion::Vector2& p3, ion::Vector2& boundsMin, ion::Vector2& boundsMax)
+		{
+			boundsMin.x = maths::FLOAT_MAX;
+			boundsMin.y = maths::FLOAT_MAX;
+			boundsMax.x = maths::FLOAT_MIN;
+			boundsMax.y = maths::FLOAT_MIN;
+			AddBounds(p0, boundsMin, boundsMax);
+			AddBounds(p3, boundsMin, boundsMax);
+
+			std::vector<float> tvalues;
+			float a, b, c, t, t1, t2, b2ac, sqrtb2ac;
+
+			for(int i = 0; i < 2; i++)
+			{
+				if(i == 0)
+				{
+					b = 6 * p0.x - 12 * p1.x + 6 * p2.x;
+					a = -3 * p0.x + 9 * p1.x - 9 * p2.x + 3 * p3.x;
+					c = 3 * p1.x - 3 * p0.x;
+				}
+				else
+				{
+					b = 6 * p0.y - 12 * p1.y + 6 * p2.y;
+					a = -3 * p0.y + 9 * p1.y - 9 * p2.y + 3 * p3.y;
+					c = 3 * p1.y - 3 * p0.y;
+				}
+
+				if(ion::maths::Abs(a) < ion::maths::FLOAT_EPSILON)
+				{
+					if(ion::maths::Abs(b) < ion::maths::FLOAT_EPSILON)
+					{
+						continue;
+					}
+
+					t = -c / b;
+					if(0 < t && t < 1)
+					{
+						tvalues.push_back(t);
+					}
+
+					continue;
+				}
+
+				b2ac = b * b - 4 * c * a;
+				if(b2ac < 0)
+				{
+					continue;
+				}
+
+				sqrtb2ac = ion::maths::Sqrt(b2ac);
+
+				t1 = (-b + sqrtb2ac) / (2 * a);
+				if(0 < t1 && t1 < 1)
+				{
+					tvalues.push_back(t1);
+				}
+
+				t2 = (-b - sqrtb2ac) / (2 * a);
+				if(0 < t2 && t2 < 1)
+				{
+					tvalues.push_back(t2);
+				}
+			}
+
+			int j = tvalues.size();
+			float mt;
+			while(j--)
+			{
+				t = tvalues[j];
+				mt = 1 - t;
+				float xval = (mt * mt * mt * p0.x) + (3 * mt * mt * t * p1.x) + (3 * mt * t * t * p2.x) + (t * t * t * p3.x);
+				float yval = (mt * mt * mt * p0.y) + (3 * mt * mt * t * p1.y) + (3 * mt * t * t * p2.y) + (t * t * t * p3.y);
+				AddBounds(ion::Vector2(xval, yval), boundsMin, boundsMax);
+			}
+		}
+
 		void BezierPath::CalculateBounds()
 		{
 			m_boundsMin.x = maths::FLOAT_MAX;
@@ -154,18 +245,31 @@ namespace ion
 			m_boundsMax.x = maths::FLOAT_MIN;
 			m_boundsMax.y = maths::FLOAT_MIN;
 
-			for(int i = 0; i < GetNumPoints(); i++)
+			if(m_controlPoints.size() > 3)
 			{
-				const Vector2& point = m_controlPoints[(i * 3) + 1];
+				ion::Vector2 position;
+				ion::Vector2 controlA;
+				ion::Vector2 controlB;
+				GetPoint(0, position, controlA, controlB);
+				AddBounds(position, m_boundsMin, m_boundsMax);
+				GetPoint(GetNumCurves(), position, controlA, controlB);
+				AddBounds(position, m_boundsMin, m_boundsMax);
 
-				if(point.x > m_boundsMax.x)
-					m_boundsMax.x = point.x;
-				if(point.x < m_boundsMin.x)
-					m_boundsMin.x = point.x;
-				if(point.y > m_boundsMax.y)
-					m_boundsMax.y = point.y;
-				if(point.y < m_boundsMin.y)
-					m_boundsMin.y = point.y;
+				ion::Vector2 curveMin;
+				ion::Vector2 curveMax;
+
+				for(int i = 0; i < GetNumCurves(); i++)
+				{
+					int pointIndex = (i * 3) + 1;
+					BezierMinMax(m_controlPoints[pointIndex],
+						m_controlPoints[pointIndex + 1],
+						m_controlPoints[pointIndex + 2],
+						m_controlPoints[pointIndex + 3],
+						curveMin, curveMax);
+
+					AddBounds(curveMin, m_boundsMin, m_boundsMax);
+					AddBounds(curveMax, m_boundsMin, m_boundsMax);
+				}
 			}
 		}
 

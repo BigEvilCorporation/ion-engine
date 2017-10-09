@@ -119,18 +119,25 @@ void Map::Resize(int width, int height, bool shiftRight, bool shiftDown)
 	std::fill(tiles.begin(), tiles.end(), blankTile);
 
 	//Copy tiles
-	for(int x = 0; x < ion::maths::Min(width, m_width); x++)
+	for(int x = 0; x < m_width; x++)
 	{
-		for(int y = 0; y < ion::maths::Min(height, m_height); y++)
+		for(int y = 0; y < m_height; y++)
 		{
 			int destTileIdx = (y * width) + x;
 			if(shiftRight && width > m_width)
 				destTileIdx += (width - m_width);
+			if(shiftRight && width < m_width)
+				destTileIdx -= (m_width - width);
 			if(shiftDown && height > m_height)
 				destTileIdx += (height - m_height) * width;
+			if(shiftDown && height < m_height)
+				destTileIdx -= (m_height - height) * width;
 
-			tiles[destTileIdx].m_id = GetTile(x, y);
-			tiles[destTileIdx].m_flags = GetTileFlags(x, y);
+			if(destTileIdx >= 0 && destTileIdx < size)
+			{
+				tiles[destTileIdx].m_id = GetTile(x, y);
+				tiles[destTileIdx].m_flags = GetTileFlags(x, y);
+			}
 		}
 	}
 
@@ -155,6 +162,27 @@ void Map::Resize(int width, int height, bool shiftRight, bool shiftDown)
 		}
 	}
 
+	if(shiftRight && width < m_width)
+	{
+		//Shift stamps
+		for(TStampPosMap::iterator it = m_stamps.begin(), end = m_stamps.end(); it != end; ++it)
+		{
+			it->m_position.x -= (m_width - width);
+		}
+
+		//Shift game objects
+		for(TGameObjectPosMap::iterator it = m_gameObjects.begin(), end = m_gameObjects.end(); it != end; ++it)
+		{
+			for(int i = 0; i < it->second.size(); i++)
+			{
+				//it->second[i].m_position.x += (width - m_width);
+				ion::Vector2i pos = it->second[i].m_gameObject.GetPosition();
+				pos.x -= ((m_width - width) * tileWidth);
+				it->second[i].m_gameObject.SetPosition(pos);
+			}
+		}
+	}
+
 	if(shiftDown && height > m_height)
 	{
 		//Shift stamps
@@ -171,6 +199,27 @@ void Map::Resize(int width, int height, bool shiftRight, bool shiftDown)
 				//it->second[i].m_position.y += (height - m_height);
 				ion::Vector2i pos = it->second[i].m_gameObject.GetPosition();
 				pos.y += ((height - m_height) * tileWidth);
+				it->second[i].m_gameObject.SetPosition(pos);
+			}
+		}
+	}
+
+	if(shiftDown && height < m_height)
+	{
+		//Shift stamps
+		for(TStampPosMap::iterator it = m_stamps.begin(), end = m_stamps.end(); it != end; ++it)
+		{
+			it->m_position.y -= (m_height - height);
+		}
+
+		//Shift game objects
+		for(TGameObjectPosMap::iterator it = m_gameObjects.begin(), end = m_gameObjects.end(); it != end; ++it)
+		{
+			for(int i = 0; i < it->second.size(); i++)
+			{
+				//it->second[i].m_position.y += (height - m_height);
+				ion::Vector2i pos = it->second[i].m_gameObject.GetPosition();
+				pos.y -= ((m_height - height) * tileWidth);
 				it->second[i].m_gameObject.SetPosition(pos);
 			}
 		}

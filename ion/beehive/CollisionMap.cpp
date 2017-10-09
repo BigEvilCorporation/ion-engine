@@ -17,8 +17,6 @@
 #include <ion/core/memory/Endian.h>
 #include <ion/maths/Geometry.h>
 
-#pragma optimize( "", off )
-
 CollisionMap::CollisionMap()
 {
 	const PlatformConfig& defaultPlatformConfig = PlatformPresets::s_configs[PlatformPresets::ePresetMegaDrive];
@@ -116,17 +114,24 @@ void CollisionMap::Resize(int width, int height, bool shiftRight, bool shiftDown
 	std::fill(terrainTiles.begin(), terrainTiles.end(), InvalidTerrainTileId);
 
 	//Copy tiles
-	for(int x = 0; x < ion::maths::Min(width, m_width); x++)
+	for(int x = 0; x < m_width; x++)
 	{
-		for(int y = 0; y < ion::maths::Min(height, m_height); y++)
+		for(int y = 0; y < m_height; y++)
 		{
 			int destTileIdx = (y * width) + x;
 			if(shiftRight && width > m_width)
 				destTileIdx += (width - m_width);
+			if(shiftRight && width < m_width)
+				destTileIdx += (m_width - width);
 			if(shiftDown && height > m_height)
 				destTileIdx += (height - m_height) * width;
+			if(shiftDown && height < m_height)
+				destTileIdx -= (m_height - height) * width;
 
-			terrainTiles[destTileIdx] = GetTerrainTile(x, y) | GetCollisionTileFlags(x, y);
+			if(destTileIdx >= 0 && destTileIdx < size)
+			{
+				terrainTiles[destTileIdx] = GetTerrainTile(x, y) | GetCollisionTileFlags(x, y);
+			}
 		}
 	}
 	
@@ -140,8 +145,12 @@ void CollisionMap::Resize(int width, int height, bool shiftRight, bool shiftDown
 
 		if(shiftRight && width > m_width)
 			offset.x += (float)(width - m_width) * 8.0f;
-		if(!shiftDown && height > m_height)
-			offset.y -= (float)(height - m_height) * 8.0f;
+		if(shiftRight && width < m_width)
+			offset.x += (float)(m_width - width) * 8.0f;
+		if(!shiftDown && m_height < height)
+			offset.y += (float)(height - m_height) * 8.0f;
+		if(!shiftDown && m_height > height)
+			offset.y -= (float)(m_height - height) * 8.0f;
 
 		m_terrainBeziers[i].bezier.Move(offset);
 	}
@@ -322,28 +331,42 @@ void CollisionMap::GetPhysicsWorldBounds(ion::Vector2i& topLeft, ion::Vector2i& 
 	bottomRight.y = ion::maths::S32_MIN;
 
 	//Get terrain bezier bounds
+	ion::Vector2i bezierMin = topLeft;
+	ion::Vector2i bezierMax = bottomRight;
+
 	for(int i = 0; i < m_terrainBeziers.size(); i++)
 	{
 		const ion::gamekit::BezierPath& bezier = m_terrainBeziers[i].bezier;
 
-		ion::Vector2 boundsMin;
-		ion::Vector2 boundsMax;
-		bezier.GetBounds(boundsMin, boundsMax);
+		if(bezier.GetNumCurves() > 0)
+		{
+			ion::Vector2 boundsMin;
+			ion::Vector2 boundsMax;
+			bezier.GetBounds(boundsMin, boundsMax);
 
-		if(boundsMin.x < topLeft.x)
-			topLeft.x = boundsMin.x;
-		if(boundsMin.y < topLeft.y)
-			topLeft.y = boundsMin.y;
-		if(boundsMax.x > bottomRight.x)
-			bottomRight.x = boundsMax.x;
-		if(boundsMax.y > bottomRight.y)
-			bottomRight.y = boundsMax.y;
+			if(boundsMin.x < bezierMin.x)
+				bezierMin.x = boundsMin.x;
+			if(boundsMin.y < bezierMin.y)
+				bezierMin.y = boundsMin.y;
+			if(boundsMax.x > bezierMax.x)
+				bezierMax.x = boundsMax.x;
+			if(boundsMax.y > bezierMax.y)
+				bezierMax.y = boundsMax.y;
+		}
 	}
 
+	//Invert Y
+	int heightPixels = m_height * tileHeight;
+	topLeft.x = bezierMin.x;
+	topLeft.y = ion::maths::Clamp(heightPixels - 1 - bezierMax.y, 0, heightPixels);
+	bottomRight.x = bezierMax.x;
+	bottomRight.y = ion::maths::Clamp(heightPixels - 1 - bezierMin.y, 0, heightPixels);
+
+	//To tiles
 	topLeft.x /= tileWidth;
 	topLeft.y /= tileHeight;
-	bottomRight.x /= tileWidth;
-	bottomRight.y /= tileHeight;
+	bottomRight.x = ion::maths::RoundUpToNearest(bottomRight.x, tileWidth) / tileWidth;
+	bottomRight.y = ion::maths::RoundUpToNearest(bottomRight.y, tileHeight) / tileHeight;
 
 	//Get flagged terrain bounds
 	for(int x = 0; x < m_width; x++)
@@ -376,9 +399,9 @@ void CollisionMap::GetPhysicsWorldBoundsBlocks(ion::Vector2i& topLeft, ion::Vect
 {
 	GetPhysicsWorldBounds(topLeft, size, tileWidth, tileHeight, blockWidth, blockHeight);
 	topLeft.x = topLeft.x / blockWidth;
-	topLeft.y =topLeft.y / blockHeight;
-	size.x = size.x / blockWidth;
-	size.y = size.y / blockHeight;
+	topLeft.y = topLeft.y / blockHeight;
+	size.x = (size.x / blockWidth) + 1;
+	size.y = (size.y / blockHeight) + 1;
 }
 
 std::vector<CollisionMap::Block>& CollisionMap::GetBlocks()
@@ -569,5 +592,3 @@ void CollisionMap::Block::Export(const Project& project, ion::io::File& file, in
 		}
 	}
 }
-
-#pragma optimize( "", on )

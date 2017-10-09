@@ -1566,14 +1566,15 @@ bool Project::GenerateTerrainFromBeziers(int granularity)
 		//Follow paths, generate terrain height tiles
 		for(int i = 0; i < collisionMap.GetNumTerrainBeziers(); i++)
 		{
-			const ion::gamekit::BezierPath* bezier = collisionMap.GetTerrainBezier(i);
+			ion::gamekit::BezierPath* bezier = collisionMap.GetTerrainBezier(i);
 			u16 terrainFlags = collisionMap.GetTerrainBezierFlags(i);
 			const int maxPoints = bezier->GetNumPoints();
 
-			if(maxPoints > 0)
+			if(bezier->GetNumCurves() > 0)
 			{
 				std::vector<ion::Vector2> points;
 				points.reserve(maxPoints);
+				bezier->CalculateBounds();
 				bezier->GetPositions(points, 0.0f, 1.0f, granularity);
 
 				for(int posIdx = 0; posIdx < points.size(); posIdx++)
@@ -1582,35 +1583,38 @@ bool Project::GenerateTerrainFromBeziers(int granularity)
 					const ion::Vector2 pixelPos(ion::maths::Floor(points[posIdx].x), (float)mapHeightPixels - ion::maths::Round(points[posIdx].y));
 					const ion::Vector2i tilePos(ion::maths::Floor(pixelPos.x / (float)tileWidth), ion::maths::Floor(pixelPos.y / (float)tileHeight));
 
-					//Get tile under cursor (if changed)
-					if(tilePos.x != prevTilePos.x || tilePos.y != prevTilePos.y)
+					if(tilePos.x > 0 && tilePos.x < mapWidth && tilePos.y > 0 && tilePos.y < mapHeight)
 					{
-						tileId = collisionMap.GetTerrainTile(tilePos.x, tilePos.y);
-						prevTilePos = tilePos;
-
-						if(tileId == InvalidTerrainTileId)
+						//Get tile under cursor (if changed)
+						if(tilePos.x != prevTilePos.x || tilePos.y != prevTilePos.y)
 						{
-							//Create new collision tile
-							tileId = m_terrainTileset.AddTerrainTile();
+							tileId = collisionMap.GetTerrainTile(tilePos.x, tilePos.y);
+							prevTilePos = tilePos;
 
 							if(tileId == InvalidTerrainTileId)
 							{
-								//Out of tiles
-								return false;
+								//Create new collision tile
+								tileId = m_terrainTileset.AddTerrainTile();
+
+								if(tileId == InvalidTerrainTileId)
+								{
+									//Out of tiles
+									return false;
+								}
+
+								//Set on map
+								collisionMap.SetTerrainTile(tilePos.x, tilePos.y, tileId);
+
+								//Clear special flag
+								u16 originalFlags = collisionMap.GetCollisionTileFlags(tilePos.x, tilePos.y);
+								originalFlags &= ~eCollisionTileFlagSpecial;
+
+								collisionMap.SetCollisionTileFlags(tilePos.x, tilePos.y, originalFlags | terrainFlags);
 							}
 
-							//Set on map
-							collisionMap.SetTerrainTile(tilePos.x, tilePos.y, tileId);
-
-							//Clear special flag
-							u16 originalFlags = collisionMap.GetCollisionTileFlags(tilePos.x, tilePos.y);
-							originalFlags &= ~eCollisionTileFlagSpecial;
-
-							collisionMap.SetCollisionTileFlags(tilePos.x, tilePos.y, originalFlags | terrainFlags);
+							//Get collision tile
+							terrainTile = m_terrainTileset.GetTerrainTile(tileId);
 						}
-
-						//Get collision tile
-						terrainTile = m_terrainTileset.GetTerrainTile(tileId);
 					}
 
 					if(terrainTile)
@@ -2964,10 +2968,8 @@ bool Project::ExportTerrainBlockMap(MapId mapId, const std::string& filename, bo
 
 			//Export bezier metadata for 'special' terrain
 			std::vector<std::pair<ion::Vector2i, ion::Vector2i>> specialTerrainStartEndPositions;
-			ion::Vector2 p1;
-			ion::Vector2 p2;
-			ion::Vector2 controlA;
-			ion::Vector2 controlB;
+			ion::Vector2 boundsMin;
+			ion::Vector2 boundsMax;
 
 			for(int i = 0; i < collisionMap.GetNumTerrainBeziers(); i++)
 			{
@@ -2977,15 +2979,14 @@ bool Project::ExportTerrainBlockMap(MapId mapId, const std::string& filename, bo
 					{
 						if(path->GetNumPoints() >= 2)
 						{
-							path->GetPoint(0, p1, controlA, controlB);
-							path->GetPoint(path->GetNumPoints() - 1, p2, controlA, controlB);
-							specialTerrainStartEndPositions.push_back(std::make_pair(ion::Vector2i(p1.x, mapHeightPixels - 1 - p1.y), ion::Vector2i(p2.x, mapHeightPixels - 1 - p2.y)));
+							path->GetBounds(boundsMin, boundsMax);
+							specialTerrainStartEndPositions.push_back(std::make_pair(ion::Vector2i(boundsMin.x, mapHeightPixels - 1 - boundsMax.y), ion::Vector2i(boundsMax.x, mapHeightPixels - 1 - boundsMin.y)));
 						}
 					}
 				}
 			}
 
-			stream << "; Terrain beziers start/end positions" << std::endl;
+			stream << "; Terrain bezier bounds" << std::endl;
 			stream << "terrainmap_" << mapName << "_num_special_terrain_descs\tequ " << "0x" << std::setw(2) << specialTerrainStartEndPositions.size() << std::endl;
 			stream << "terrainmap_" << mapName << "_special_terrain_descs:" << std::endl;
 
@@ -2995,7 +2996,7 @@ bool Project::ExportTerrainBlockMap(MapId mapId, const std::string& filename, bo
 					<< "0x" << HEX4(specialTerrainStartEndPositions[i].first.x) << ", "
 					<< "0x" << HEX4(specialTerrainStartEndPositions[i].first.y) << ", "
 					<< "0x" << HEX4(specialTerrainStartEndPositions[i].second.x) << ", "
-					<< "0x" << HEX4(specialTerrainStartEndPositions[i].second.y) << "\t; Start X, start Y, end X, end Y" << std::endl;
+					<< "0x" << HEX4(specialTerrainStartEndPositions[i].second.y) << "\t; Left, top, right, bottom" << std::endl;
 			}
 
 			stream << std::endl;
@@ -3411,9 +3412,22 @@ bool Project::ExportSpriteSheets(const std::string& directory, bool binary) cons
 	{
 		//if(binary)
 		//{
+		//	std::string binaryFilename = filename.substr(0, filename.find_first_of('.'));
+		//	binaryFilename += ".bin";
 		//
+		//	//Export binary data
+		//	ion::io::File binaryFile(binaryFilename, ion::io::File::eOpenWrite);
+		//	if(binaryFile.IsOpen())
+		//	{
+		//		collisionMap.Export(*this, binaryFile);
+		//		binarySize = binaryFile.GetSize();
+		//	}
+		//	else
+		//	{
+		//		return false;
+		//	}
 		//}
-		//else
+
 		{
 			std::stringstream filename;
 			filename << directory << "\\" << it->second.GetName() << ".ASM";
