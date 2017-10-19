@@ -36,6 +36,11 @@ TerrainTile::TerrainTile(u8 width, u8 height)
 	m_heightmap.resize(width * height, 0);
 }
 
+bool TerrainTile::operator == (const TerrainTile& rhs) const
+{
+	return m_heightmap == rhs.m_heightmap;
+}
+
 void TerrainTile::CopyHeights(const TerrainTile& tile)
 {
 	m_heightmap = tile.m_heightmap;
@@ -105,7 +110,7 @@ void TerrainTile::Export(ion::io::File& file) const
 
 u64 TerrainTile::CalculateHash()
 {
-	m_hash = ion::Hash64((const u8*)m_heightmap.data(), m_width);
+	m_hash = ion::Hash64((const u8*)m_heightmap.data(), m_heightmap.size());
 	return m_hash;
 }
 

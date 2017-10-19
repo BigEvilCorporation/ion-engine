@@ -33,6 +33,8 @@ public:
 	TerrainTile();
 	TerrainTile(u8 width, u8 height);
 
+	bool operator == (const TerrainTile& rhs) const;
+
 	u64 CalculateHash();
 	u64 GetHash() const;
 

@@ -30,6 +30,7 @@ public:
 	void Clear();
 
 	TerrainTileId AddTerrainTile();
+	TerrainTileId AddTerrainTile(const TerrainTile& tile);
 	void PopBackTerrainTile();
 	void HashChanged(TerrainTileId tileId);
 	TerrainTileId FindDuplicate(const TerrainTile& tile) const;

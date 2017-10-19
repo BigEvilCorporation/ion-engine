@@ -25,6 +25,11 @@ void TerrainTileset::Clear()
 
 TerrainTileId TerrainTileset::AddTerrainTile()
 {
+	return AddTerrainTile(TerrainTile(m_platformConfig.tileWidth, m_platformConfig.tileHeight));
+}
+
+TerrainTileId TerrainTileset::AddTerrainTile(const TerrainTile& tile)
+{
 	TerrainTileId index = m_tiles.size();
 
 	if(index >= eCollisionTileFlagNone)
@@ -34,7 +39,7 @@ TerrainTileId TerrainTileset::AddTerrainTile()
 	}
 	else
 	{
-		m_tiles.push_back(TerrainTile(m_platformConfig.tileWidth, m_platformConfig.tileHeight));
+		m_tiles.push_back(tile);
 		m_tiles[index].CalculateHash();
 		AddToHashMap(index);
 		return index;

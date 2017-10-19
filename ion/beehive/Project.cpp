@@ -1557,11 +1557,22 @@ bool Project::GenerateTerrainFromBeziers(int granularity)
 		const int tileWidth = GetPlatformConfig().tileWidth;
 		const int tileHeight = GetPlatformConfig().tileHeight;
 
+		const int mapWidthPixels = (collisionMap.GetWidth() * tileWidth);
 		const int mapHeightPixels = (collisionMap.GetHeight() * tileHeight);
 
 		ion::Vector2i prevTilePos;
 		TerrainTileId tileId = InvalidTileId;
-		TerrainTile* terrainTile = NULL;
+
+		//Reserve tiles
+		std::vector<std::pair<TerrainTile, u16>> terrainTiles;
+		int numTiles = mapWidth * mapHeight;
+
+		terrainTiles.clear();
+		terrainTiles.reserve(numTiles);
+		for(int i = 0; i < numTiles; i++)
+		{
+			terrainTiles.push_back(std::make_pair(TerrainTile(tileWidth, tileHeight), 0));
+		}
 
 		//Follow paths, generate terrain height tiles
 		for(int i = 0; i < collisionMap.GetNumTerrainBeziers(); i++)
@@ -1572,70 +1583,194 @@ bool Project::GenerateTerrainFromBeziers(int granularity)
 
 			if(bezier->GetNumCurves() > 0)
 			{
+				//Get all spline points
 				std::vector<ion::Vector2> points;
 				points.reserve(maxPoints);
-				bezier->CalculateBounds();
 				bezier->GetPositions(points, 0.0f, 1.0f, granularity);
 
+				//Draw all tiles in spline
 				for(int posIdx = 0; posIdx < points.size(); posIdx++)
 				{
 					//Get position
 					const ion::Vector2 pixelPos(ion::maths::Floor(points[posIdx].x), (float)mapHeightPixels - ion::maths::Round(points[posIdx].y));
 					const ion::Vector2i tilePos(ion::maths::Floor(pixelPos.x / (float)tileWidth), ion::maths::Floor(pixelPos.y / (float)tileHeight));
 
-					if(tilePos.x > 0 && tilePos.x < mapWidth && tilePos.y > 0 && tilePos.y < mapHeight)
+					if(tilePos.x >= 0 && tilePos.x < mapWidth && tilePos.y >= 0 && tilePos.y < mapHeight)
 					{
-						//Get tile under cursor (if changed)
-						if(tilePos.x != prevTilePos.x || tilePos.y != prevTilePos.y)
-						{
-							tileId = collisionMap.GetTerrainTile(tilePos.x, tilePos.y);
-							prevTilePos = tilePos;
+						//Get tile
+						TerrainTile* currentTile = &terrainTiles[(tilePos.y * mapWidth) + tilePos.x].first;
 
-							if(tileId == InvalidTerrainTileId)
-							{
-								//Create new collision tile
-								tileId = m_terrainTileset.AddTerrainTile();
-
-								if(tileId == InvalidTerrainTileId)
-								{
-									//Out of tiles
-									return false;
-								}
-
-								//Set on map
-								collisionMap.SetTerrainTile(tilePos.x, tilePos.y, tileId);
-
-								//Clear special flag
-								u16 originalFlags = collisionMap.GetCollisionTileFlags(tilePos.x, tilePos.y);
-								originalFlags &= ~eCollisionTileFlagSpecial;
-
-								collisionMap.SetCollisionTileFlags(tilePos.x, tilePos.y, originalFlags | terrainFlags);
-							}
-
-							//Get collision tile
-							terrainTile = m_terrainTileset.GetTerrainTile(tileId);
-						}
-					}
-
-					if(terrainTile)
-					{
-						//Get pixel offset into tile
+						//Draw height at X
 						int pixelX = pixelPos.x - (tilePos.x * tileWidth);
 						int pixelY = pixelPos.y - (tilePos.y * tileHeight);
+						const int height = ion::maths::Clamp(tileHeight - pixelY, 1, tileHeight);
+						currentTile->SetHeight(pixelX, height);
 
-						//Set height at X
-						const int height = tileHeight - pixelY;
-						terrainTile->SetHeight(pixelX, height);
+						//Set flags
+						if(tilePos.x != prevTilePos.x && tilePos.y != prevTilePos.y)
+						{
+							terrainTiles[(tilePos.y * mapWidth) + tilePos.x].second |= terrainFlags;
+							prevTilePos = tilePos;
+						}
 					}
 				}
 			}
 		}
 
-		//Rebuild hash map
-		GetTerrainTileset().RebuildHashMap();
+		const bool approximateCurves = true;
 
-		//Remove duplicates
-		CleanupTerrainTiles(false);
+		if(approximateCurves)
+		{
+			//Reduce unique tiles by approximating curves using start/end pos only
+			for(int i = 0; i < terrainTiles.size(); i++)
+			{
+				TerrainTile* terrainTile = &terrainTiles[i].first;
+
+				//Get min and max X bounds, and determine if tile contains gaps
+				bool containsGaps = false;
+				int x1 = -1;
+				int x2 = -1;
+
+				for(int x = 0; x < tileWidth && !containsGaps; x++)
+				{
+					u8 y = terrainTile->GetHeight(x);
+					
+					if(y == 0)
+					{
+						//If left marker found, and right marker not found, use as right marker
+						if(x1 != -1 && x2 == -1)
+						{
+							x2 = x - 1;
+						}
+					}
+					else
+					{
+						//If left marker not found, use as left marker
+						if(x1 == -1)
+						{
+							x1 = x;
+						}
+
+						//If both markers found, this is a gap
+						if(x1 != -1 && x2 != -1)
+						{
+							containsGaps = true;
+						}
+					}
+				}
+
+				if(x1 == -1)
+					x1 = 0;
+				if(x2 == -1)
+					x2 = tileWidth - 1;
+
+				if(!containsGaps && x1 != x2)
+				{
+					int y1 = terrainTile->GetHeight(x1);
+					int y2 = terrainTile->GetHeight(x2);
+
+					// Bresenham's line algorithm
+					const bool steep = (ion::maths::Abs(y2 - y1) > ion::maths::Abs(x2 - x1));
+					if(steep)
+					{
+						std::swap(x1, y1);
+						std::swap(x2, y2);
+					}
+
+					if(x1 > x2)
+					{
+						std::swap(x1, x2);
+						std::swap(y1, y2);
+					}
+
+					const float dx = x2 - x1;
+					const float dy = ion::maths::Abs(y2 - y1);
+
+					float error = dx / 2.0f;
+					const int ystep = (y1 < y2) ? 1 : -1;
+					int y = (int)y1;
+
+					const int maxX = (int)x2;
+
+					for(int x = (int)x1; x < maxX; x++)
+					{
+						if(steep)
+						{
+							terrainTile->SetHeight(y, x);
+						}
+						else
+						{
+							terrainTile->SetHeight(x, y);
+						}
+
+						error -= dy;
+						if(error < 0)
+						{
+							y += ystep;
+							error += dx;
+						}
+					}
+				}
+			}
+		}
+
+		//Find duplicates/draw to map
+		for(int x = 0; x < mapWidth; x++)
+		{
+			for(int y = 0; y < mapHeight; y++)
+			{
+				if(x >= 0 && x < mapWidth && y >= 0 && y < mapHeight)
+				{
+					//Get generated tile
+					TerrainTile* currentTile = &terrainTiles[(y * mapWidth) + x].first;
+
+					//If empty tile, keep existing map entry
+					bool empty = true;
+					for(int i = 0; i < tileWidth && empty; i++)
+					{
+						empty = currentTile->GetHeight(i) == 0;
+					}
+
+					if(!empty)
+					{
+						//Calculate hash
+						currentTile->CalculateHash();
+
+						//Find duplicate tile
+						tileId = m_terrainTileset.FindDuplicate(currentTile->GetHash());
+
+						if(tileId == InvalidTerrainTileId)
+						{
+							//Add as new collision tile
+							tileId = m_terrainTileset.AddTerrainTile(*currentTile);
+
+							if(tileId == InvalidTerrainTileId)
+							{
+								//Out of tiles
+								return false;
+							}
+						}
+						else
+						{
+							TerrainTile* duplicate = m_terrainTileset.GetTerrainTile(tileId);
+							if(!(*duplicate == *currentTile))
+							{
+								ion::debug::error << "Terrain tile hash collision" << ion::debug::end;
+							}
+						}
+
+						//Set on map
+						collisionMap.SetTerrainTile(x, y, tileId);
+
+						//Clear special flag
+						u16 originalFlags = collisionMap.GetCollisionTileFlags(x, y);
+						originalFlags &= ~eCollisionTileFlagSpecial;
+
+						collisionMap.SetCollisionTileFlags(x, y, originalFlags | terrainTiles[(y * mapWidth) + x].second);
+					}
+				}
+			}
+		}
 	}
 
 	InvalidateTerrainTiles(false);
@@ -2880,6 +3015,7 @@ bool Project::ExportTerrainBlocks(const std::string& filename, bool binary, int 
 
 		stream << "terrainmap_blocks_" << m_name << "_size_w\tequ (terrainmap_blocks_" << m_name << "_size_b/2)\t; Size in words" << std::endl;
 		stream << "terrainmap_blocks_" << m_name << "_size_l\tequ (terrainmap_blocks_" << m_name << "_size_b/4)\t; Size in longwords" << std::endl;
+		stream << "terrainmap_blocks_" << m_name << "_num_blocks\tequ " << uniqueBlocks.size() << "\t; Size in blocks" << std::endl;
 
 		file.Write(stream.str().c_str(), stream.str().size());
 
