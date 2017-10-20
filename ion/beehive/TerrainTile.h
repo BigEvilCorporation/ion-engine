@@ -16,12 +16,13 @@
 
 enum eCollisionTileFlags
 {
+	eCollisionTileFlagWater = (1 << 12),
 	eCollisionTileFlagSolid = (1 << 13),
 	eCollisionTileFlagHole = (1 << 14),
 	eCollisionTileFlagSpecial = (1 << 15),
 
-	eCollisionTileFlagAll = (eCollisionTileFlagSolid | eCollisionTileFlagHole | eCollisionTileFlagSpecial),
-	eCollisionTileFlagNone = (eCollisionTileFlagSolid - 1)
+	eCollisionTileFlagAll = (eCollisionTileFlagWater | eCollisionTileFlagSolid | eCollisionTileFlagHole | eCollisionTileFlagSpecial),
+	eCollisionTileFlagNone = (eCollisionTileFlagWater - 1)
 };
 
 typedef u32 TerrainTileId;

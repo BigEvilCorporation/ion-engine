@@ -1598,18 +1598,19 @@ bool Project::GenerateTerrainFromBeziers(int granularity)
 					if(tilePos.x >= 0 && tilePos.x < mapWidth && tilePos.y >= 0 && tilePos.y < mapHeight)
 					{
 						//Get tile
-						TerrainTile* currentTile = &terrainTiles[(tilePos.y * mapWidth) + tilePos.x].first;
+						TerrainTile& currentTile = terrainTiles[(tilePos.y * mapWidth) + tilePos.x].first;
+						u16& currentFlags = terrainTiles[(tilePos.y * mapWidth) + tilePos.x].second;
 
 						//Draw height at X
 						int pixelX = pixelPos.x - (tilePos.x * tileWidth);
 						int pixelY = pixelPos.y - (tilePos.y * tileHeight);
 						const int height = ion::maths::Clamp(tileHeight - pixelY, 1, tileHeight);
-						currentTile->SetHeight(pixelX, height);
+						currentTile.SetHeight(pixelX, height);
 
 						//Set flags
-						if(tilePos.x != prevTilePos.x && tilePos.y != prevTilePos.y)
+						if(tilePos.x != prevTilePos.x || tilePos.y != prevTilePos.y)
 						{
-							terrainTiles[(tilePos.y * mapWidth) + tilePos.x].second |= terrainFlags;
+							currentFlags |= terrainFlags;
 							prevTilePos = tilePos;
 						}
 					}
@@ -1624,7 +1625,7 @@ bool Project::GenerateTerrainFromBeziers(int granularity)
 			//Reduce unique tiles by approximating curves using start/end pos only
 			for(int i = 0; i < terrainTiles.size(); i++)
 			{
-				TerrainTile* terrainTile = &terrainTiles[i].first;
+				TerrainTile& terrainTile = terrainTiles[i].first;
 
 				//Get min and max X bounds, and determine if tile contains gaps
 				bool containsGaps = false;
@@ -1633,7 +1634,7 @@ bool Project::GenerateTerrainFromBeziers(int granularity)
 
 				for(int x = 0; x < tileWidth && !containsGaps; x++)
 				{
-					u8 y = terrainTile->GetHeight(x);
+					u8 y = terrainTile.GetHeight(x);
 					
 					if(y == 0)
 					{
@@ -1666,8 +1667,8 @@ bool Project::GenerateTerrainFromBeziers(int granularity)
 
 				if(!containsGaps && x1 != x2)
 				{
-					int y1 = terrainTile->GetHeight(x1);
-					int y2 = terrainTile->GetHeight(x2);
+					int y1 = terrainTile.GetHeight(x1);
+					int y2 = terrainTile.GetHeight(x2);
 
 					// Bresenham's line algorithm
 					const bool steep = (ion::maths::Abs(y2 - y1) > ion::maths::Abs(x2 - x1));
@@ -1696,11 +1697,11 @@ bool Project::GenerateTerrainFromBeziers(int granularity)
 					{
 						if(steep)
 						{
-							terrainTile->SetHeight(y, x);
+							terrainTile.SetHeight(y, x);
 						}
 						else
 						{
-							terrainTile->SetHeight(x, y);
+							terrainTile.SetHeight(x, y);
 						}
 
 						error -= dy;
@@ -1722,27 +1723,28 @@ bool Project::GenerateTerrainFromBeziers(int granularity)
 				if(x >= 0 && x < mapWidth && y >= 0 && y < mapHeight)
 				{
 					//Get generated tile
-					TerrainTile* currentTile = &terrainTiles[(y * mapWidth) + x].first;
+					TerrainTile& currentTile = terrainTiles[(y * mapWidth) + x].first;
+					u16 currentFlags = terrainTiles[(y * mapWidth) + x].second;
 
 					//If empty tile, keep existing map entry
 					bool empty = true;
 					for(int i = 0; i < tileWidth && empty; i++)
 					{
-						empty = currentTile->GetHeight(i) == 0;
+						empty = currentTile.GetHeight(i) == 0;
 					}
 
 					if(!empty)
 					{
 						//Calculate hash
-						currentTile->CalculateHash();
+						currentTile.CalculateHash();
 
 						//Find duplicate tile
-						tileId = m_terrainTileset.FindDuplicate(currentTile->GetHash());
+						tileId = m_terrainTileset.FindDuplicate(currentTile.GetHash());
 
 						if(tileId == InvalidTerrainTileId)
 						{
 							//Add as new collision tile
-							tileId = m_terrainTileset.AddTerrainTile(*currentTile);
+							tileId = m_terrainTileset.AddTerrainTile(currentTile);
 
 							if(tileId == InvalidTerrainTileId)
 							{
@@ -1753,7 +1755,7 @@ bool Project::GenerateTerrainFromBeziers(int granularity)
 						else
 						{
 							TerrainTile* duplicate = m_terrainTileset.GetTerrainTile(tileId);
-							if(!(*duplicate == *currentTile))
+							if(!(*duplicate == currentTile))
 							{
 								ion::debug::error << "Terrain tile hash collision" << ion::debug::end;
 							}
@@ -1762,11 +1764,11 @@ bool Project::GenerateTerrainFromBeziers(int granularity)
 						//Set on map
 						collisionMap.SetTerrainTile(x, y, tileId);
 
-						//Clear special flag
+						//Clear water/special flag
 						u16 originalFlags = collisionMap.GetCollisionTileFlags(x, y);
-						originalFlags &= ~eCollisionTileFlagSpecial;
+						originalFlags &= ~(eCollisionTileFlagWater | eCollisionTileFlagSpecial);
 
-						collisionMap.SetCollisionTileFlags(x, y, originalFlags | terrainTiles[(y * mapWidth) + x].second);
+						collisionMap.SetCollisionTileFlags(x, y, originalFlags | currentFlags);
 					}
 				}
 			}
@@ -3103,20 +3105,20 @@ bool Project::ExportTerrainBlockMap(MapId mapId, const std::string& filename, bo
 			stream << std::endl;
 
 			//Export bezier metadata for 'special' terrain
-			std::vector<std::pair<ion::Vector2i, ion::Vector2i>> specialTerrainStartEndPositions;
+			std::vector<std::tuple<ion::Vector2i, ion::Vector2i, u16>> specialTerrainStartEndPositions;
 			ion::Vector2 boundsMin;
 			ion::Vector2 boundsMax;
 
 			for(int i = 0; i < collisionMap.GetNumTerrainBeziers(); i++)
 			{
-				if(collisionMap.GetTerrainBezierFlags(i) & eCollisionTileFlagSpecial)
+				if(collisionMap.GetTerrainBezierFlags(i) & (eCollisionTileFlagWater | eCollisionTileFlagSpecial))
 				{
 					if(const ion::gamekit::BezierPath* path = collisionMap.GetTerrainBezier(i))
 					{
 						if(path->GetNumPoints() >= 2)
 						{
 							path->GetBounds(boundsMin, boundsMax);
-							specialTerrainStartEndPositions.push_back(std::make_pair(ion::Vector2i(boundsMin.x, mapHeightPixels - 1 - boundsMax.y), ion::Vector2i(boundsMax.x, mapHeightPixels - 1 - boundsMin.y)));
+							specialTerrainStartEndPositions.push_back(std::make_tuple(ion::Vector2i(boundsMin.x, mapHeightPixels - 1 - boundsMax.y), ion::Vector2i(boundsMax.x, mapHeightPixels - 1 - boundsMin.y), collisionMap.GetTerrainBezierFlags(i)));
 						}
 					}
 				}
@@ -3129,10 +3131,11 @@ bool Project::ExportTerrainBlockMap(MapId mapId, const std::string& filename, bo
 			for(int i = 0; i < specialTerrainStartEndPositions.size(); i++)
 			{
 				stream << "\tdc.w "
-					<< "0x" << HEX4(specialTerrainStartEndPositions[i].first.x) << ", "
-					<< "0x" << HEX4(specialTerrainStartEndPositions[i].first.y) << ", "
-					<< "0x" << HEX4(specialTerrainStartEndPositions[i].second.x) << ", "
-					<< "0x" << HEX4(specialTerrainStartEndPositions[i].second.y) << "\t; Left, top, right, bottom" << std::endl;
+					<< "0x" << HEX4(std::get<0>(specialTerrainStartEndPositions[i]).x) << ", "
+					<< "0x" << HEX4(std::get<0>(specialTerrainStartEndPositions[i]).y) << ", "
+					<< "0x" << HEX4(std::get<1>(specialTerrainStartEndPositions[i]).x) << ", "
+					<< "0x" << HEX4(std::get<1>(specialTerrainStartEndPositions[i]).y) << ", "
+					<< "0x" << HEX4(std::get<2>(specialTerrainStartEndPositions[i])) << "\t; Left, top, right, bottom, flags" << std::endl;
 			}
 
 			stream << std::endl;
