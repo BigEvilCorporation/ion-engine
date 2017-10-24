@@ -29,7 +29,9 @@ namespace ion
 		WindowWin32::WindowWin32(const std::string& title, u32 clientAreaWidth, u32 clientAreaHeight, bool fullscreen)
 			: Window(title, clientAreaWidth, clientAreaHeight, fullscreen)
 		{
-			const char* windowClassName = "WindowClass";
+			std::string windowClassName = "WindowClass_";
+			windowClassName += title;
+
 			m_hInstance = GetModuleHandle(NULL);
 
 			//Register window class
@@ -44,7 +46,7 @@ namespace ion
 			windowClass.hCursor       = LoadCursor(NULL, IDC_ARROW);
 			windowClass.hbrBackground = (HBRUSH)COLOR_WINDOW;
 			windowClass.lpszMenuName  = NULL;
-			windowClass.lpszClassName = windowClassName;
+			windowClass.lpszClassName = windowClassName.c_str();
 			windowClass.hIconSm       = LoadIcon(NULL, IDI_APPLICATION);
 
 			if(!RegisterClassEx(&windowClass))
@@ -114,7 +116,7 @@ namespace ion
 			}
 
 			//Create window
-			m_windowHandle = CreateWindowEx(m_windowStyleEx, windowClassName, title.c_str(), m_windowStyle, x, y, m_windowWidth, m_windowHeight, NULL, NULL, m_hInstance, NULL);
+			m_windowHandle = CreateWindowEx(m_windowStyleEx, windowClassName.c_str(), title.c_str(), m_windowStyle, x, y, m_windowWidth, m_windowHeight, NULL, NULL, m_hInstance, NULL);
 
 			if(!m_windowHandle)
 			{

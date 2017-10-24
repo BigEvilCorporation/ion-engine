@@ -77,6 +77,10 @@ namespace ion
 			virtual void LockContext(const DeviceContext& deviceContext);
 			virtual void UnlockContext();
 
+			//Render contexts
+			virtual RenderContext GetRenderContext();
+			virtual void ShareRenderContext(RenderContext& renderContext);
+
 			//Rendering - general
 			virtual void BeginFrame(const Viewport& viewport, const DeviceContext& deviceContext);
 			virtual void EndFrame();
@@ -106,17 +110,7 @@ namespace ion
 			void SetupViewport(const Viewport& viewport);
 
 			//OpenGL context
-#if defined ION_PLATFORM_WINDOWS
-            HGLRC m_openGLContext;
-#elif defined ION_PLATFORM_MACOSX
-            SDL_GLContext m_openGLContext;
-#elif defined ION_PLATFORM_LINUX
-            SDL_GLContext m_openGLContext;
-#elif defined ION_PLATFORM_RASPBERRYPI
-			SDL_GLContext m_openGLContext;
-#elif defined ION_PLATFORM_DREAMCAST
-            int m_openGLContext;
-#endif
+			RenderContext m_openGLContext;
 
 			//DC for gobal (non-rendering) context
 			DeviceContext m_globalDC;

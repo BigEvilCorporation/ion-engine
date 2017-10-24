@@ -69,6 +69,10 @@ namespace ion
 			virtual void LockContext(const DeviceContext& deviceContext) = 0;
 			virtual void UnlockContext() = 0;
 
+			//Render contexts
+			virtual RenderContext GetRenderContext() = 0;
+			virtual void ShareRenderContext(RenderContext& renderContext) = 0;
+
 			//Rendering - general
 			virtual void BeginFrame(const Viewport& viewport, const DeviceContext& deviceContext) = 0;
 			virtual void EndFrame() = 0;

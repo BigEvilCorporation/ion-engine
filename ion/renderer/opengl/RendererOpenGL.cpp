@@ -313,6 +313,21 @@ namespace ion
 			//m_contextCriticalSection.End();
 		}
 
+		//Render contexts
+		RenderContext RendererOpenGL::GetRenderContext()
+		{
+			return m_openGLContext;
+		}
+
+		void RendererOpenGL::ShareRenderContext(RenderContext& renderContext)
+		{
+#if defined ION_PLATFORM_WINDOWS
+			wglShareLists(m_openGLContext, renderContext);
+#else
+			debug::error << "RendererOpenGL::ShareContext() - not implemented ont his platform" << debug::end;
+#endif
+		}
+
 		bool RendererOpenGL::CheckGLError(const char* message)
 		{
 			GLenum error = glGetError();

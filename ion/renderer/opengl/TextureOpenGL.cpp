@@ -137,8 +137,6 @@ namespace ion
 
 		bool TextureOpenGL::Load(u32 width, u32 height, Format sourceFormat, Format destFormat, BitsPerPixel bitsPerPixel, bool generateMipmaps, const u8* data)
 		{
-			debug::Assert(data != NULL, "TextureOpenGL::Load() - NULL texture data");
-
 			if(!m_glTextureId)
 			{
 				//Generate texture

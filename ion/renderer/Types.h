@@ -25,18 +25,23 @@ namespace ion
 #if defined ION_PLATFORM_WINDOWS
 		typedef HWND WindowHandle;
 		typedef HDC DeviceContext;
+		typedef HGLRC RenderContext;
 #elif defined ION_PLATFORM_MACOSX
-        	typedef SDL_Window* WindowHandle;
-        	typedef SDL_Window* DeviceContext;
+        typedef SDL_Window* WindowHandle;
+        typedef SDL_Window* DeviceContext;
+		typedef SDL_GLContext RenderContext;
 #elif defined ION_PLATFORM_LINUX
 		typedef SDL_Window* WindowHandle;
 		typedef SDL_Window* DeviceContext;
+		typedef SDL_GLContext RenderContext;
 #elif defined ION_PLATFORM_RASPBERRYPI
 		typedef SDL_Window* WindowHandle;
 		typedef SDL_Window* DeviceContext;
+		typedef SDL_GLContext RenderContext;
 #elif defined ION_PLATFORM_DREAMCAST
 		typedef int WindowHandle;
 		typedef void* DeviceContext;
+		typedef int RenderContext;
 #else
 		#error Unsupported platform
 #endif
