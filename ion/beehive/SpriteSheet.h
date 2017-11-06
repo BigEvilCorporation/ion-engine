@@ -27,6 +27,26 @@ public:
 	static const int subSpriteWidthTiles;
 	static const int subSpriteHeightTiles;
 
+	struct SpriteFrameDimensions
+	{
+		ion::Vector2i sizeSubsprites;
+		ion::Vector2i topLeft;
+		ion::Vector2i bottomRight;
+		std::vector<ion::Vector2i> subspriteDimensions;
+		std::vector<ion::Vector2i> subspriteOffsets;
+		std::vector<ion::Vector2i> subspriteOffsetsFlippedX;
+
+		void Serialise(ion::io::Archive& archive)
+		{
+			archive.Serialise(sizeSubsprites, "sizeSubsprites");
+			archive.Serialise(topLeft, "topLeft");
+			archive.Serialise(bottomRight, "bottomRight");
+			archive.Serialise(subspriteDimensions, "subspriteDimensions");
+			archive.Serialise(subspriteOffsets, "subspriteOffsets");
+			archive.Serialise(subspriteOffsetsFlippedX, "subspriteOffsetsFlippedX");
+		}
+	};
+
 	SpriteSheet();
 
 	bool ImportBitmap(const std::string& filename, const std::string& name, int tileWidth, int tileHeight, int widthFrames, int heightFrames, int maxFrames);
@@ -34,6 +54,8 @@ public:
 	const std::string& GetName() const;
 	const SpriteSheetFrame& GetFrame(int index) const;
 	int GetNumFrames() const;
+
+	int GetNumCroppedTiles(int tileWidth, int tileHeight) const;
 
 	SpriteAnimId AddAnimation();
 	void DeleteAnimation(SpriteAnimId animId);
@@ -48,33 +70,43 @@ public:
 
 	u8 GetWidthTiles() const;
 	u8 GetHeightTiles() const;
+	u8 GetWidthTiles(int frameIdx, int tileWidth) const;
+	u8 GetHeightTiles(int frameIdx, int tileHeight) const;
 
-	void GetWidthSubsprites(u8& total, u8& whole, u8& remainder) const;
-	void GetHeightSubsprites(u8& total, u8& whole, u8& remainder) const;
-
-	void GetSubspriteDimensions(std::vector<ion::Vector2i>& dimensions, int tileWidth, int tileHeight) const;
-
-	void GetSubspritePosOffsets(std::vector<ion::Vector2i>& offsets, int tileWidth, int tileHeight) const;
-	void GetSubspritePosOffsetsFlippedX(std::vector<ion::Vector2i>& offsets, int tileWidth, int tileHeight) const;
-	void GetSubspritePosOffsetsFlippedY(std::vector<ion::Vector2i>& offsets, int tileWidth, int tileHeight) const;
-	void GetSubspritePosOffsetsFlippedXY(std::vector<ion::Vector2i>& offsets, int tileWidth, int tileHeight) const;
+	const SpriteFrameDimensions& GetDimensionData(int frameIdx) const;
 
 	const Palette& GetPalette() const;
 
+	//Crop all frames and regenerate dimension data
+	void CropAllFrames(int tileWidth, int tileHeight);
+
 	//Serialise
 	void Serialise(ion::io::Archive& archive);
-	void ExportSpriteTiles(const PlatformConfig& config, std::stringstream& stream) const;
-	void ExportSpriteTiles(const PlatformConfig& config, ion::io::File& file) const;
-	void ExportStampTiles(const PlatformConfig& config, const Stamp& referenceStamp, std::stringstream& stream) const;
-	void ExportStampTiles(const PlatformConfig& config, const Stamp& referenceStamp, ion::io::File& file) const;
+	void ExportSpriteTiles(const PlatformConfig& config, std::stringstream& stream, const std::string& actorName) const;
+	void ExportSpriteTiles(const PlatformConfig& config, ion::io::File& file, const std::string& actorName) const;
+	void ExportStampTiles(const PlatformConfig& config, const Stamp& referenceStamp, std::stringstream& stream, const std::string& actorName) const;
+	void ExportStampTiles(const PlatformConfig& config, const Stamp& referenceStamp, ion::io::File& file, const std::string& actorName) const;
 	void ExportAnims(const PlatformConfig& config, std::stringstream& stream, const std::string& actorName) const;
-	void ExportAnims(const PlatformConfig& config, ion::io::File& file) const;
+	void ExportAnims(const PlatformConfig& config, ion::io::File& file, const std::string& actorName) const;
 	void ExportPalette(const PlatformConfig& config, std::stringstream& stream) const;
+	void ExportSpriteFrameDimensions(const PlatformConfig& config, std::stringstream& stream, const std::string& actorName, int sizeUniqueTiles = 0) const;
+	void ExportSpriteFrameOffsetsTable(const PlatformConfig& config, std::stringstream& stream, const std::string& actorName, int sizeUniqueTiles = 0) const;
 	u32 GetBinarySizeTiles() const;
+
+	void GetWidthSubsprites(int frameIdx, int tileWidth, u8& total, u8& whole, u8& remainder) const;
+	void GetHeightSubsprites(int frameIdx, int tileHeight, u8& total, u8& whole, u8& remainder) const;
+
+	void GetSubspriteDimensions(u32 frameIdx, std::vector<ion::Vector2i>& dimensions, int tileWidth, int tileHeight) const;
+
+	void GetSubspritePosOffsets(u32 frameIdx, std::vector<ion::Vector2i>& offsets, int tileWidth, int tileHeight) const;
+	void GetSubspritePosOffsetsFlippedX(u32 frameIdx, std::vector<ion::Vector2i>& offsets, int tileWidth, int tileHeight) const;
+	void GetSubspritePosOffsetsFlippedY(u32 frameIdx, std::vector<ion::Vector2i>& offsets, int tileWidth, int tileHeight) const;
+	void GetSubspritePosOffsetsFlippedXY(u32 frameIdx, std::vector<ion::Vector2i>& offsets, int tileWidth, int tileHeight) const;
 
 private:
 	std::string m_name;
 	std::vector<SpriteSheetFrame> m_frames;
+	std::vector<SpriteFrameDimensions> m_croppedDimensionData;
 	TSpriteAnimMap m_animations;
 	Palette m_palette;
 	u8 m_widthTiles;

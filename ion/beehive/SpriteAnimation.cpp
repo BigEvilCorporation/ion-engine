@@ -65,17 +65,14 @@ const u32 AnimTrackSpriteFrame::GetValue(float time) const
 	return intValue;
 }
 
-void AnimTrackSpriteFrame::Export(std::stringstream& stream) const
+void AnimTrackSpriteFrame::Export(std::stringstream& stream, const std::string& actorName, const std::string& sheetName) const
 {
-	stream << "\tdc.b ";
-
 	for(int i = 0; i < GetNumKeyframes(); i++)
 	{
 		u32 value = GetKeyframe(i).GetValue();
-		stream << "0x" << value;
-
-		if(i < GetNumKeyframes() - 1)
-			stream << ", ";
+		std::stringstream label;
+		label << "actor_" << actorName << "_sheet_" << sheetName << "_frame_" << value << "_header";
+		stream << "\tdc.l " << label.str() << std::endl;
 	}
 
 	stream << std::endl;

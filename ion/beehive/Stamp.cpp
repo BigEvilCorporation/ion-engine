@@ -473,7 +473,19 @@ void Stamp::ExportStampAnims(const PlatformConfig& config, std::stringstream& st
 
 		stream << "spritesheets_" << m_name << ":" << std::endl << std::endl;
 
-		//Export stamp anim sheet tile data
+		//Export frame size/offsets tables
+		for(TStampAnimSheetMap::const_iterator it = m_stampAnimSheets.begin(), end = m_stampAnimSheets.end(); it != end; ++it)
+		{
+			it->second.ExportSpriteFrameOffsetsTable(config, stream, m_name, sizeUniqueTiles);
+		}
+
+		//Export sprite frame dimension tables
+		for(TStampAnimSheetMap::const_iterator it = m_stampAnimSheets.begin(), end = m_stampAnimSheets.end(); it != end; ++it)
+		{
+			it->second.ExportSpriteFrameDimensions(config, stream, m_name, sizeUniqueTiles);
+		}
+
+		//Export tile data
 		for(TStampAnimSheetMap::const_iterator it = m_stampAnimSheets.begin(), end = m_stampAnimSheets.end(); it != end; ++it)
 		{
 			std::stringstream label;
@@ -482,14 +494,14 @@ void Stamp::ExportStampAnims(const PlatformConfig& config, std::stringstream& st
 			stream << label.str() << ":" << std::endl << std::endl;
 
 			//Row major
-			it->second.ExportStampTiles(config, *this, stream);
+			it->second.ExportStampTiles(config, *this, stream, m_name);
 
 			stream << std::endl << std::endl;
 		}
 
 		stream << "stampanims_" << m_name << ":" << std::endl << std::endl;
 
-		//Export stamp anim data
+		//Export animation data
 		for(TStampAnimSheetMap::const_iterator it = m_stampAnimSheets.begin(), end = m_stampAnimSheets.end(); it != end; ++it)
 		{
 			it->second.ExportAnims(config, stream, m_name);
@@ -515,29 +527,44 @@ void Stamp::ExportStampAnimSetup(const PlatformConfig& config, std::stringstream
 
 		std::string animationName = stampAnimSheet.AnimationsBegin()->second.GetName();
 
+		stream << "\t; Create scene anim object" << std::endl;
+		stream << "\tPUSHM  a0-a1" << std::endl;
+		stream << "\tjsr    SceneAnimInit" << std::endl;
+		stream << "\tPOPM   a0-a1" << std::endl;
+
+		stream << std::endl;
+
 		stream << "\t; Get stamp VRAM address" << std::endl;
 		stream << "\tmove.w (vram_addr_leveltiles), d0" << std::endl;
 		stream << "\tadd.w  #" << animSheetLabel.str() << "_tileoffset*size_tile_b, d0" << std::endl;
 
-		stream << "\t; Load scene anim objects" << std::endl;
-		stream << "\tjsr    SceneAnimInit" << std::endl;
+		stream << std::endl;
+
+		stream << "\t; Load animation" << std::endl;
 		stream << "\tlea    spritesheets_" << m_name << ", a2" << std::endl;
 		stream << "\tmove.l #" << animSheetLabel.str() << "_size_t, d1" << std::endl;
+		stream << "\tPUSHM  a0-a1" << std::endl;
 		stream << "\tjsr    SceneAnimLoadStampAnim" << std::endl;
+		stream << "\tPOPM   a0-a1" << std::endl;
 
 		stream << std::endl;
 
-		stream << "\t; Set scene animations" << std::endl;
-		stream << "\tmove.w #" << animSheetLabel.str() << "_" << animationName << "_frameoffset, Animation_FirstFrameOffset(a1)" << std::endl;
-		stream << "\tmove.l #spriteanim_" << m_name << "_" << animationName << "_track_frames, Animation_AnimTrackSpriteFrame(a1)" << std::endl;
-		stream << "\tmove.w #spriteanim_" << m_name << "_" << animationName << "_speed, Animation_Speed(a1)" << std::endl;
-		stream << "\tmove.b #spriteanim_" << m_name << "_" << animationName << "_numframes, Animation_Length(a1)" << std::endl;
+		stream << "\t; Set animation" << std::endl;
+		stream << "\tmove.l #actor_" << m_name << "_sheet_" << animationName << "_anim_" << animationName << "_track_frames, Animation_AnimTrackSpriteFrame(a1)" << std::endl;
+		stream << "\tmove.w #actor_" << m_name << "_sheet_" << animationName << "_anim_" << animationName << "_speed, Animation_Speed(a1)" << std::endl;
+		stream << "\tmove.b #actor_" << m_name << "_sheet_" << animationName << "_anim_" << animationName << "_numframes, Animation_Length(a1)" << std::endl;
 		stream << "\tmove.b #0x1, Animation_Looping(a1)" << std::endl;
+		stream << "\tmove.l #0x0, a2" << std::endl;
+		stream << "\tmove.l #0x0, a3" << std::endl;
+		stream << "\tPUSHM  a0-a1" << std::endl;
 		stream << "\tjsr    AnimObjSetAnimation" << std::endl;
+		stream << "\tPOPM   a0-a1" << std::endl;
 
 		stream << std::endl;
+
 		stream << "\tadd.l  #SceneAnim_Struct_Size, a0" << std::endl;
 		stream << "\tadd.l  #Animation_Struct_Size, a1" << std::endl;
+
 		stream << std::endl;
 	}
 }

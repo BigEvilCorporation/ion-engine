@@ -31,7 +31,7 @@ class AnimTrackSpriteFrame : public ion::render::AnimationTrack<u32>
 {
 public:
 	const u32 GetValue(float time) const;
-	void Export(std::stringstream& stream) const;
+	void Export(std::stringstream& stream, const std::string& actorName, const std::string& sheetName) const;
 	void Export(ion::io::File& file) const;
 };
 
