@@ -95,22 +95,22 @@ namespace ion
 			}
 		}
 
-		LineQuad::LineQuad(Axis axis, const Vector2& halfExtents)
+		LineQuad::LineQuad(Axis axis, const Vector2& halfExtents, const Vector2 offset)
 			: Primitive(VertexBuffer::eLines)
 		{
 			if(axis == xy)
 			{
-				m_vertexBuffer.AddVertex(Vector3(-halfExtents.x, -halfExtents.y, 0.0f), Vector3(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord());
-				m_vertexBuffer.AddVertex(Vector3(halfExtents.x, -halfExtents.y, 0.0f), Vector3(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord());
+				m_vertexBuffer.AddVertex(Vector3(-halfExtents.x + offset.x, -halfExtents.y + offset.y, 0.0f), Vector3(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord());
+				m_vertexBuffer.AddVertex(Vector3( halfExtents.x + offset.x, -halfExtents.y + offset.y, 0.0f), Vector3(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord());
 
-				m_vertexBuffer.AddVertex(Vector3(halfExtents.x, -halfExtents.y, 0.0f), Vector3(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord());
-				m_vertexBuffer.AddVertex(Vector3(halfExtents.x, halfExtents.y, 0.0f), Vector3(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord());
+				m_vertexBuffer.AddVertex(Vector3( halfExtents.x + offset.x, -halfExtents.y + offset.y, 0.0f), Vector3(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord());
+				m_vertexBuffer.AddVertex(Vector3( halfExtents.x + offset.x,  halfExtents.y + offset.y, 0.0f), Vector3(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord());
 
-				m_vertexBuffer.AddVertex(Vector3(halfExtents.x, halfExtents.y, 0.0f), Vector3(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord());
-				m_vertexBuffer.AddVertex(Vector3(-halfExtents.x, halfExtents.y, 0.0f), Vector3(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord());
+				m_vertexBuffer.AddVertex(Vector3( halfExtents.x + offset.x,  halfExtents.y + offset.y, 0.0f), Vector3(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord());
+				m_vertexBuffer.AddVertex(Vector3(-halfExtents.x + offset.x,  halfExtents.y + offset.y, 0.0f), Vector3(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord());
 
-				m_vertexBuffer.AddVertex(Vector3(-halfExtents.x, halfExtents.y, 0.0f), Vector3(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord());
-				m_vertexBuffer.AddVertex(Vector3(-halfExtents.x, -halfExtents.y, 0.0f), Vector3(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord());
+				m_vertexBuffer.AddVertex(Vector3(-halfExtents.x + offset.x,  halfExtents.y + offset.y, 0.0f), Vector3(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord());
+				m_vertexBuffer.AddVertex(Vector3(-halfExtents.x + offset.x, -halfExtents.y + offset.y, 0.0f), Vector3(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord());
 			}
 		}
 

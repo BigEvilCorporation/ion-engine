@@ -69,7 +69,7 @@ namespace ion
 		{
 		public:
 			enum Axis { xy, xz, yz };
-			LineQuad(Axis axis, const Vector2& halfExtents);
+			LineQuad(Axis axis, const Vector2& halfExtents, const Vector2 offset = ion::Vector2());
 		};
 
 		class Grid : public Primitive
