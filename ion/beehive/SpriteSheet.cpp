@@ -384,6 +384,15 @@ void SpriteSheet::CropAllFrames(int tileWidth, int tileHeight)
 			}
 		}
 
+		//If no pixels in image, use whole size
+		if(topLeft.x > bottomRight.x || topLeft.y > bottomRight.y)
+		{
+			topLeft.x = 0;
+			topLeft.y = 0;
+			bottomRight.x = m_widthTiles * tileWidth;
+			bottomRight.y = m_heightTiles * tileHeight;
+		}
+
 		//Clamp to tile size
 		topLeft.x = ion::maths::RoundDownToNearest(topLeft.x, tileWidth);
 		topLeft.y = ion::maths::RoundDownToNearest(topLeft.y, tileHeight);

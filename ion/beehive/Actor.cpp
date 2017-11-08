@@ -113,7 +113,7 @@ void Actor::Serialise(ion::io::Archive& archive)
 	archive.Serialise(m_spriteSheets, "spriteSheets");
 }
 
-void Actor::ExportSpriteSheets(const PlatformConfig& config, std::stringstream& stream) const
+void Actor::ExportSpriteSheets(const PlatformConfig& config, std::stringstream& stream)
 {
 	u32 tileIndex = 0;
 	u32 frameIndex = 0;
@@ -121,8 +121,11 @@ void Actor::ExportSpriteSheets(const PlatformConfig& config, std::stringstream& 
 	stream << "actor_" << m_name << ":" << std::endl << std::endl;
 
 	//Export sprite sheet size headers
-	for(TSpriteSheetMap::const_iterator it = m_spriteSheets.begin(), end = m_spriteSheets.end(); it != end; ++it)
+	for(TSpriteSheetMap::iterator it = m_spriteSheets.begin(), end = m_spriteSheets.end(); it != end; ++it)
 	{
+		//Crop all sprites
+		it->second.CropAllFrames(config.tileWidth, config.tileHeight);
+
 		u32 widthTiles = it->second.GetWidthTiles();
 		u32 heightTiles = it->second.GetHeightTiles();
 

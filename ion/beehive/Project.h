@@ -261,7 +261,7 @@ public:
 	bool ExportTiles(const std::string& filename, bool binary, bool compressed) const;
 	bool ExportStampAnims(const std::string& filename, bool binary) const;
 	bool ExportTerrainTiles(const std::string& filename, bool binary) const;
-	bool ExportSpriteSheets(const std::string& directory, bool binary) const;
+	bool ExportSpriteSheets(const std::string& directory, bool binary);
 	bool ExportSpriteAnims(const std::string& directory, bool binary) const;
 	bool ExportSpritePalettes(const std::string& directory) const;
 	bool ExportMapBitmaps(const std::string& directory) const;

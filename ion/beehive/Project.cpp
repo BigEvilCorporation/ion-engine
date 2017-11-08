@@ -3545,9 +3545,9 @@ bool Project::ExportGameObjects(MapId mapId, const std::string& filename) const
 	return false;
 }
 
-bool Project::ExportSpriteSheets(const std::string& directory, bool binary) const
+bool Project::ExportSpriteSheets(const std::string& directory, bool binary)
 {
-	for(TActorMap::const_iterator it = m_actors.begin(), end = m_actors.end(); it != end; ++it)
+	for(TActorMap::iterator it = m_actors.begin(), end = m_actors.end(); it != end; ++it)
 	{
 		//if(binary)
 		//{

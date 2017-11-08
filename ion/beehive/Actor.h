@@ -39,7 +39,7 @@ public:
 
 	//Serialise
 	void Serialise(ion::io::Archive& archive);
-	void ExportSpriteSheets(const PlatformConfig& config, std::stringstream& stream) const;
+	void ExportSpriteSheets(const PlatformConfig& config, std::stringstream& stream);
 	void ExportSpriteAnims(const PlatformConfig& config, std::stringstream& stream) const;
 	void ExportSpritePalettes(const PlatformConfig& config, std::stringstream& stream) const;
 	void ExportSpriteSheets(const PlatformConfig& config, ion::io::File& file) const;
