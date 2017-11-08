@@ -155,25 +155,32 @@ void GameObject::Export(std::stringstream& stream, const GameObjectType& gameObj
 	{
 		//"move.[s] #[value], [name](a0)"
 
-		stream << '\t';
-
-		switch(templateVariables[i].m_size)
-		{
-		case eSizeByte:
-			stream << "move.b ";
-			break;
-		case eSizeWord:
-			stream << "move.w ";
-			break;
-		case eSizeLong:
-			stream << "move.l ";
-			break;
-		}
-
 		std::string valueString = templateVariables[i].m_value;
-		ParseValueTokens(valueString);
+		bool overrideLine = ParseValueTokens(valueString, templateVariables[i].m_name, (GameObjectVariableSize)templateVariables[i].m_size);
 
-		stream << "#" << valueString << ", " << templateVariables[i].m_name << "(a0)" << std::endl;
+		if(overrideLine)
+		{
+			stream << valueString << std::endl;
+		}
+		else
+		{
+			stream << '\t';
+
+			switch(templateVariables[i].m_size)
+			{
+			case eSizeByte:
+				stream << "move.b ";
+				break;
+			case eSizeWord:
+				stream << "move.w ";
+				break;
+			case eSizeLong:
+				stream << "move.l ";
+				break;
+			}
+
+			stream << "#" << valueString << ", " << templateVariables[i].m_name << "(a0)" << std::endl;
+		}
 	}
 
 	//Copy debug name
@@ -192,59 +199,111 @@ void GameObject::Export(std::stringstream& stream, const GameObjectType& gameObj
 	{
 		//"move.[s] #[value], [name](a0)"
 
-		stream << '\t';
-
-		switch(instanceVariables[i].m_size)
-		{
-		case eSizeByte:
-			stream << "move.b ";
-			break;
-		case eSizeWord:
-			stream << "move.w ";
-			break;
-		case eSizeLong:
-			stream << "move.l ";
-			break;
-		}
-
 		std::string valueString = instanceVariables[i].m_value;
-		ParseValueTokens(valueString);
+		bool overrideLine = ParseValueTokens(valueString, instanceVariables[i].m_name, (GameObjectVariableSize)instanceVariables[i].m_size);
 
-		stream << "#" << valueString << ", " << instanceVariables[i].m_name << "(a0)" << std::endl;
+		if(overrideLine)
+		{
+			stream << valueString << std::endl;
+		}
+		else
+		{
+			stream << '\t';
+
+			switch(instanceVariables[i].m_size)
+			{
+			case eSizeByte:
+				stream << "move.b ";
+				break;
+			case eSizeWord:
+				stream << "move.w ";
+				break;
+			case eSizeLong:
+				stream << "move.l ";
+				break;
+			}
+
+			stream << "#" << valueString << ", " << instanceVariables[i].m_name << "(a0)" << std::endl;
+		}
 	}
 
 	stream << '\t' << "jsr " << gameObjectType.GetName() << "LoadGfx" << std::endl;
 }
 
-void GameObject::ParseValueTokens(std::string& valueString) const
+#pragma optimize("",off)
+
+bool GameObject::ParseValueTokens(std::string& valueString, const std::string& varName, GameObjectVariableSize size) const
 {
 	const int screenToWorldSpaceShift = 16;
 	const int spriteSheetBorderX = 128;
 	const int spriteSheetBorderY = 128;
 
-	const std::string worldPosXString("&WORLDPOSX");
+	const std::string worldPosXString("WORLDPOSX");
+	const std::string worldPosYString("WORLDPOSY");
+	const std::string ntscString("NTSC(");
 
-	std::string::size_type worldPosXStart = valueString.find(worldPosXString);
-	if(worldPosXStart != std::string::npos)
+	std::string::size_type tokenStart = valueString.find("&");
+
+	if(tokenStart != std::string::npos)
 	{
-		u32 worldPosX = (m_position.x + spriteSheetBorderX) << screenToWorldSpaceShift;
+		// "$WORLDPOSX"
+		std::string::size_type worldPosXStart = valueString.find(worldPosXString, tokenStart);
+		if(worldPosXStart != std::string::npos)
+		{
+			u32 worldPosX = (m_position.x + spriteSheetBorderX) << screenToWorldSpaceShift;
 
-		std::stringstream hexStream;
-		hexStream << "0x" << std::hex << std::setfill('0') << std::setw(8) << worldPosX;
+			std::stringstream hexStream;
+			hexStream << "0x" << std::hex << std::setfill('0') << std::setw(8) << worldPosX;
 
-		valueString.replace(worldPosXStart, worldPosXString.size(), hexStream.str());
+			valueString.replace(worldPosXStart - 1, worldPosXString.size() + 1, hexStream.str());
+
+			return false;
+		}
+
+		// "$WORLDPOSY"
+		std::string::size_type worldPosYStart = valueString.find(worldPosYString);
+		if(worldPosYStart != std::string::npos)
+		{
+			u32 worldPosY = (m_position.y + spriteSheetBorderY) << screenToWorldSpaceShift;
+
+			std::stringstream hexStream;
+			hexStream << "0x" << std::hex << std::setfill('0') << std::setw(8) << worldPosY;
+
+			valueString.replace(worldPosYStart - 1, worldPosYString.size() + 1, hexStream.str());
+
+			return false;
+		}
+
+		// "$NTSC(value)"
+		std::string::size_type ntscStart = valueString.find(ntscString);
+		if(ntscStart != std::string::npos)
+		{
+			std::string::size_type valueStart = ntscStart + ntscString.size();
+			std::string::size_type valueEnd = valueString.size() - 1;
+			std::string ntscValue = valueString.substr(valueStart, (valueEnd - valueStart));
+
+			std::stringstream stream;
+
+			if(size == eSizeByte)
+			{
+				stream << "\tMOVE_NTSC_B " << std::hex << std::setfill('0') << std::setw(8) << ntscValue << ", " << varName << "(a0), d0";
+			}
+			else if(size == eSizeWord)
+			{
+				stream << "\tMOVE_NTSC_W " << std::hex << std::setfill('0') << std::setw(8) << ntscValue << ", " << varName << "(a0), d0";
+			}
+			else if(size == eSizeLong)
+			{
+				stream << "\tMOVE_NTSC_L " << std::hex << std::setfill('0') << std::setw(8) << ntscValue << ", " << varName << "(a0), d0";
+			}
+
+			valueString = stream.str();
+
+			return true;
+		}
 	}
 
-	const std::string worldPosYString("&WORLDPOSY");
-
-	std::string::size_type worldPosYStart = valueString.find(worldPosYString);
-	if(worldPosYStart != std::string::npos)
-	{
-		u32 worldPosY = (m_position.y + spriteSheetBorderY) << screenToWorldSpaceShift;
-
-		std::stringstream hexStream;
-		hexStream << "0x" << std::hex << std::setfill('0') << std::setw(8) << worldPosY;
-
-		valueString.replace(worldPosYStart, worldPosYString.size(), hexStream.str());
-	}
+	return false;
 }
+
+#pragma optimize("",on)

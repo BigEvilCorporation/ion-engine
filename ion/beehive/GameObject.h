@@ -123,7 +123,7 @@ public:
 	void Export(std::stringstream& stream, const GameObjectType& gameObjectType, const std::string& name) const;
 
 private:
-	void ParseValueTokens(std::string& valueString) const;
+	bool ParseValueTokens(std::string& valueString, const std::string& varName, GameObjectVariableSize size) const;
 
 	GameObjectId m_objectId;
 	GameObjectTypeId m_typeId;
