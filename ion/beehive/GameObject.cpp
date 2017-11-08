@@ -286,15 +286,15 @@ bool GameObject::ParseValueTokens(std::string& valueString, const std::string& v
 
 			if(size == eSizeByte)
 			{
-				stream << "\tMOVE_NTSC_B " << std::hex << std::setfill('0') << std::setw(8) << ntscValue << ", " << varName << "(a0), d0";
+				stream << "\tMOVE_NTSC_B " << ntscValue << ", " << varName << "(a0), d0";
 			}
 			else if(size == eSizeWord)
 			{
-				stream << "\tMOVE_NTSC_W " << std::hex << std::setfill('0') << std::setw(8) << ntscValue << ", " << varName << "(a0), d0";
+				stream << "\tMOVE_NTSC_W " << ntscValue << ", " << varName << "(a0), d0";
 			}
 			else if(size == eSizeLong)
 			{
-				stream << "\tMOVE_NTSC_L " << std::hex << std::setfill('0') << std::setw(8) << ntscValue << ", " << varName << "(a0), d0";
+				stream << "\tMOVE_NTSC_L " << ntscValue << ", " << varName << "(a0), d0";
 			}
 
 			valueString = stream.str();
