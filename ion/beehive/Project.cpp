@@ -3526,6 +3526,7 @@ bool Project::ExportGameObjects(MapId mapId, const std::string& filename) const
 						std::string name = GenerateObjectName(mapName, gameObjIt->second[i].m_gameObject, gameObjectType);
 						gameObjIt->second[i].m_gameObject.Export(stream, gameObjectType, name);
 						stream << '\t' << "add.l #" << gameObjectType.GetName() << "_Struct_Size, a0" << std::endl;
+						stream << std::endl;
 					}
 				}
 			}

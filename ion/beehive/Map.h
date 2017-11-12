@@ -159,6 +159,7 @@ public:
 
 	//Place game object on map
 	GameObjectId PlaceGameObject(int x, int y, const GameObjectType& objectType);
+	GameObjectId PlaceGameObject(int x, int y, int width, int height, const GameObjectType& objectType);
 	GameObjectId PlaceGameObject(int x, int y, const GameObject& object, const GameObjectType& objectType);
 	GameObjectId FindGameObject(int x, int y, ion::Vector2i& topLeft) const;
 	GameObject* FindGameObject(const std::string& name);

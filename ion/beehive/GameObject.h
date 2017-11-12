@@ -97,12 +97,16 @@ public:
 	GameObject();
 	GameObject(GameObjectId objectId, const GameObject& rhs);
 	GameObject(GameObjectId objectId, GameObjectTypeId typeId, const ion::Vector2i& position);
+	GameObject(GameObjectId objectId, GameObjectTypeId typeId, const ion::Vector2i& position, const ion::Vector2i& dimensions);
 
 	GameObjectId GetId() const { return m_objectId; }
 	GameObjectTypeId GetTypeId() const { return m_typeId; }
 
 	void SetName(const std::string& name) { m_name = name; }
 	const std::string& GetName() const { return m_name; }
+
+	const ion::Vector2i& GetDimensions() const { return m_dimensions; }
+	void SetDimensions(const ion::Vector2i& dimensions) { m_dimensions = dimensions; }
 
 	const ion::Vector2i& GetPosition() const { return m_position; }
 	void SetPosition(const ion::Vector2i& position) { m_position = position; }
@@ -129,6 +133,7 @@ private:
 	GameObjectTypeId m_typeId;
 	std::string m_name;
 	ion::Vector2i m_position;
+	ion::Vector2i m_dimensions;
 	std::vector<GameObjectVariable> m_variables;
 
 	//Animation

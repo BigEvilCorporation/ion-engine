@@ -444,6 +444,21 @@ GameObjectId Map::PlaceGameObject(int x, int y, const GameObjectType& objectType
 	return objectId;
 }
 
+GameObjectId Map::PlaceGameObject(int x, int y, int width, int height, const GameObjectType& objectType)
+{
+	TGameObjectPosMap::iterator it = m_gameObjects.find(objectType.GetId());
+	if(it == m_gameObjects.end())
+		it = m_gameObjects.insert(std::make_pair(objectType.GetId(), std::vector<GameObjectMapEntry>())).first;
+
+	const int tileWidth = m_platformConfig.tileWidth;
+	const int tileHeight = m_platformConfig.tileHeight;
+
+	GameObjectId objectId = m_nextFreeGameObjectId++;
+	GameObject gameObject(objectId, objectType.GetId(), ion::Vector2i(x * tileWidth, y * tileHeight), ion::Vector2i(width * tileWidth, height * tileHeight));
+	it->second.push_back(GameObjectMapEntry(gameObject, ion::Vector2i(x, y), ion::Vector2i(objectType.GetDimensions().x, objectType.GetDimensions().y)));
+	return objectId;
+}
+
 GameObjectId Map::PlaceGameObject(int x, int y, const GameObject& object, const GameObjectType& objectType)
 {
 	TGameObjectPosMap::iterator it = m_gameObjects.find(object.GetTypeId());
@@ -472,7 +487,10 @@ GameObjectId Map::FindGameObject(int x, int y, ion::Vector2i& topLeft) const
 	{
 		for(std::vector<GameObjectMapEntry>::const_reverse_iterator itVec = itMap->second.rbegin(), endVec = itMap->second.rend(); itVec != endVec && !gameObjectId; ++itVec)
 		{
-			ion::Vector2i size(itVec->m_size.x / tileWidth, itVec->m_size.y / tileHeight);
+			const int objWidth = (itVec->m_gameObject.GetDimensions().x > 0) ? itVec->m_gameObject.GetDimensions().x : itVec->m_size.x;
+			const int objHeight = (itVec->m_gameObject.GetDimensions().y > 0) ? itVec->m_gameObject.GetDimensions().y : itVec->m_size.y;
+
+			ion::Vector2i size(objWidth / tileWidth, objHeight / tileHeight);
 			topLeft.x = itVec->m_gameObject.GetPosition().x / tileWidth;
 			topLeft.y = itVec->m_gameObject.GetPosition().y / tileHeight;
 			ion::Vector2i bottomRight = topLeft + size;
@@ -519,7 +537,11 @@ int Map::FindGameObjects(int x, int y, int width, int height, std::vector<const 
 		for(int i = 0; i < gameObjectsOfType.size(); i++)
 		{
 			const GameObjectMapEntry& gameObject = gameObjectsOfType[i];
-			if(ion::maths::BoxIntersectsBox(boundsMin, boundsMax, gameObject.m_gameObject.GetPosition(), gameObject.m_gameObject.GetPosition() + gameObject.m_size))
+
+			const int objWidth = (gameObject.m_gameObject.GetDimensions().x > 0) ? gameObject.m_gameObject.GetDimensions().x : gameObject.m_size.x;
+			const int objHeight = (gameObject.m_gameObject.GetDimensions().y > 0) ? gameObject.m_gameObject.GetDimensions().y : gameObject.m_size.y;
+
+			if(ion::maths::BoxIntersectsBox(boundsMin, boundsMax, gameObject.m_gameObject.GetPosition(), gameObject.m_gameObject.GetPosition() + ion::Vector2i(objWidth, objHeight)))
 			{
 				gameObjects.push_back(&gameObject);
 			}
@@ -577,7 +599,10 @@ void Map::RemoveGameObject(int x, int y)
 	{
 		for(std::vector<GameObjectMapEntry>::reverse_iterator itVec = itMap->second.rbegin(), endVec = itMap->second.rend(); itVec != endVec; ++itVec)
 		{
-			ion::Vector2i size(itVec->m_size.x / tileWidth, itVec->m_size.y / tileHeight);
+			const int width = (itVec->m_gameObject.GetDimensions().x > 0) ? itVec->m_gameObject.GetDimensions().x : itVec->m_size.x;
+			const int height = (itVec->m_gameObject.GetDimensions().y > 0) ? itVec->m_gameObject.GetDimensions().y : itVec->m_size.y;
+
+			ion::Vector2i size(width / tileWidth, height / tileHeight);
 			if(size.x == 0)
 				size.x = 1;
 			if(size.y == 0)
