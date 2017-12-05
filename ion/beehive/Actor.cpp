@@ -120,6 +120,24 @@ void Actor::ExportSpriteSheets(const PlatformConfig& config, std::stringstream& 
 
 	stream << "actor_" << m_name << ":" << std::endl << std::endl;
 
+	//Calc largest frame size
+	int largestWidthTiles = 0;
+	int largestHeightTiles = 0;
+
+	for(TSpriteSheetMap::iterator it = m_spriteSheets.begin(), end = m_spriteSheets.end(); it != end; ++it)
+	{
+		u32 vramWidthTiles = it->second.GetMaxWidthTiles(config.tileWidth);
+		u32 vramHeightTiles = it->second.GetMaxHeightTiles(config.tileHeight);
+
+		if(vramWidthTiles > largestWidthTiles)
+			largestWidthTiles = vramWidthTiles;
+
+		if(vramHeightTiles > largestHeightTiles)
+			largestHeightTiles = vramHeightTiles;
+	}
+
+	stream << "actor_" << m_name << "_VRAM_size_b\t\tequ 0x" << HEX2(largestWidthTiles * largestHeightTiles * 32) << "\t; VRAM size to alloc (size of largest frame, bytes)" << std::endl;
+
 	//Export sprite sheet size headers
 	for(TSpriteSheetMap::iterator it = m_spriteSheets.begin(), end = m_spriteSheets.end(); it != end; ++it)
 	{
@@ -134,7 +152,6 @@ void Actor::ExportSpriteSheets(const PlatformConfig& config, std::stringstream& 
 
 		stream << label.str() << "_width\t\tequ 0x" << HEX2(widthTiles * config.tileWidth) << "\t; Max width of largest frame in pixels" << std::endl;
 		stream << label.str() << "_height\t\tequ 0x" << HEX2(heightTiles * config.tileHeight) << "\t; Max height of largest frame in pixels" << std::endl;
-		stream << label.str() << "_VRAM_size_b\t\tequ 0x" << HEX2(widthTiles * heightTiles * 32) << "\t; VRAM size to alloc (size of largest frame, bytes)" << std::endl;
 		stream << std::dec;
 
 		stream << std::endl << std::endl;

@@ -246,6 +246,34 @@ u8 SpriteSheet::GetHeightTiles(int frameIdx, int tileHeight) const
 	return (m_croppedDimensionData[frameIdx].bottomRight.y - m_croppedDimensionData[frameIdx].topLeft.y) / tileHeight;
 }
 
+u8 SpriteSheet::GetMaxWidthTiles(int tileWidth) const
+{
+	int widthTiles = 0;
+
+	for(int i = 0; i < m_croppedDimensionData.size(); i++)
+	{
+		int currFrameWidth = GetWidthTiles(i, tileWidth);
+		if(currFrameWidth > widthTiles)
+			widthTiles = currFrameWidth;
+	}
+
+	return widthTiles;
+}
+
+u8 SpriteSheet::GetMaxHeightTiles(int tileHeight) const
+{
+	int heightTiles = 0;
+
+	for(int i = 0; i < m_croppedDimensionData.size(); i++)
+	{
+		int currFrameHeight = GetHeightTiles(i, tileHeight);
+		if(currFrameHeight > heightTiles)
+			heightTiles = currFrameHeight;
+	}
+
+	return heightTiles;
+}
+
 void SpriteSheet::GetWidthSubsprites(int frameIdx, int tileWidth, u8& total, u8& whole, u8& remainder) const
 {
 	int widthTiles = GetWidthTiles(frameIdx, tileWidth);

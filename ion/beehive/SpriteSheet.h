@@ -72,6 +72,8 @@ public:
 	u8 GetHeightTiles() const;
 	u8 GetWidthTiles(int frameIdx, int tileWidth) const;
 	u8 GetHeightTiles(int frameIdx, int tileHeight) const;
+	u8 GetMaxWidthTiles(int tileWidth) const;
+	u8 GetMaxHeightTiles(int tileHeight) const;
 
 	const SpriteFrameDimensions& GetDimensionData(int frameIdx) const;
 
