@@ -379,10 +379,10 @@ void CollisionMap::GetPhysicsWorldBounds(ion::Vector2i& topLeft, ion::Vector2i& 
 					topLeft.x = x;
 				if(y < topLeft.y)
 					topLeft.y = y;
-				if(x > bottomRight.x)
-					bottomRight.x = x;
-				if(y > bottomRight.y)
-					bottomRight.y = y;
+				if((x+1) > bottomRight.x)
+					bottomRight.x = x+1;
+				if((y+1) > bottomRight.y)
+					bottomRight.y = y+1;
 			}
 		}
 	}
@@ -400,8 +400,8 @@ void CollisionMap::GetPhysicsWorldBoundsBlocks(ion::Vector2i& topLeft, ion::Vect
 	GetPhysicsWorldBounds(topLeft, size, tileWidth, tileHeight, blockWidth, blockHeight);
 	topLeft.x = topLeft.x / blockWidth;
 	topLeft.y = topLeft.y / blockHeight;
-	size.x = (size.x / blockWidth) + 1;
-	size.y = (size.y / blockHeight) + 1;
+	size.x = (size.x / blockWidth);
+	size.y = (size.y / blockHeight);
 }
 
 std::vector<CollisionMap::Block>& CollisionMap::GetBlocks()
