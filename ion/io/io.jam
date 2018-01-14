@@ -1,6 +1,9 @@
 SubDir bigevilcorp ion io ;
 
 local SRC =
+	compression/Compression.h
+	compression/CompressionRLE.cpp
+	compression/CompressionRLE.h
 	Archive.cpp
 	Archive.h
 	File.cpp

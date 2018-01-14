@@ -246,12 +246,14 @@ public:
 	void InvalidateTerrainBeziers(bool invalidate) { m_terrainBeziersInvalidated = invalidate; }
 	void InvalidateStamps(bool invalidate) { m_stampsInvalidated = invalidate; }
 	void InvalidateCamera(bool invalidate) { m_cameraInvalidated = invalidate; }
+	void InvalidateBlocks(bool invalidate) { m_blocksInvalidated = invalidate; }
 	bool MapIsInvalidated() const { return m_mapInvalidated; }
 	bool TilesAreInvalidated() const { return m_tilesInvalidated; }
 	bool TerrainTilesAreInvalidated() const { return m_terrainTilesInvalidated; }
 	bool TerrainBeziersAreInvalidated() const { return m_terrainBeziersInvalidated; }
 	bool StampsAreInvalidated() const { return m_stampsInvalidated; }
 	bool CameraIsInvalidated() const { return m_cameraInvalidated; }
+	bool BlocksAreInvalidated() const { return m_blocksInvalidated; }
 
 	//Import bitmap
 	bool ImportBitmap(const std::string& filename, u32 importFlags, u32 paletteBits, Stamp* stamp = NULL);
@@ -462,4 +464,5 @@ private:
 	bool m_terrainBeziersInvalidated;
 	bool m_stampsInvalidated;
 	bool m_cameraInvalidated;
+	bool m_blocksInvalidated;
 };

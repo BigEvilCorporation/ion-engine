@@ -109,6 +109,7 @@ public:
 	{
 		std::vector<TileDesc> m_tiles;
 		int uniqueIndex = -1;
+		bool unique = false;
 
 		bool operator ==(const Block& rhs) const;
 		void Export(const Project& project, std::stringstream& stream, int blockWidth, int blockHeight);
@@ -177,12 +178,13 @@ public:
 	// Generate NxN blocks and sort unique
 	void GenerateBlocks(const Project& project, int blockWidth, int blockHeight);
 	std::vector<Block>& GetBlocks();
+	const std::vector<Block>& GetBlocks() const;
 
 	void Serialise(ion::io::Archive& archive);
 	void Export(const Project& project, std::stringstream& stream) const;
 	void Export(const Project& project, ion::io::File& file) const;
 	void ExportBlockMap(const Project& project, std::stringstream& stream, int blockWidth, int blockHeight) const;
-	void ExportBlockMap(const Project& project, ion::io::File& file, int blockWidth, int blockHeight) const;
+	void ExportBlockMap(const Project& project, ion::io::File& file, int blockWidth, int blockHeight, std::vector<u32>& colOffsets) const;
 	void ExportStampMap(const Project& project, std::stringstream& stream) const;
 	void ExportStampMap(const Project& project, ion::io::File& file) const;
 

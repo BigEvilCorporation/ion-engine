@@ -18,6 +18,14 @@
 #include <ion/core/memory/Endian.h>
 #include <ion/maths/Geometry.h>
 
+#include <ion/dependencies/slz/tool/main.h>
+#include <ion/dependencies/slz/tool/compress.h>
+#include <ion/dependencies/slz/tool/decompress.h>
+
+#pragma optimize("",off)
+#include <ion/io/compression/CompressionRLE.h>
+#pragma optimize("",on)
+
 #define HEX1(val) std::hex << std::setfill('0') << std::setw(1) << std::uppercase << (int)val
 #define HEX2(val) std::hex << std::setfill('0') << std::setw(2) << std::uppercase << (int)val
 #define HEX4(val) std::hex << std::setfill('0') << std::setw(4) << std::uppercase << (int)val
@@ -884,6 +892,11 @@ std::vector<Map::Block>& Map::GetBlocks()
 	return m_blocks;
 }
 
+const std::vector<Map::Block>& Map::GetBlocks() const
+{
+	return m_blocks;
+}
+
 void Map::ExportBlockMap(const Project& project, std::stringstream& stream, int blockWidth, int blockHeight) const
 {
 	int widthBlocks = GetWidthBlocks(blockWidth);
@@ -914,29 +927,65 @@ void Map::ExportBlockMap(const Project& project, std::stringstream& stream, int 
 	}
 }
 
-void Map::ExportBlockMap(const Project& project, ion::io::File& file, int blockWidth, int blockHeight) const
-{
-	int widthBlocks = GetWidthBlocks(blockWidth);
-	int heightBlocks = GetHeightBlocks(blockHeight);
+#pragma optimize("",off)
 
-	//Export block map
-	for(int blockY = 0; blockY < heightBlocks; blockY++)
+void Map::ExportBlockMap(const Project& project, ion::io::File& file, int blockWidth, int blockHeight, std::vector<u32>& colOffsets) const
+{
+	if(m_blocks.size() > 0)
 	{
+		int widthBlocks = GetWidthBlocks(blockWidth);
+		int heightBlocks = GetHeightBlocks(blockHeight);
+
+		//Compression buffers
+		std::vector<u16> uncompressedData;
+		std::vector<u8> compressedData;
+
+		//Create RLE compressor, use 3 bits for run size
+		const int runSizeBits = 3;
+		ion::io::CompressorRLE<u16, runSizeBits> compressor;
+
+		int colOffset = 0;
+
+		//Export block map
 		for(int blockX = 0; blockX < widthBlocks; blockX++)
 		{
-			int blockId = (blockY * widthBlocks) + blockX;
-			const Block& block = m_blocks[blockId];
+			for(int blockY = 0; blockY < heightBlocks; blockY++)
+			{
+				int blockId = (blockY * widthBlocks) + blockX;
+				const Block& block = m_blocks[blockId];
 
-			u16 word = block.uniqueIndex;
+				u16 word = block.uniqueIndex;
 
-			//Endian flip
-			ion::memory::EndianSwap(word);
+				//Write to buffer
+				uncompressedData.push_back(word);
+			}
 
-			//Write
-			file.Write(&word, sizeof(u16));
+			//Add col offset
+			colOffsets.push_back(colOffset);
+
+			//Compress col
+			int compressedSize = compressor.Compress(uncompressedData, compressedData);
+
+			//Write col
+			file.Write(compressedData.data(), compressedData.size());
+
+			//Advance col
+			colOffset += compressedSize;
+			
+			//Sanity check
+			std::vector<u16> decompressedData;
+			ion::io::DecompressorRLE<u16, runSizeBits> decompressor;
+			decompressor.Decompress(compressedData, decompressedData);
+			ion::debug::Assert(decompressedData == uncompressedData, "Block map compression error");
+
+			//Clear buffers
+			uncompressedData.clear();
+			compressedData.clear();
 		}
 	}
 }
+
+#pragma optimize("",on)
 
 void Map::ExportStampMap(const Project& project, std::stringstream& stream) const
 {

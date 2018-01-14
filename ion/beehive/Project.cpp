@@ -43,6 +43,7 @@ Project::Project(PlatformConfig& defaultPatformConfig)
 	m_terrainTilesInvalidated = true;
 	m_stampsInvalidated = true;
 	m_cameraInvalidated = true;
+	m_blocksInvalidated = true;
 	m_name = "untitled";
 	m_gridSize = 1;
 	m_showGrid = true;
@@ -70,6 +71,7 @@ void Project::Clear()
 	m_mapInvalidated = true;
 	m_tilesInvalidated = true;
 	m_stampsInvalidated = true;
+	m_blocksInvalidated = true;
 	m_name = "untitled";
 	m_palettes.resize(s_maxPalettes);
 
@@ -2625,7 +2627,7 @@ bool Project::ExportTiles(const std::string& filename, bool binary, bool compres
 		
 		stream << "tiles_" << m_name << "_size_w\tequ (tiles_" << m_name << "_size_b/2)\t; Size in words" << std::endl;
 		stream << "tiles_" << m_name << "_size_l\tequ (tiles_" << m_name << "_size_b/4)\t; Size in longwords" << std::endl;
-		stream << "tiles_" << m_name << "_size_t\tequ (tiles_" << m_name << "_size_b/32)\t; Size in tiles" << std::endl;
+		stream << "tiles_" << m_name << "_size_t\tequ " << m_tileset.GetCount() << "\t; Size in tiles" << std::endl;
 
 		file.Write(stream.str().c_str(), stream.str().size());
 
@@ -2682,7 +2684,7 @@ bool Project::ExportTerrainTiles(const std::string& filename, bool binary) const
 
 		stream << "TerrainTiles_" << m_name << "_size_w\tequ (TerrainTiles_" << m_name << "_size_b/2)\t; Size in words" << std::endl;
 		stream << "TerrainTiles_" << m_name << "_size_l\tequ (TerrainTiles_" << m_name << "_size_b/4)\t; Size in longwords" << std::endl;
-		stream << "TerrainTiles_" << m_name << "_size_t\tequ (TerrainTiles_" << m_name << "_size_b/32)\t; Size in tiles" << std::endl;
+		stream << "TerrainTiles_" << m_name << "_size_t\tequ " << m_terrainTileset.GetCount() << "\t; Size in tiles" << std::endl;
 
 		file.Write(stream.str().c_str(), stream.str().size());
 
@@ -2779,20 +2781,77 @@ bool Project::ExportBlocks(const std::string& filename, bool binary, int blockWi
 
 	for(int i = 0; i < blocks.size(); i++)
 	{
+		Map::Block* blockA = blocks[i];
+
 		if(blocks[i]->uniqueIndex == -1)
 		{
 			blocks[i]->uniqueIndex = uniqueBlocks.size();
+			blocks[i]->unique = true;
+
 			uniqueBlocks.push_back(blocks[i]);
 
 			for(int j = i + 1; j < blocks.size(); j++)
 			{
-				if(*blocks[i] == *blocks[j])
+				Map::Block* blockB = blocks[j];
+
+				bool equal = true;
+
+				if(!(*blocks[i] == *blocks[j]))
+				{
+					//Solid (all pixels same colour) tiles are considered equivalent regardless of flags
+					for(int k = 0; k < blocks[i]->m_tiles.size() && equal; k++)
+					{
+						TileId tileIdA = blocks[i]->m_tiles[k].m_id;
+						TileId tileIdB = blocks[j]->m_tiles[k].m_id;
+						u32 tileFlagsA = blocks[i]->m_tiles[k].m_flags;
+						u32 tileFlagsB = blocks[j]->m_tiles[k].m_flags;
+
+						//If tile ids and flags match, tile is definitely equal
+						if(tileIdA != tileIdB || tileFlagsA != tileFlagsB)
+						{
+							//Check tile A == tile B without taking id or flags into account
+							const Tile* tileA = m_tileset.GetTile(blocks[i]->m_tiles[k].m_id);
+							const Tile* tileB = m_tileset.GetTile(blocks[j]->m_tiles[k].m_id);
+
+							if(*tileA == *tileB)
+							{
+								//Check if tile is solid colour
+								bool solidColourTile = true;
+
+								u8 firstColourIdx = tileA->GetPixelColour(0, 0);
+
+								for(int tileX = 0; tileX < m_platformConfig.tileWidth && solidColourTile; tileX++)
+								{
+									for(int tileY = 0; tileY < m_platformConfig.tileHeight && solidColourTile; tileY++)
+									{
+										solidColourTile = (firstColourIdx == tileA->GetPixelColour(tileX, tileY));
+									}
+								}
+
+								if(!solidColourTile)
+								{
+									//Not solid colour, flags must match
+									equal = (tileFlagsA == tileFlagsB);
+								}
+							}
+							else
+							{
+								//Tiles don't match
+								equal = false;
+							}
+						}
+					}
+				}
+
+				if(equal)
 				{
 					blocks[j]->uniqueIndex = blocks[i]->uniqueIndex;
 				}
 			}
 		}
 	}
+
+	//m_blocksInvalidated = true;
 
 	u32 binarySize = 0;
 
@@ -2849,6 +2908,7 @@ bool Project::ExportBlocks(const std::string& filename, bool binary, int blockWi
 
 		stream << "map_blocks_" << m_name << "_size_w\tequ (map_blocks_" << m_name << "_size_b/2)\t; Size in words" << std::endl;
 		stream << "map_blocks_" << m_name << "_size_l\tequ (map_blocks_" << m_name << "_size_b/4)\t; Size in longwords" << std::endl;
+		stream << "map_blocks_" << m_name << "_num_blocks\tequ " << uniqueBlocks.size() << "\t; Size in blocks" << std::endl;
 
 		file.Write(stream.str().c_str(), stream.str().size());
 
@@ -2866,6 +2926,7 @@ bool Project::ExportBlockMap(MapId mapId, const std::string& filename, bool bina
 	const std::string& mapName = map.GetName();
 
 	u32 binarySize = 0;
+	std::vector<u32> colOffsets;
 
 	if(binary)
 	{
@@ -2876,7 +2937,7 @@ bool Project::ExportBlockMap(MapId mapId, const std::string& filename, bool bina
 		ion::io::File binaryFile(binaryFilename, ion::io::File::eOpenWrite);
 		if(binaryFile.IsOpen())
 		{
-			map.ExportBlockMap(*this, binaryFile, blockWidth, blockHeight);
+			map.ExportBlockMap(*this, binaryFile, blockWidth, blockHeight, colOffsets);
 			binarySize = binaryFile.GetSize();
 		}
 		else
@@ -2916,6 +2977,16 @@ bool Project::ExportBlockMap(MapId mapId, const std::string& filename, bool bina
 		stream << "map_" << mapName << "_height\tequ " << "0x" << std::setw(2) << mapHeight << std::endl;
 		stream << "map_blockmap_" << mapName << "_width\tequ " << "0x" << std::setw(2) << map.GetWidthBlocks(blockWidth) << std::endl;
 		stream << "map_blockmap_" << mapName << "_height\tequ " << "0x" << std::setw(2) << map.GetHeightBlocks(blockHeight) << std::endl;
+		stream << std::endl;
+
+		stream << "map_blockmap_" << mapName << "_coloffsets:" << std::endl;
+
+		//Export column offsets
+		for(int i = 0; i < colOffsets.size(); i++)
+		{
+			stream << "\tdc.w " << "0x" << HEX4(colOffsets[i]) << std::endl;
+		}
+
 		stream << std::dec;
 
 		file.Write(stream.str().c_str(), stream.str().size());
@@ -3524,7 +3595,7 @@ bool Project::ExportGameObjects(MapId mapId, const std::string& filename) const
 					for(int i = 0; i < gameObjIt->second.size(); i++)
 					{
 						std::string name = GenerateObjectName(mapName, gameObjIt->second[i].m_gameObject, gameObjectType);
-						gameObjIt->second[i].m_gameObject.Export(stream, gameObjectType, name);
+						gameObjIt->second[i].m_gameObject.Export(stream, gameObjectType, name, map.GetWidth() * m_platformConfig.tileWidth);
 						stream << '\t' << "add.l #" << gameObjectType.GetName() << "_Struct_Size, a0" << std::endl;
 						stream << std::endl;
 					}
