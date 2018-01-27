@@ -3118,6 +3118,7 @@ bool Project::ExportTerrainBlockMap(MapId mapId, const std::string& filename, bo
 	if(collisionMap.GetNumTerrainBeziers() > 0)
 	{
 		u32 binarySize = 0;
+		std::vector<u16> rowOffsets;
 
 		if(binary)
 		{
@@ -3128,7 +3129,7 @@ bool Project::ExportTerrainBlockMap(MapId mapId, const std::string& filename, bo
 			ion::io::File binaryFile(binaryFilename, ion::io::File::eOpenWrite);
 			if(binaryFile.IsOpen())
 			{
-				collisionMap.ExportBlockMap(*this, binaryFile, blockWidth, blockHeight);
+				collisionMap.ExportBlockMap(*this, binaryFile, blockWidth, blockHeight, rowOffsets);
 				binarySize = binaryFile.GetSize();
 			}
 			else
@@ -3173,6 +3174,16 @@ bool Project::ExportTerrainBlockMap(MapId mapId, const std::string& filename, bo
 			stream << "terrainmap_blockmap_" << mapName << "_width\tequ " << "0x" << std::setw(2) << sizeBlocks.x << std::endl;
 			stream << "terrainmap_blockmap_" << mapName << "_height\tequ " << "0x" << std::setw(2) << sizeBlocks.y << std::endl;
 			stream << std::dec;
+			stream << std::endl;
+
+			//Export row offsets
+			stream << "collisionmap_blockmap_yoffs_" << mapName << ":" << std::endl;
+
+			for (int i = 0; i < rowOffsets.size(); i++)
+			{
+				stream << "\tdc.w " << "0x" << HEX4(rowOffsets[i]) << std::endl;
+			}
+
 			stream << std::endl;
 
 			//Export bezier metadata for 'special' terrain

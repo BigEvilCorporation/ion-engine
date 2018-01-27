@@ -508,7 +508,7 @@ void CollisionMap::ExportBlockMap(const Project& project, std::stringstream& str
 	}
 }
 
-void CollisionMap::ExportBlockMap(const Project& project, ion::io::File& file, int blockWidth, int blockHeight) const
+void CollisionMap::ExportBlockMap(const Project& project, ion::io::File& file, int blockWidth, int blockHeight, std::vector<u16>& rowOffsets) const
 {
 	int tileWidth = project.GetPlatformConfig().tileWidth;
 	int tileHeight = project.GetPlatformConfig().tileHeight;
@@ -518,10 +518,14 @@ void CollisionMap::ExportBlockMap(const Project& project, ion::io::File& file, i
 	GetPhysicsWorldBoundsBlocks(topLeft, size, tileWidth, tileHeight, blockWidth, blockHeight);
 
 	int widthBlocks = GetWidthBlocks(blockWidth);
+	int fileOffsetY = 0;
 
 	//Export block map
 	for(int blockY = topLeft.y; blockY < (topLeft.y + size.y); blockY++)
 	{
+		//Add row offset
+		rowOffsets.push_back(fileOffsetY);
+
 		for(int blockX = topLeft.x; blockX < (topLeft.x + size.x); blockX++)
 		{
 			int blockId = (blockY * widthBlocks) + blockX;
@@ -535,6 +539,9 @@ void CollisionMap::ExportBlockMap(const Project& project, ion::io::File& file, i
 			//Write
 			file.Write(&word, sizeof(u16));
 		}
+
+		//Next row
+		fileOffsetY += size.x;
 	}
 }
 
