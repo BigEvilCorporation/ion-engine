@@ -2798,7 +2798,7 @@ bool Project::ExportBlocks(const std::string& filename, bool binary, int blockWi
 
 				if(!(*blocks[i] == *blocks[j]))
 				{
-					//Solid (all pixels same colour) tiles are considered equivalent regardless of flags
+					//Solid (all pixels same colour) tiles are considered equivalent regardless of flip flags
 					for(int k = 0; k < blocks[i]->m_tiles.size() && equal; k++)
 					{
 						TileId tileIdA = blocks[i]->m_tiles[k].m_id;
@@ -2809,7 +2809,7 @@ bool Project::ExportBlocks(const std::string& filename, bool binary, int blockWi
 						//If tile ids and flags match, tile is definitely equal
 						if(tileIdA != tileIdB || tileFlagsA != tileFlagsB)
 						{
-							//Check tile A == tile B without taking id or flags into account
+							//Check tile A == tile B without taking id or flip flags into account
 							const Tile* tileA = m_tileset.GetTile(blocks[i]->m_tiles[k].m_id);
 							const Tile* tileB = m_tileset.GetTile(blocks[j]->m_tiles[k].m_id);
 
@@ -2828,9 +2828,14 @@ bool Project::ExportBlocks(const std::string& filename, bool binary, int blockWi
 									}
 								}
 
-								if(!solidColourTile)
+								if (solidColourTile)
 								{
-									//Not solid colour, flags must match
+									//Solid colour, only priority flags must match
+									equal = ((tileFlagsA & Map::eHighPlane) == (tileFlagsB & Map::eHighPlane));
+								}
+								else
+								{
+									//Not solid colour, all flags must match
 									equal = (tileFlagsA == tileFlagsB);
 								}
 							}

@@ -95,7 +95,7 @@ public:
 	void Export(const Project& project, std::stringstream& stream) const;
 	void Export(const Project& project, ion::io::File& file) const;
 	void ExportBlockMap(const Project& project, std::stringstream& stream, int blockWidth, int blockHeight) const;
-	void ExportBlockMap(const Project& project, ion::io::File& file, int blockWidth, int blockHeight) const;
+	void ExportBlockMap(const Project& project, ion::io::File& file, int blockWidth, int blockHeight, std::vector<u16>& rowOffsets) const;
 
 private:
 
