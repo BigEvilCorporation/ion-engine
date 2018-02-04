@@ -813,8 +813,8 @@ void Map::Export(const Project& project, ion::io::File& file) const
 void Map::GenerateBlocks(const Project& project, int blockWidth, int blockHeight)
 {
 	//Align map size to block size
-	int mapWidth = GetBlockAlignedWidth(blockWidth);
-	int mapHeight = GetBlockAlignedHeight(blockHeight);
+	int mapWidthBlockAligned = GetBlockAlignedWidth(blockWidth);
+	int mapHeightBlockAligned = GetBlockAlignedHeight(blockHeight);
 
 	//Use background tile if there is one, else use first tile
 	u32 backgroundTileId = project.GetBackgroundTile();
@@ -825,15 +825,21 @@ void Map::GenerateBlocks(const Project& project, int blockWidth, int blockHeight
 
 	//Copy tiles (using new aligned map size)
 	std::vector<TileDesc> tiles;
-	tiles.resize(mapWidth * mapHeight);
+	tiles.resize(mapWidthBlockAligned * mapHeightBlockAligned);
 	std::fill(tiles.begin(), tiles.end(), TileDesc(backgroundTileId, 0));
 
-	for(int x = 0; x < m_width; x++)
+	for (int x = 0; x < mapWidthBlockAligned; x++)
 	{
-		for(int y = 0; y < m_height; y++)
+		for (int y = 0; y < mapHeightBlockAligned; y++)
 		{
-			TileDesc& dest = tiles[(y * mapWidth) + x];
-			dest = m_tiles[(y * m_width) + x];
+			//Clamp aligned size to original size (repeats last tile)
+			int clampedX = ion::maths::Clamp(x, 0, m_width - 1);
+			int clampedY = ion::maths::Clamp(y, 0, m_height - 1);
+
+			int index = (y * mapWidthBlockAligned) + x;
+			int indexClamped = (clampedY * m_width) + clampedX;
+
+			tiles[index] = m_tiles[indexClamped];
 		}
 	}
 
@@ -844,13 +850,13 @@ void Map::GenerateBlocks(const Project& project, int blockWidth, int blockHeight
 		if(stamp)
 		{
 			const ion::Vector2i& position = it->m_position;
-			BakeStamp(tiles, mapWidth, mapHeight, position.x, position.y, *stamp, it->m_flags);
+			BakeStamp(tiles, mapWidthBlockAligned, mapHeightBlockAligned, position.x, position.y, *stamp, it->m_flags);
 		}
 	}
 
 	//Split map into NxN blocks
-	int widthBlocks = mapWidth / blockWidth;
-	int heightBlocks = mapHeight / blockHeight;
+	int widthBlocks = mapWidthBlockAligned / blockWidth;
+	int heightBlocks = mapHeightBlockAligned / blockHeight;
 
 	m_blocks.clear();
 	m_blocks.reserve(widthBlocks * heightBlocks);
@@ -871,7 +877,7 @@ void Map::GenerateBlocks(const Project& project, int blockWidth, int blockHeight
 					int x = (blockX * blockWidth) + tileX;
 					int y = (blockY * blockHeight) + tileY;
 
-					int tileOffset = (y * mapWidth) + x;
+					int tileOffset = (y * mapWidthBlockAligned) + x;
 
 					if (tiles[tileOffset].m_id == InvalidTileId)
 					{
@@ -924,8 +930,6 @@ void Map::ExportBlockMap(const Project& project, std::stringstream& stream, int 
 		stream << std::endl;
 	}
 }
-
-#pragma optimize("",off)
 
 void Map::ExportBlockMap(const Project& project, ion::io::File& file, int blockWidth, int blockHeight, std::vector<u32>& colOffsets) const
 {
@@ -982,8 +986,6 @@ void Map::ExportBlockMap(const Project& project, ion::io::File& file, int blockW
 		}
 	}
 }
-
-#pragma optimize("",on)
 
 void Map::ExportStampMap(const Project& project, std::stringstream& stream) const
 {
