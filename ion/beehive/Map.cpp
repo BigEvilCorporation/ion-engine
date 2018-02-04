@@ -300,22 +300,19 @@ void Map::BakeStamp(std::vector<TileDesc>& tiles, int mapWidth, int mapHeight, i
 			int sourceY = (flipFlags & eFlipY) ? (height - 1 - stampY) : stampY;
 
 			TileId tileId = stamp.GetTile(sourceX, sourceY);
-			if(tileId != InvalidTileId)
+			u32 tileFlags = stamp.GetTileFlags(sourceX, sourceY);
+			tileFlags ^= flipFlags;
+
+			int mapX = stampX + x;
+			int mapY = stampY + y;
+
+			//Can place stamps outside map boundaries, only bake tiles that are inside
+			if(mapX >= 0 && mapX < mapWidth && mapY >= 0 && mapY < mapHeight)
 			{
-				u32 tileFlags = stamp.GetTileFlags(sourceX, sourceY);
-				tileFlags ^= flipFlags;
-
-				int mapX = stampX + x;
-				int mapY = stampY + y;
-
-				//Can place stamps outside map boundaries, only bake tiles that are inside
-				if(mapX >= 0 && mapX < mapWidth && mapY >= 0 && mapY < mapHeight)
-				{
-					//Copy tile and flags
-					int tileIdx = (mapY * mapWidth) + mapX;
-					tiles[tileIdx].m_id = tileId;
-					tiles[tileIdx].m_flags = tileFlags;
-				}
+				//Copy tile and flags
+				int tileIdx = (mapY * mapWidth) + mapX;
+				tiles[tileIdx].m_id = tileId;
+				tiles[tileIdx].m_flags = tileFlags;
 			}
 		}
 	}
@@ -837,11 +834,6 @@ void Map::GenerateBlocks(const Project& project, int blockWidth, int blockHeight
 		{
 			TileDesc& dest = tiles[(y * mapWidth) + x];
 			dest = m_tiles[(y * m_width) + x];
-
-			if(dest.m_id == InvalidTileId)
-			{
-				dest.m_id = backgroundTileId;
-			}
 		}
 	}
 
@@ -880,6 +872,12 @@ void Map::GenerateBlocks(const Project& project, int blockWidth, int blockHeight
 					int y = (blockY * blockHeight) + tileY;
 
 					int tileOffset = (y * mapWidth) + x;
+
+					if (tiles[tileOffset].m_id == InvalidTileId)
+					{
+						tiles[tileOffset].m_id = backgroundTileId;
+					}
+
 					block.m_tiles.push_back(tiles[tileOffset]);
 				}
 			}
