@@ -70,8 +70,11 @@ namespace ion
 
 				if(hResult == DI_OK)
 				{
-					mAbsX += mMouseState.lX;
-					mAbsY += mMouseState.lY;
+					POINT absPos;
+					GetCursorPos(&absPos);
+					ScreenToClient(GetActiveWindow(), &absPos);
+					mAbsX = absPos.x;
+					mAbsY = absPos.y;
 					mWheelAbs += mMouseState.lZ;
 				}
 				else
