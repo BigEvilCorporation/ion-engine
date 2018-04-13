@@ -8,6 +8,8 @@ ApplyIonIo beehive ;
 ApplyIonRenderer beehive ;
 ApplyIonGameKit beehive ;
 
+ApplySLZSDK beehive ;
+
 local BEEHIVE_SRC = 
 	Actor.cpp
 	Actor.h

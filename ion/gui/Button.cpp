@@ -7,31 +7,28 @@
 
 #include "Button.h"
 
+#include <ion/dependencies/imgui/imgui.h>
+
 namespace ion
 {
 	namespace gui
 	{
-		Event Button::sOnPressedEvent;
-
-		Button::Button(std::string text, Scheme& scheme)
-			: Widget(scheme, Widget::Button)
+		Button::Button(const std::string& text, std::function<void(const Button&)> const& onPressed)
+			: m_onPressed(onPressed)
+			, m_text(text)
 		{
-			mCEWidget->setText(text);
-			mCEWidget->subscribeEvent(CEGUI::PushButton::EventClicked, CEGUI::Event::Subscriber(&Button::OnClicked, this));
 		}
 
 		Button::~Button()
 		{
 		}
 
-		bool Button::OnClicked(const CEGUI::EventArgs& args)
+		void Button::Update(float deltaTime)
 		{
-			Widget::EventParams params;
-			params.mWidget = this;
-
-			sOnPressedEvent.Post(params);
-
-			return true;
+			if (ImGui::Button(m_text.c_str()))
+			{
+				m_onPressed(*this);
+			}
 		}
 	}
 }

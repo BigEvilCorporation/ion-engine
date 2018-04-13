@@ -8,28 +8,25 @@
 #pragma once
 
 #include "Widget.h"
-#include "EventListener.h"
-#include <CEGUI/CEGUI.h>
 
 #include <string>
+#include <functional>
 
 namespace ion
 {
 	namespace gui
 	{
-		//Forward declaration
-		class Scheme;
-
 		class Button : public Widget
 		{
 		public:
-			static Event sOnPressedEvent;
+			Button(const std::string& text, std::function<void(const Button&)> const& onPressed);
+			virtual ~Button();
 
-			Button(std::string text, Scheme& scheme);
-			~Button();
+			virtual void Update(float deltaTime);
 
 		private:
-			bool OnClicked(const CEGUI::EventArgs& args);
+			std::string m_text;
+			std::function<void(const Button&)> const& m_onPressed;
 		};
 	}
 }

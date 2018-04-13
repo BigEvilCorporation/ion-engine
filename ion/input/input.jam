@@ -22,9 +22,15 @@ if ( win32 in $PLATFORM) )
 	ApplyXInputSDK input ;
 }
 
+if ( win64 in $PLATFORM) )
+{
+	ApplyWin32SDK input ;
+	ApplyXInputSDK input ;
+}
+
 if ( macosx64 in $(PLATFORM) )
 {
-    ApplySDLSDK input ;
+	ApplySDLSDK input ;
 }
 
 AutoSourceGroup input : $(SRC) ;

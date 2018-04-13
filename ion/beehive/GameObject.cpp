@@ -158,8 +158,9 @@ void GameObject::Serialise(ion::io::Archive& archive)
 	archive.Serialise(m_variables, "variables");
 }
 
-void GameObject::Export(std::stringstream& stream, const GameObjectType& gameObjectType, const std::string& name) const
+void GameObject::Export(std::stringstream& stream, const GameObjectType& gameObjectType, const std::string& name, int mapWidth) const
 {
+	//Initialise object
 	stream << '\t' << "jsr " << gameObjectType.GetName() << "Init" << std::endl;
 
 	const std::vector<GameObjectVariable>& templateVariables = gameObjectType.GetVariables();
@@ -230,6 +231,19 @@ void GameObject::Export(std::stringstream& stream, const GameObjectType& gameObj
 		}
 	}
 
+	//Add to quadtree
+#if GAMEOBJ_EXPORT_QUADTREE
+	const int quadTreeWidth = 320;
+	const int quadTreeHeight = 224;
+	const int cellPosX = m_position.x / quadTreeWidth;
+	const int cellPosY = m_position.y / quadTreeHeight;
+	const int worldWidthCells = mapWidth / quadTreeWidth;
+	const int quadTreeCell = (cellPosY * worldWidthCells) + cellPosX;
+	stream << "\tmove.w #0x" << std::hex << std::setfill('0') << std::setw(4) << quadTreeCell << ", d0" << std::endl;
+	stream << "\tjsr EntityAddToQuadTree" << std::endl;
+#endif
+
+	//Load graphics
 	stream << '\t' << "jsr " << gameObjectType.GetName() << "LoadGfx" << std::endl;
 
 	//Copy debug name
@@ -245,10 +259,6 @@ void GameObject::Export(std::stringstream& stream, const GameObjectType& gameObj
 
 bool GameObject::ParseValueTokens(std::string& valueString, const std::string& varName, GameObjectVariableSize size) const
 {
-	const int screenToWorldSpaceShift = 16;
-	const int spriteSheetBorderX = 128;
-	const int spriteSheetBorderY = 128;
-
 	const std::string worldPosXString("WORLDPOSX");
 	const std::string worldPosYString("WORLDPOSY");
 	const std::string widthString("WIDTH");

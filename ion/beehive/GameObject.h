@@ -94,6 +94,10 @@ private:
 class GameObject
 {
 public:
+	static const int screenToWorldSpaceShift = 16;
+	static const int spriteSheetBorderX = 128;
+	static const int spriteSheetBorderY = 128;
+
 	GameObject();
 	GameObject(GameObjectId objectId, const GameObject& rhs);
 	GameObject(GameObjectId objectId, GameObjectTypeId typeId, const ion::Vector2i& position);
@@ -124,7 +128,7 @@ public:
 	const std::vector<GameObjectVariable>& GetVariables() const { return m_variables; }
 
 	void Serialise(ion::io::Archive& archive);
-	void Export(std::stringstream& stream, const GameObjectType& gameObjectType, const std::string& name) const;
+	void Export(std::stringstream& stream, const GameObjectType& gameObjectType, const std::string& name, int mapWidth) const;
 
 private:
 	bool ParseValueTokens(std::string& valueString, const std::string& varName, GameObjectVariableSize size) const;

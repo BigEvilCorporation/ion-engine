@@ -3,7 +3,7 @@ SubDir bigevilcorp ion renderer opengl ;
 ApplyIonCompiler opengl ;
 ApplyIonDefines opengl ;
 ApplyIonIncludes opengl ;
-ApplyDefaultRenderer opengl : sdk ;
+ApplyOpenGLSDK opengl ;
 
 local SRC =
 	RendererOpenGL.cpp
@@ -13,6 +13,14 @@ local SRC =
 	;
 
 if ( win32 in $(PLATFORM) )
+{
+	SRC +=
+	../win32/WindowWin32.cpp
+	../win32/WindowWin32.h
+	;
+}
+
+if ( win64 in $(PLATFORM) )
 {
 	SRC +=
 	../win32/WindowWin32.cpp

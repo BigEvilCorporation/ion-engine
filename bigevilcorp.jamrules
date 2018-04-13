@@ -121,10 +121,7 @@ rule ApplyIonGui TARGET
 {
 	ApplyIonLib $(TARGET) : gui ;
 
-	ApplyWin32SDK $(TARGET) ;
-	ApplyDirectXSDK $(TARGET) ;
-	ApplyOgreSDK $(TARGET) ;
-	ApplyCEGUISDK $(TARGET) ;
+	ApplyImguiSDK $(TARGET) ;
 }
 
 rule ApplyIonInput TARGET
@@ -159,14 +156,28 @@ rule ApplyDefaultRenderer TARGET : LINK_OPT
 {
 	if ( win32 in $(PLATFORM) )
 	{
-		# ApplyRendererImpl $(TARGET) : opengl sdl cggl $(LINK_OPT) ;
-		ApplyRendererImpl $(TARGET) : opengl sdl $(LINK_OPT) ;
+		if ( shader in $(ion_renderer_opts) )
+		{
+			ApplyRendererImpl $(TARGET) : opengl cggl $(LINK_OPT) ;
+		}
+		
+		if ( fixed in $(ion_renderer_opts) )
+		{
+			ApplyRendererImpl $(TARGET) : opengl $(LINK_OPT) ;
+		}
 	}
 
-	if ( win64 in $(PLATFORM) )
+	if ( win32 in $(PLATFORM) )
 	{
-		ApplyRendererImpl $(TARGET) : opengl sdl cggl $(LINK_OPT) ;
-		# ApplyRendererImpl $(TARGET) : opengl sdl $(LINK_OPT) ;
+		if ( shader in $(ion_renderer_opts) )
+		{
+			ApplyRendererImpl $(TARGET) : opengl cggl $(LINK_OPT) ;
+		}
+		
+		if ( fixed in $(ion_renderer_opts) )
+		{
+			ApplyRendererImpl $(TARGET) : opengl $(LINK_OPT) ;
+		}
 	}
 
 	if ( macosx64 in $(PLATFORM) )
@@ -380,13 +391,21 @@ rule ApplyXAudio2SDK TARGET
 rule ApplyXInputSDK TARGET
 {
 	C.IncludeDirectories $(TARGET) : $(DXSDK_DIR:J=" ")/Include ;
-	C.LinkDirectories $(TARGET) : $(DXSDK_DIR:J=" ")/Lib/x86 ;
 	C.Defines $(TARGET) : DIRECTINPUT_VERSION=0x0800 ;
+
+	if ( win32 in $(PLATFORM) )
+	{
+		C.LinkDirectories $(TARGET) : $(DXSDK_DIR:J=" ")/Lib/x86 ;
+	}
+
+	if ( win64 in $(PLATFORM) )
+	{
+		C.LinkDirectories $(TARGET) : $(DXSDK_DIR:J=" ")/Lib/x64 ;
+	}
 
 	local XINPUT_LIBS =
 		xinput.lib
 		dinput8.lib
-		# DxErr.lib
 		dxguid.lib
 		;
 
@@ -396,7 +415,16 @@ rule ApplyXInputSDK TARGET
 rule ApplyDirectXSDK TARGET
 {
 	C.IncludeDirectories $(TARGET) : $(DXSDK_DIR:J=" ")/Include ;
-	C.LinkDirectories $(TARGET) : $(DXSDK_DIR:J=" ")/Lib/x86 ;
+
+	if ( win32 in $(PLATFORM) )
+	{
+		C.LinkDirectories $(TARGET) : $(DXSDK_DIR:J=" ")/Lib/x86 ;
+	}
+
+	if ( win64 in $(PLATFORM) )
+	{
+		C.LinkDirectories $(TARGET) : $(DXSDK_DIR:J=" ")/Lib/x64 ;
+	}
 
 	local DIRECTX_LIBS =
 		d3dx9d.lib
@@ -843,6 +871,31 @@ rule ApplySLZSDK TARGET
 		;
 
 	C.LinkLibraries $(TARGET) : slz ;
+}
+
+rule ApplyImguiSDK TARGET
+{
+	C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/imgui ;
+
+	ApplyIonCompiler imgui ;
+	ApplyIonDefines imgui ;
+	ApplyIonIncludes imgui ;
+
+	C.RuntimeType imgui : static ;
+
+	C.Library imgui :
+			$(bigevilcorp)/ion/dependencies/imgui/imgui.cpp
+			$(bigevilcorp)/ion/dependencies/imgui/imgui.h
+			$(bigevilcorp)/ion/dependencies/imgui/imgui_demo.cpp
+			$(bigevilcorp)/ion/dependencies/imgui/imgui_draw.cpp
+			$(bigevilcorp)/ion/dependencies/imgui/imgui_internal.h
+			$(bigevilcorp)/ion/dependencies/imgui/imconfig.h
+			$(bigevilcorp)/ion/dependencies/imgui/stb_rect_pack.h
+			$(bigevilcorp)/ion/dependencies/imgui/stb_textedit.h
+			$(bigevilcorp)/ion/dependencies/imgui/stb_truetype.h
+			;
+
+	C.LinkLibraries $(TARGET) : imgui ;
 }
 
 #################################################

@@ -56,7 +56,8 @@ local SRC =
 ApplyIonCompiler renderer ;
 ApplyIonDefines renderer ;
 ApplyIonIncludes renderer ;
-ApplyDefaultRenderer renderer : sdk ;
+
+ApplyOpenGLSDK renderer ;
 
 AutoSourceGroup renderer : $(SRC) ;
 C.RuntimeType renderer : static ;

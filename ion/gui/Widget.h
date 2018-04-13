@@ -7,11 +7,8 @@
 
 #pragma once
 
-#include "core/maths/Vector.h"
-
-#include "EventListener.h"
-
-#include <CEGUI/CEGUI.h>
+#include <ion/maths/Vector.h>
+#include <ion/core/cryptography/UUID.h>
 
 #include <string>
 
@@ -19,47 +16,28 @@ namespace ion
 {
 	namespace gui
 	{
-		//Forward declaration
-		class Scheme;
-
 		class Widget
 		{
-			friend class Root;
-
 		public:
 
-			//Default event params
-			class EventParams : public Event::Params
-			{
-			public:
-				Widget* mWidget;
-			};
-
-			enum Types { Window, Button, StaticText, TextBox, ScrollBar, Slider, ListBox, NumWidgetTypes };
-			static const char* sTypeNames[NumWidgetTypes];
-
-			Widget(Scheme& scheme, Types type);
+			Widget();
 			virtual ~Widget();
+
+			UUID64 GetId() const;
 
 			void AddChild(Widget& widget);
 
-			void SetText(std::string text);
 			void SetPosition(const Vector2& position);
 			void SetSize(const Vector2& size);
 
 			virtual void Show();
 			virtual void Hide();
 
-			CEGUI::Window* GetCEWidget();
+			virtual void Update(float deltaTime) = 0;
 
-		protected:
-
-			//Only root nodes can create a widget with no scheme
-			Widget();
-
-			CEGUI::Window* mCEWidget;
-
-			static int sNumWidgets;
+		private:
+			UUID64 m_id;
+			bool m_visible;
 		};
 	}
 }

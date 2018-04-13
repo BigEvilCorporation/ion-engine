@@ -141,6 +141,7 @@ namespace ion
 			{
 				//Generate texture
 				glGenTextures(1, &m_glTextureId);
+				RendererOpenGL::CheckGLError("TextureOpenGL::Load");
 			}
 
 			debug::Assert(m_glTextureId != 0, "Could not create OpenGL texture");
@@ -152,6 +153,7 @@ namespace ion
 
 			//Bind the texture
 			glBindTexture(GL_TEXTURE_2D, m_glTextureId);
+			RendererOpenGL::CheckGLError("TextureOpenGL::Load");
 
 			//Generate mipmaps
 #if !defined ION_RENDERER_OPENGLES
@@ -176,6 +178,8 @@ namespace ion
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, generateMipmaps ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
 #endif
 
+			RendererOpenGL::CheckGLError("TextureOpenGL::Load");
+
 			//If first time load, init size
 			//if(m_width == 0 && m_height == 0)
 			{
@@ -188,6 +192,7 @@ namespace ion
 			{
 				//Width/height match, just copy
 				glTexImage2D(GL_TEXTURE_2D, 0, m_glFormat, width, height, 0, m_glFormat, glByteFormat, data);
+				RendererOpenGL::CheckGLError("TextureOpenGL::Load");
 			}
 #if !defined ION_RENDERER_KGL
 			//else
@@ -438,12 +443,12 @@ namespace ion
 				switch(format)
 				{
 				case eRGB:
-					mode = GL_RGB32I;
-					byteFormat = GL_UNSIGNED_BYTE;
+					mode = GL_RGB;
+					byteFormat = GL_UNSIGNED_INT_10_10_10_2;
 					break;
 				case eRGBA:
-					mode = GL_RGBA32I;
-					byteFormat = GL_UNSIGNED_BYTE;
+					mode = GL_RGBA;
+					byteFormat = GL_UNSIGNED_INT_8_8_8_8;
 					break;
 				default:
 					break;
