@@ -24,6 +24,9 @@ namespace ion
 		TVector2(const TVector2<T>& vector);
 		T operator [](int index) const;
 
+		const float* Data() const { return &x; }
+		float* Data() { return &x; }
+
 		bool operator ==(const TVector2<T>& rhs) const;
 
 		TVector2<T> operator *(T scalar) const;
@@ -63,6 +66,9 @@ namespace ion
 		void Zero();
 
 		float operator [](int index) const;
+
+		const float* Data() const { return &x; }
+		float* Data() { return &x; }
 
 		Vector3 operator *(float scalar) const;
 		Vector3 operator *(const Vector3 &vector) const;

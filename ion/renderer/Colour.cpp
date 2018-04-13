@@ -58,6 +58,15 @@ namespace ion
 		return !(*this == rhs);
 	}
 
+	float Colour::operator [] (int index) const
+	{
+		if (index == 0) return r;
+		if (index == 1) return g;
+		if (index == 2) return b;
+		if (index == 3) return a;
+		return 0.0f;
+	}
+
 	ColourRGB::ColourRGB()
 	{
 		r = g = b = 1.0f;

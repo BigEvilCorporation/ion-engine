@@ -527,17 +527,35 @@ namespace ion
 		{
 			debug::Assert(m_contextLockStack > 0, "OpenGL context is not locked");
 
-			//Enable client states
-			glEnableClientState(GL_VERTEX_ARRAY);
-			glEnableClientState(GL_NORMAL_ARRAY);
-			glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-			glEnableClientState(GL_COLOR_ARRAY);
+			//Enable client states and set element pointers
+			int positionSize = vertexBuffer.GetElementSize(VertexBuffer::ePosition);
+			int normalSize = vertexBuffer.GetElementSize(VertexBuffer::eNormal);
+			int colourSize = vertexBuffer.GetElementSize(VertexBuffer::eColour);
+			int texCoordSize = vertexBuffer.GetElementSize(VertexBuffer::eTexCoord);
 
-			//Set element pointers
-			glVertexPointer(vertexBuffer.GetVertexSize(), GL_FLOAT, vertexBuffer.GetStrideBytes(), vertexBuffer.GetVertexBuffer());
-			glNormalPointer(GL_FLOAT, vertexBuffer.GetStrideBytes(), vertexBuffer.GetNormalBuffer());
-			glTexCoordPointer(vertexBuffer.GetTexCoordSize(), GL_FLOAT, vertexBuffer.GetStrideBytes(), vertexBuffer.GetTexCoordBuffer());
-			glColorPointer(vertexBuffer.GetColourSize(), GL_FLOAT, vertexBuffer.GetStrideBytes(), vertexBuffer.GetColourBuffer());
+			if (positionSize)
+			{
+				glEnableClientState(GL_VERTEX_ARRAY);
+				glVertexPointer(positionSize, GL_FLOAT, vertexBuffer.GetStrideBytes(), vertexBuffer.GetStartAddress(VertexBuffer::ePosition));
+			}
+
+			if (normalSize)
+			{
+				glEnableClientState(GL_NORMAL_ARRAY);
+				glNormalPointer(GL_FLOAT, vertexBuffer.GetStrideBytes(), vertexBuffer.GetStartAddress(VertexBuffer::eNormal));
+			}
+
+			if (colourSize)
+			{
+				glEnableClientState(GL_COLOR_ARRAY);
+				glColorPointer(colourSize, GL_FLOAT, vertexBuffer.GetStrideBytes(), vertexBuffer.GetStartAddress(VertexBuffer::eColour));
+			}
+
+			if (texCoordSize)
+			{
+				glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+				glTexCoordPointer(texCoordSize, GL_FLOAT, vertexBuffer.GetStrideBytes(), vertexBuffer.GetStartAddress(VertexBuffer::eTexCoord));
+			}
 
 			//Determine pattern type
 			int drawPattern = 0;
@@ -584,17 +602,35 @@ namespace ion
 		{
 			debug::Assert(m_contextLockStack > 0, "OpenGL context is not locked");
 
-			//Enable client states
-			glEnableClientState(GL_VERTEX_ARRAY);
-			glEnableClientState(GL_NORMAL_ARRAY);
-			glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-			glEnableClientState(GL_COLOR_ARRAY);
+			//Enable client states and set element pointers
+			int positionSize = vertexBuffer.GetElementSize(VertexBuffer::ePosition);
+			int normalSize = vertexBuffer.GetElementSize(VertexBuffer::eNormal);
+			int colourSize = vertexBuffer.GetElementSize(VertexBuffer::eColour);
+			int texCoordSize = vertexBuffer.GetElementSize(VertexBuffer::eTexCoord);
 
-			//Set element pointers
-			glVertexPointer(vertexBuffer.GetVertexSize(), GL_FLOAT, vertexBuffer.GetStrideBytes(), vertexBuffer.GetVertexBuffer());
-			glNormalPointer(GL_FLOAT, vertexBuffer.GetStrideBytes(), vertexBuffer.GetNormalBuffer());
-			glTexCoordPointer(vertexBuffer.GetTexCoordSize(), GL_FLOAT, vertexBuffer.GetStrideBytes(), vertexBuffer.GetTexCoordBuffer());
-			glColorPointer(vertexBuffer.GetColourSize(), GL_FLOAT, vertexBuffer.GetStrideBytes(), vertexBuffer.GetColourBuffer());
+			if (positionSize)
+			{
+				glEnableClientState(GL_VERTEX_ARRAY);
+				glVertexPointer(positionSize, GL_FLOAT, vertexBuffer.GetStrideBytes(), vertexBuffer.GetStartAddress(VertexBuffer::ePosition));
+			}
+
+			if (normalSize)
+			{
+				glEnableClientState(GL_NORMAL_ARRAY);
+				glNormalPointer(GL_FLOAT, vertexBuffer.GetStrideBytes(), vertexBuffer.GetStartAddress(VertexBuffer::eNormal));
+			}
+
+			if (colourSize)
+			{
+				glEnableClientState(GL_COLOR_ARRAY);
+				glColorPointer(colourSize, GL_FLOAT, vertexBuffer.GetStrideBytes(), vertexBuffer.GetStartAddress(VertexBuffer::eColour));
+			}
+
+			if (texCoordSize)
+			{
+				glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+				glTexCoordPointer(texCoordSize, GL_FLOAT, vertexBuffer.GetStrideBytes(), vertexBuffer.GetStartAddress(VertexBuffer::eTexCoord));
+			}
 
 			//Determine pattern type
 			int drawPattern = 0;

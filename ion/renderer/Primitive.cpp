@@ -90,7 +90,7 @@ namespace ion
 		{
 			for(int i = 0; i < 4; i++)
 			{
-				Vertex pos = m_vertexBuffer.GetVertex(i);
+				Vertex pos = m_vertexBuffer.GetPosition(i);
 				m_vertexBuffer.SetVertex(i, pos, Vector3(0.0f, 0.0f, 1.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), coords[i]);
 			}
 		}
@@ -175,7 +175,7 @@ namespace ion
 		{
 			for(int i = 0; i < 4; i++)
 			{
-				Vertex pos = m_vertexBuffer.GetVertex((cellIndex * 4) + i);
+				Vertex pos = m_vertexBuffer.GetPosition((cellIndex * 4) + i);
 				m_vertexBuffer.SetVertex((cellIndex * 4) + i, pos, Vector3(0.0f, 0.0f, 1.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), coords[i]);
 			}
 		}

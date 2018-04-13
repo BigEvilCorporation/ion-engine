@@ -29,56 +29,79 @@ namespace ion
 		{
 		public:
 			enum Pattern { eLines, eLineStrip, eTriangles, eQuads };
+			enum ElementType { ePosition, eNormal, eColour, eTexCoord, eElementCount };
+			enum DataType { eByte, eFloat, eDataTypeCount };
+			enum Preset { eNone, eDefault };
 
-			VertexBuffer(Pattern pattern);
+			struct Element
+			{
+				ElementType elementType;
+				DataType dataType;
+				int size;
+			};
+
+			VertexBuffer(Pattern pattern, Preset preset = eDefault);
+			VertexBuffer(Pattern pattern, const std::vector<Element>& layout);
 			~VertexBuffer();
 
+			//Builds layout
+			void SetLayout(const std::vector<Element>& layout);
+			void AddLayoutElement(ElementType elementType, DataType dataType, int size);
+
+			//Builds buffer
+			void Reserve(int size);
 			void AddVertex(const Vector3& position, const Vector3& normal, const Colour& colour, const TexCoord& texCoord);
+			void SetVertex(int vertexIdx, const Vector3& position, const Vector3& normal, const Colour& colour, const TexCoord& texCoord);
 			void AddFace(const Face& face);
 
-			void Reserve(int size);
-			void SetVertex(int vertexIdx, const Vector3& position, const Vector3& normal, const Colour& colour, const TexCoord& texCoord);
-
-			Vertex GetVertex(int index) const;
-			Face GetFace(int index) const;
-
-			//Returns start address of each buffer type
-			const float* GetVertexBuffer() const;
-			const float* GetNormalBuffer() const;
-			const float* GetTexCoordBuffer() const;
-			const float* GetColourBuffer() const;
-
-			void Clear();
-
+			//Lock/unlock
 			bool Lock();
 			bool Unlock();
 			bool IsLocked() const { return m_locked; }
 
+			//Get layout
+			int GetNumLayoutElements() const { return m_numElements; }
+			ElementType GetElementType(int index) const;
+
+			//Get element offsets/start addresses
+			const void* GetStartAddress(ElementType elementType) const;
+			int GetElementSize(ElementType elementType) const;
+			int GetElementByteOffset(ElementType elementType) const;
+			Vertex GetPosition(int index) const;
+
+			//Get metrics
 			Pattern GetPattern() const { return m_pattern; }
 			int GetNumVerts() const { return m_numVertices; }
 			int GetStrideBytes() const;
 
-			int GetVertexSize() const { return s_positionSize; }
-			int GetNormalSize() const { return s_normalSize; }
-			int GetTexCoordSize() const { return s_texCoordSize; }
-			int GetColourSize() const { return s_colourSize; }
+			//Clear vertices
+			void ClearVertices();
 
-			int GetFirstVertexOffset() const;
-			int GetFirstNormalOffset() const;
-			int GetFirstTexCoordOffset() const;
-			int GetFirstColourOffset() const;
+			//Clear layout and vertices
+			void ClearLayout();
 
 		protected:
-			//Size of one position, normal and texcoord
-			static const int s_positionSize = 3;
-			static const int s_normalSize = 3;
-			static const int s_texCoordSize = 2;
-			static const int s_colourSize = 3;
+			static const int s_dataTypeSizes[eDataTypeCount];
+			static const std::vector<Element> s_defaultLayout;
 
-			std::vector<float> m_buffer;
+			struct ElementLayoutEntry
+			{
+				DataType dataType;
+				int size = 0;
+				int stride = 0;
+			};
+
+			//Layout
+			ElementLayoutEntry m_elements[eElementCount];
+			ElementType m_layout[eElementCount];
+
+			//Vertex buffer
+			std::vector<u8> m_buffer;
 
 			Pattern m_pattern;
 			int m_numVertices;
+			int m_numElements;
+			int m_strideBytes;
 			bool m_locked;
 		};
 	}

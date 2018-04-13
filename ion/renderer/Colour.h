@@ -27,6 +27,9 @@ namespace ion
 
 		bool operator == (const Colour& rhs) const;
 		bool operator != (const Colour& rhs) const;
+		float operator [] (int index) const;
+		const float* Data() const { return &r; }
+		float* Data() { return &r; }
 
 		//TODO: Convertions - RGBA, hue/sat, etc...
 

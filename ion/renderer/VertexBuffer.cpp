@@ -13,15 +13,43 @@
 ///////////////////////////////////////////////////
 
 #include "VertexBuffer.h"
+#include <core/memory/Memory.h>
 
 namespace ion
 {
 	namespace render
 	{
-		VertexBuffer::VertexBuffer(Pattern pattern)
+		const std::vector<VertexBuffer::Element> VertexBuffer::s_defaultLayout =
+		{
+			Element({ ePosition, eFloat, 3 }),
+			Element({ eNormal, eFloat, 3 }),
+			Element({ eTexCoord, eFloat, 2 }),
+			Element({ eColour, eFloat, 3 })
+		};
+
+		const int VertexBuffer::s_dataTypeSizes[eDataTypeCount] =
+		{
+			sizeof(u8),
+			sizeof(float)
+		};
+
+		VertexBuffer::VertexBuffer(Pattern pattern, Preset preset)
 		{
 			m_pattern = pattern;
-			m_numVertices = 0;
+			ClearLayout();
+
+			switch (preset)
+			{
+			case eDefault:
+				SetLayout(s_defaultLayout);
+			default:
+				break;
+			}
+		}
+
+		VertexBuffer::VertexBuffer(Pattern pattern, const std::vector<Element>& layout)
+		{
+			SetLayout(layout);
 		}
 
 		VertexBuffer::~VertexBuffer()
@@ -29,27 +57,63 @@ namespace ion
 			m_buffer.clear();
 		}
 
+		void VertexBuffer::SetLayout(const std::vector<VertexBuffer::Element>& layout)
+		{
+			for (int i = 0; i < layout.size(); i++)
+			{
+				AddLayoutElement(layout[i].elementType, layout[i].dataType, layout[i].size);
+			}
+		}
+
+		void VertexBuffer::AddLayoutElement(ElementType elementType, DataType dataType, int size)
+		{
+			debug::Assert(m_elements[elementType].size == 0, "VertexBuffer::AddLayoutElement() Element already added");
+
+			m_layout[m_numElements++] = elementType;
+
+			m_elements[elementType].dataType = dataType;
+			m_elements[elementType].size = size;
+			m_elements[elementType].stride = m_strideBytes;
+
+			m_strideBytes += size * s_dataTypeSizes[dataType];
+		}
+
 		int VertexBuffer::GetStrideBytes() const
 		{
-			return (s_positionSize + s_normalSize + s_texCoordSize + s_colourSize) * sizeof(float);
+			return m_strideBytes;
+		}
+
+		VertexBuffer::ElementType VertexBuffer::GetElementType(int index) const
+		{
+			debug::Assert(index > 0 && index < m_numElements, "VertexBuffer::GetElementType() - Bad element index");
+			return m_layout[index];
+		}
+
+		const void* VertexBuffer::GetStartAddress(ElementType elementType) const
+		{
+			return (void*)(((u8*)m_buffer.data()) + m_elements[elementType].stride);
+		}
+
+		int VertexBuffer::GetElementSize(ElementType elementType) const
+		{
+			return m_elements[elementType].size;
+		}
+
+		int VertexBuffer::GetElementByteOffset(ElementType elementType) const
+		{
+			return m_elements[elementType].stride;
 		}
 
 		void VertexBuffer::AddVertex(const Vector3& position, const Vector3& normal, const Colour& colour, const TexCoord& texCoord)
 		{
-			m_buffer.push_back(position.x);
-			m_buffer.push_back(position.y);
-			m_buffer.push_back(position.z);
+			int elementOffset = m_buffer.size();
 
-			m_buffer.push_back(normal.x);
-			m_buffer.push_back(normal.y);
-			m_buffer.push_back(normal.z);
+			m_buffer.resize(m_buffer.size() + m_strideBytes);
 
-			m_buffer.push_back(texCoord.x);
-			m_buffer.push_back(texCoord.y);
-
-			m_buffer.push_back(colour.r);
-			m_buffer.push_back(colour.g);
-			m_buffer.push_back(colour.b);
+			memory::MemCopy(m_buffer.data() + elementOffset + m_elements[ePosition].stride, (u8*)position.Data(), m_elements[ePosition].size * s_dataTypeSizes[m_elements[ePosition].dataType]);
+			memory::MemCopy(m_buffer.data() + elementOffset + m_elements[eNormal].stride, (u8*)normal.Data(), m_elements[eNormal].size * s_dataTypeSizes[m_elements[eNormal].dataType]);
+			memory::MemCopy(m_buffer.data() + elementOffset + m_elements[eTexCoord].stride, (u8*)texCoord.Data(), m_elements[eTexCoord].size * s_dataTypeSizes[m_elements[eTexCoord].dataType]);
+			memory::MemCopy(m_buffer.data() + elementOffset + m_elements[eColour].stride, (u8*)colour.Data(), m_elements[eColour].size * s_dataTypeSizes[m_elements[eColour].dataType]);
 
 			m_numVertices++;
 		}
@@ -65,6 +129,7 @@ namespace ion
 		void VertexBuffer::Reserve(int size)
 		{
 			int stride = GetStrideBytes();
+			debug::Assert(stride > 0, "VertexBuffer::Reserve() - Layout not set");
 			m_buffer.resize(size * stride);
 			m_numVertices = size;
 		}
@@ -73,73 +138,45 @@ namespace ion
 		{
 			debug::Assert(vertexIdx >= 0 && vertexIdx < m_numVertices, "Bad vertex id");
 
-			int stride = GetStrideBytes() / sizeof(float);
-			int floatIdx = stride * vertexIdx;
+			int elementOffset = m_strideBytes * vertexIdx;
 
-			m_buffer[floatIdx  ] = (position.x);
-			m_buffer[floatIdx+1] = (position.y);
-			m_buffer[floatIdx+2] = (position.z);
-
-			m_buffer[floatIdx+3] = (normal.x);
-			m_buffer[floatIdx+4] = (normal.y);
-			m_buffer[floatIdx+5] = (normal.z);
-
-			m_buffer[floatIdx+6] = (texCoord.x);
-			m_buffer[floatIdx+7] = (texCoord.y);
-
-			m_buffer[floatIdx+8] = (colour.r);
-			m_buffer[floatIdx+9] = (colour.g);
-			m_buffer[floatIdx+10] = (colour.b);
+			memory::MemCopy(m_buffer.data() + elementOffset + m_elements[ePosition].stride, (u8*)position.Data(), m_elements[ePosition].size * s_dataTypeSizes[m_elements[ePosition].dataType]);
+			memory::MemCopy(m_buffer.data() + elementOffset + m_elements[eNormal].stride, (u8*)normal.Data(), m_elements[eNormal].size * s_dataTypeSizes[m_elements[eNormal].dataType]);
+			memory::MemCopy(m_buffer.data() + elementOffset + m_elements[eTexCoord].stride, (u8*)texCoord.Data(), m_elements[eTexCoord].size * s_dataTypeSizes[m_elements[eTexCoord].dataType]);
+			memory::MemCopy(m_buffer.data() + elementOffset + m_elements[eColour].stride, (u8*)colour.Data(), m_elements[eColour].size * s_dataTypeSizes[m_elements[eColour].dataType]);
 		}
 
-		Vertex VertexBuffer::GetVertex(int index) const
+		Vertex VertexBuffer::GetPosition(int vertexIdx) const
 		{
-			int stride = GetStrideBytes() / sizeof(float);
-			int floatIdx = stride * index;
+			debug::Assert(vertexIdx >= 0 && vertexIdx < m_numVertices, "Bad vertex id");
 
-			if(index >= 0 && index < GetNumVerts())
-				return Vertex(m_buffer[floatIdx], m_buffer[floatIdx + 1], m_buffer[floatIdx + 2]);
-			else
-				return Vertex();
+			int elementOffset = m_strideBytes * vertexIdx;
+
+			Vertex position;
+
+			memory::MemCopy((u8*)position.Data(), m_buffer.data() + elementOffset + m_elements[ePosition].stride, m_elements[ePosition].size * s_dataTypeSizes[m_elements[ePosition].dataType]);
+
+			return position;
 		}
 
-		Face VertexBuffer::GetFace(int index) const
-		{
-			index *= s_positionSize * 3;
-
-			if(index >=0 && index < (GetNumVerts() * 3))
-			{
-				return Face(Vertex(m_buffer[index],		m_buffer[index + 1],	m_buffer[index + 2]),
-							Vertex(m_buffer[index + 3],	m_buffer[index + 4],	m_buffer[index + 5]),
-							Vertex(m_buffer[index + 6],	m_buffer[index + 7],	m_buffer[index + 8]));
-			}
-			else
-				return Face();
-		}
-
-		void VertexBuffer::Clear()
+		void VertexBuffer::ClearVertices()
 		{
 			m_buffer.clear();
+			m_numVertices = 0;
 		}
 
-		const float* VertexBuffer::GetVertexBuffer() const
+		void VertexBuffer::ClearLayout()
 		{
-			return &m_buffer[0];
-		}
+			for (int i = 0; i < eElementCount; i++)
+			{
+				m_elements[i].size = 0;
+				m_elements[i].stride = 0;
+			}
 
-		const float* VertexBuffer::GetNormalBuffer() const
-		{
-			return &m_buffer[0] + s_positionSize;
-		}
-
-		const float* VertexBuffer::GetTexCoordBuffer() const
-		{
-			return &m_buffer[0] + s_positionSize + s_normalSize;
-		}
-
-		const float* VertexBuffer::GetColourBuffer() const
-		{
-			return &m_buffer[0] + s_positionSize + s_normalSize + s_texCoordSize;
+			m_buffer.clear();
+			m_numVertices = 0;
+			m_numElements = 0;
+			m_strideBytes = 0;
 		}
 
 		bool VertexBuffer::Lock()

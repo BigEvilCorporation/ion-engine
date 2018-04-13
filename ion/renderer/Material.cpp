@@ -60,6 +60,9 @@ namespace ion
 				m_pixelShader->Bind();
 			}
 #elif defined ION_RENDERER_FIXED
+			//Set fixed function matrix
+			glLoadMatrixf((worldMtx * viewMtx).GetAsFloatArray());
+
 			//TODO: Fixed function material params
 			if(m_diffuseMaps.size() > 0)
 			{
@@ -92,6 +95,9 @@ namespace ion
 				m_pixelShader->Unbind();
 			}
 #elif defined ION_RENDERER_FIXED
+			//Restore fixed function matrix
+			glLoadMatrixf(Matrix4().GetAsFloatArray());
+
 			glBindTexture(GL_TEXTURE_2D, 0);
 #if !defined ION_RENDERER_OPENGLES
 			glDisable(GL_TEXTURE_2D);
