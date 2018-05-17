@@ -577,29 +577,53 @@ void SpriteSheet::ExportAnims(const PlatformConfig& config, std::stringstream& s
 
 		int numKeyframes = it->second.m_trackSpriteFrame.GetNumKeyframes();
 
-		//1 Mega Drive anim frame == 0x0100 subframes (at 50fps)
-		int framesPerSecond = (int)it->second.GetPlaybackSpeed();
-		int speed = (framesPerSecond << 8) / 50;
-		
-		stream << label.str() << ":" << std::endl;
-		stream << label.str() << "_numframes: equ 0x" << numKeyframes << std::endl;
-		stream << label.str() << "_speed: equ 0x" << speed << std::endl;
+		if(numKeyframes > 0)
+		{
+			//1 Mega Drive anim frame == 0x0100 subframes (at 50fps)
+			int framesPerSecond = (int)it->second.GetPlaybackSpeed();
+			int speed = (framesPerSecond << 8) / 50;
 
-		stream << label.str() << "_track_frames:" << std::endl;
-		it->second.m_trackSpriteFrame.Export(stream, actorName, m_name);
-		stream << "\tEven" << std::endl;
+			stream << label.str() << ":" << std::endl;
+			stream << label.str() << "_numframes: equ 0x" << numKeyframes << std::endl;
+			stream << label.str() << "_speed: equ 0x" << speed << std::endl;
 
-		stream << label.str() << "_track_posx:" << std::endl;
-		it->second.m_trackPosition.ExportX(stream, numKeyframes);
-		stream << "\tEven" << std::endl;
+			stream << label.str() << "_track_frames:" << std::endl;
+			it->second.m_trackSpriteFrame.Export(stream, actorName, m_name);
+			stream << "\tEven" << std::endl;
 
-		stream << label.str() << "_track_posy:" << std::endl;
-		it->second.m_trackPosition.ExportY(stream, numKeyframes);
-		stream << "\tEven" << std::endl;
+			if(it->second.m_trackPosition.GetNumKeyframes() > 0)
+			{
+				stream << label.str() << "_track_posx:" << std::endl;
+				it->second.m_trackPosition.ExportX(stream, numKeyframes);
+				stream << "\tEven" << std::endl;
+			}
+			else
+			{
+				stream << label.str() << "_track_posx equ 0" << std::endl;
+			}
 
-		stream << label.str() << "_track_sfx:" << std::endl;
-		it->second.m_trackSFX.Export(stream, numKeyframes);
-		stream << "\tEven" << std::endl;
+			if(it->second.m_trackPosition.GetNumKeyframes() > 0)
+			{
+				stream << label.str() << "_track_posy:" << std::endl;
+				it->second.m_trackPosition.ExportY(stream, numKeyframes);
+				stream << "\tEven" << std::endl;
+			}
+			else
+			{
+				stream << label.str() << "_track_posy equ 0" << std::endl;
+			}
+			
+			if(it->second.m_trackSFX.GetNumKeyframes() > 0)
+			{
+				stream << label.str() << "_track_sfx:" << std::endl;
+				it->second.m_trackSFX.Export(stream, numKeyframes);
+				stream << "\tEven" << std::endl;
+			}
+			else
+			{
+				stream << label.str() << "_track_sfx equ 0" << std::endl;
+			}
+		}
 	}
 
 	stream << std::dec;
