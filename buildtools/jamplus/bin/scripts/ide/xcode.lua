@@ -574,7 +574,9 @@ local function XcodeHelper_WriteXCBuildConfigurations(self, info, projectName, w
 
 			table.insert(self.Contents, "\t\t\t\tPLATFORM = " .. platformName .. ";\n")
 			table.insert(self.Contents, "\t\t\t\tCONFIG = " .. configName .. ";\n")
-			if configInfo.OutputPath ~= '' then
+			if subProject.BUNDLE_PATH  and subProject.BUNDLE_PATH[platformName]  and  subProject.BUNDLE_PATH[platformName][configName]  then
+				table.insert(self.Contents, "\t\t\t\tCONFIGURATION_BUILD_DIR = \"" .. ospath.remove_slash(ospath.remove_filename(subProject.BUNDLE_PATH[platformName][configName])) .. "\";\n")
+			elseif configInfo.OutputPath ~= '' then
 				table.insert(self.Contents, "\t\t\t\tCONFIGURATION_BUILD_DIR = \"" .. ospath.remove_slash(configInfo.OutputPath) .. "\";\n")
 			end
 
@@ -603,6 +605,39 @@ local function XcodeHelper_WriteXCBuildConfigurations(self, info, projectName, w
 				if sdkRoot then
 					table.insert(self.Contents, "\t\t\t\tSDKROOT = " .. sdkRoot .. ";\n")
 				end
+			end
+
+			-- Write DEVELOPMENT_TEAM.
+			local teamIdentifier
+			if subProject.TEAM_IDENTIFIER  and  subProject.TEAM_IDENTIFIER[platformName]  and  subProject.TEAM_IDENTIFIER[platformName][configName] then
+				teamIdentifier = subProject.TEAM_IDENTIFIER[platformName][configName]
+			elseif Projects['C.*']  and  Projects['C.*'].TEAM_IDENTIFIER  and  Projects['C.*'].TEAM_IDENTIFIER[platformName]  and  Projects['C.*'].TEAM_IDENTIFIER[platformName][configName] then
+				teamIdentifier = Projects['C.*'].TEAM_IDENTIFIER[platformName][configName]
+			end
+			if teamIdentifier then
+				table.insert(self.Contents, "\t\t\t\tDEVELOPMENT_TEAM = \"" .. teamIdentifier .. "\";\n")
+			end
+
+			-- Write PRODUCT_BUNDLE_IDENTIFIER.
+			local productBundleIdentifier
+			if subProject.PRODUCT_BUNDLE_IDENTIFIER  and  subProject.PRODUCT_BUNDLE_IDENTIFIER[platformName]  and  subProject.PRODUCT_BUNDLE_IDENTIFIER[platformName][configName] then
+				productBundleIdentifier = subProject.PRODUCT_BUNDLE_IDENTIFIER[platformName][configName]
+			elseif Projects['C.*']  and  Projects['C.*'].PRODUCT_BUNDLE_IDENTIFIER  and  Projects['C.*'].PRODUCT_BUNDLE_IDENTIFIER[platformName]  and  Projects['C.*'].PRODUCT_BUNDLE_IDENTIFIER[platformName][configName] then
+				productBundleIdentifier = Projects['C.*'].PRODUCT_BUNDLE_IDENTIFIER[platformName][configName]			
+			end
+			if productBundleIdentifier then
+				table.insert(self.Contents, "\t\t\t\tPRODUCT_BUNDLE_IDENTIFIER = \"" .. productBundleIdentifier .. "\";\n")
+			end
+
+			-- Write PROVISIONING_PROFILE_SPECIFIER.
+			local provisioningProfileSpecifier
+			if subProject.PROVISIONING_PROFILE_SPECIFIER  and  subProject.PROVISIONING_PROFILE_SPECIFIER[platformName]  and  subProject.PROVISIONING_PROFILE_SPECIFIER[platformName][configName] then
+				provisioningProfileSpecifier = subProject.PROVISIONING_PROFILE_SPECIFIER[platformName][configName]
+			elseif Projects['C.*']  and  Projects['C.*'].PROVISIONING_PROFILE_SPECIFIER  and  Projects['C.*'].PROVISIONING_PROFILE_SPECIFIER[platformName]  and  Projects['C.*'].PROVISIONING_PROFILE_SPECIFIER[platformName][configName] then
+				provisioningProfileSpecifier = Projects['C.*'].PROVISIONING_PROFILE_SPECIFIER[platformName][configName]			
+			end
+			if provisioningProfileSpecifier then
+				table.insert(self.Contents, "\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = \"" .. provisioningProfileSpecifier .. "\";\n")
 			end
 
 			-- Write CODE_SIGN_ENTITLEMENTS.

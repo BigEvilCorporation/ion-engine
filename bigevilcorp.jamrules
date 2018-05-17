@@ -167,7 +167,7 @@ rule ApplyDefaultRenderer TARGET : LINK_OPT
 		}
 	}
 
-	if ( win32 in $(PLATFORM) )
+	if ( win64 in $(PLATFORM) )
 	{
 		if ( shader in $(ion_renderer_opts) )
 		{
@@ -780,7 +780,7 @@ rule ApplyWxSDK TARGET
 {
 	C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/wx/include ;
 	C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/wx/include/wx ;
-	C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/wx/lib/vc120 ;
+	C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/wx/lib/vc140 ;
 
 	C.Defines $(TARGET) : WXUSINGDLL __WXMSW__ wxMSVC_VERSION_AUTO UNICODE _UNICODE ;
 

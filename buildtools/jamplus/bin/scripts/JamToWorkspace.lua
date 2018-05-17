@@ -25,6 +25,7 @@ jamPath = ospath.simplify(ospath.make_absolute(scriptPath .. '../'))
 
 Compilers =
 {
+	{ 'vs2017', 'Visual Studio 2017' },
 	{ 'vs2015', 'Visual Studio 2015' },
 	{ 'vs2013', 'Visual Studio 2013' },
 	{ 'vs2012', 'Visual Studio 2012' },
@@ -34,7 +35,8 @@ Compilers =
 	{ 'vs2003', 'Visual Studio 2003' },
 	{ 'vc6',	'Visual C++ 6' },
 	{ 'mingw',	'MinGW' },
-	{ 'gcc',	'gcc' },
+	{ 'clang',	'Clang' },
+	{ 'gcc',	'GCC' },
 }
 
 Config = {}
@@ -171,11 +173,12 @@ function ProcessCommandLine()
 	end
 
 	local options = getopt.makeOptions{
+		getopt.Option {{"help"}, "Show this help listing"},
 		getopt.Option {{"gen"}, "Set a project generator", "Req", 'GENERATOR'},
 		getopt.Option {{"gui"}, "Pop up a GUI to set options"},
 		getopt.Option {{"platform"}, "Set the default platform used to build with", "Req", 'PLATFORM'},
-		getopt.Option {{"compiler"}, "Set the default compiler used to build with", "Req", 'COMPILER'},
 		getopt.Option {{"config"}, "Filename of additional configuration file", "Req", 'CONFIG'},
+		getopt.Option {{"compiler"}, "Set the default compiler used to build with", "Req", 'COMPILER'},
 		getopt.Option {{"jambaseflags"}, "Extra flags to make available for each invocation of Jam.  Specify in KEY=VALUE form.", "Req", 'JAMBASE_FLAGS', ProcessJambaseFlags },
 		getopt.Option {{"jamfileflags"}, "Extra flags to make available for each invocation of Jam.  Specify in KEY=VALUE form.", "Req", 'JAMFILE_FLAGS', ProcessJamfileFlags },
 		getopt.Option {{"jamexepath"}, "The full path to the Jam executable when the default location won't suffice.", "Req", 'JAMEXEPATH' },
@@ -184,7 +187,7 @@ function ProcessCommandLine()
 
 	function Usage()
 		print (table.concat (errors, "\n") .. "\n" ..
-				getopt.usageInfo ("Usage: jam --workspace [options] <source-jamfile> <path-to-destination>",
+				getopt.usageInfo ("Usage: jam --workspace [options] [[<source-jamfile>] <path-to-destination>]",
 				options))
 
 		local sortedExporters = {}
@@ -214,7 +217,7 @@ function ProcessCommandLine()
 
 	nonOpts, opts, errors = getopt.getOpt (arg, options)
 
-	opts.gen = opts.gen or { 'none' }
+	opts.gen = opts.gen or { DefaultExporter }
 	local ides = {}
 	local usedIdes = {}
 	for _, str in ipairs(opts.gen) do
@@ -244,7 +247,13 @@ function ProcessCommandLine()
 	opts.jamexepath = opts.jamexepath and opts.jamexepath[#opts.jamexepath]
 	opts.jambase = opts.jambase and opts.jambase[#opts.jambase]
 
-	if #errors > 0  or  (#nonOpts ~= 1  and  #nonOpts ~= 2) then
+	if nonOpts[1] == nil then
+		nonOpts = { 'Jamfile.jam', '.build' }
+	elseif nonOpts[2] == nil then
+		nonOpts[#nonOpts + 1] = '.build'
+	end
+
+	if #errors > 0  or  opts.help  or  (#nonOpts ~= 1  and  #nonOpts ~= 2) then
 		Usage()
 	end
 end
@@ -378,8 +387,17 @@ require 'ide/vs2010'
 require 'ide/vs2012'
 require 'ide/vs2013'
 require 'ide/vs2015'
+require 'ide/vs2017'
 require 'ide/codeblocks'
 require 'ide/xcode'
+
+if uname == 'windows' then
+	DefaultExporter = 'vs2015'
+elseif uname == 'darwin' then
+	DefaultExporter = 'xcode'
+else
+	DefaultExporter = 'none'
+end
 
 Exporters =
 {
@@ -493,6 +511,19 @@ Exporters =
 		Options =
 		{
 			vs2015 = true,
+		}
+	},
+
+	vs2017 =
+	{
+		Initialize = VisualStudio201xInitialize,
+		ProjectExporter = VisualStudio201xProject,
+		WorkspaceExporter = VisualStudio201xSolution,
+		Shutdown = VisualStudio201xShutdown,
+		Description = 'Generate Visual Studio 2017 solutions and projects.',
+		Options =
+		{
+			vs2017 = true,
 		}
 	},
 
@@ -774,6 +805,7 @@ function WriteJambase(exporter)
 	end
 
 	jambaseText[#jambaseText + 1] = "JAM_MODULES_USER_PATH += \"" .. sourceRootPath .. "\" ;\n"
+	jambaseText[#jambaseText + 1] = "JAM_MODULES_USER_PATH += \"" .. sourceRootPath .. "jam\" ;\n"
 
 	jambaseText[#jambaseText + 1] = expand([[
 

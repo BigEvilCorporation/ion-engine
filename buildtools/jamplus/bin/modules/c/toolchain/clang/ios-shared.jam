@@ -52,20 +52,22 @@ rule ios.SDK SDK_VERSION {
 
 	switch $(SDK_PLATFORM) {
 		case ios :
-			developerRoot = /Developer/Platforms/iPhoneOS.platform/Developer ;
-			SDK_VERSION ?= 10.2 ;
+			SDK_VERSION ?= 11.2 ;
 			switch $(SDK_VERSION) {
 				case 4.3 :
+					developerRoot = /Developer/Platforms/iPhoneOS.platform/Developer ;
 					isysroot = $(developerRoot)/SDKs/iPhoneOS4.3.sdk ;
 					architecture = armv6 ;
 					sdkroot = iphoneos4.3 ;
 
 				case 5.0 :
+					developerRoot = /Developer/Platforms/iPhoneOS.platform/Developer ;
 					isysroot = $(developerRoot)/SDKs/iPhoneOS5.0.sdk ;
 					architecture = armv6 ;
 					sdkroot = iphoneos5.0 ;
 
 				case 5.1 :
+					developerRoot = /Developer/Platforms/iPhoneOS.platform/Developer ;
 					isysroot = @(../../SDKs/iPhoneOS5.1.sdk:R=$(COMPILER_BIN_PATH)) ;
 					architecture = armv6 ;
 					sdkroot = iphoneos5.1 ;
@@ -158,41 +160,80 @@ rule ios.SDK SDK_VERSION {
 					developerRoot = [ Match ([^$(NEWLINE)]*) : [ Shell "xcode-select --print-path" ] ] ;
 					isysroot = $(developerRoot)/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS10.0.sdk ;
 					sdkroot = iphoneos ;
-					architecture = armv7 ;
-					minimumVersion = 6.0 ;
+					architecture = arm64 ;
+					minimumVersion = 8.0 ;
 
 				case 10.1 :
 					developerRoot = [ Match ([^$(NEWLINE)]*) : [ Shell "xcode-select --print-path" ] ] ;
 					isysroot = $(developerRoot)/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS10.1.sdk ;
 					sdkroot = iphoneos ;
-					architecture = armv7 ;
-					minimumVersion = 6.0 ;
+					architecture = arm64 ;
+					minimumVersion = 8.0 ;
 
 				case 10.2 :
 					developerRoot = [ Match ([^$(NEWLINE)]*) : [ Shell "xcode-select --print-path" ] ] ;
 					isysroot = $(developerRoot)/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS10.2.sdk ;
 					sdkroot = iphoneos ;
-					architecture = armv7 ;
-					minimumVersion = 6.0 ;
+					architecture = arm64 ;
+					minimumVersion = 8.0 ;
 
-				case * :		Exit "* ios.SDK: Unsupported version $(SDK_VERSION) for SDK platform $(SDK_PLATFORM)." ;
+				case 11.0 :
+					developerRoot = [ Match ([^$(NEWLINE)]*) : [ Shell "xcode-select --print-path" ] ] ;
+					isysroot = $(developerRoot)/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk ;
+					sdkroot = iphoneos ;
+					architecture = arm64 ;
+					minimumVersion = 8.0 ;
+
+				case 11.1 :
+					developerRoot = [ Match ([^$(NEWLINE)]*) : [ Shell "xcode-select --print-path" ] ] ;
+					isysroot = $(developerRoot)/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk ;
+					sdkroot = iphoneos ;
+					architecture = arm64 ;
+					minimumVersion = 8.0 ;
+
+				case 11.2 :
+					developerRoot = [ Match ([^$(NEWLINE)]*) : [ Shell "xcode-select --print-path" ] ] ;
+					isysroot = $(developerRoot)/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.2.sdk ;
+					sdkroot = iphoneos ;
+					architecture = arm64 ;
+					minimumVersion = 8.0 ;
 			}
+
+			if ! $(developerRoot) {
+				developerRoot = [ Match ([^$(NEWLINE)]*) : [ Shell "xcode-select --print-path" ] ] ;
+				isysroot = $(developerRoot)/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk ;
+				sdkroot = iphoneos ;
+				architecture = arm64 ;
+				minimumVersion = 8.0 ;
+				local buffer = [ Shell "plutil -convert xml1 -o - $(developerRoot)/Platforms/iPhoneOS.platform/Version.plist" ] ;
+				LuaString "
+					if not plist then
+						plist = require 'plist'
+					end
+					local ospath = require 'ospath'
+					local versionPlist = plist.readbuffer(jam_getvar('buffer')[1])
+					jam_setvar('SDK_VERSION', versionPlist['CFBundleVersion'])
+				" ;
+
+			}
+
 			flags += -fvisibility=hidden ;
 
 		case iossimulator :
-			developerRoot = /Developer/Platforms/iPhoneSimulator.platform/Developer ;
-			SDK_VERSION ?= 10.1 ;
 			switch $(SDK_VERSION) {
 				case 4.3 :
+					developerRoot = /Developer/Platforms/iPhoneSimulator.platform/Developer ;
 					isysroot = $(developerRoot)/SDKs/iPhoneSimulator4.3.sdk ;
 					#flags += -D__IPHONE_OS_VERSION_MIN_REQUIRED=30200 ;
 					sdkroot = iphoneos4.3 ;
 
 				case 5.0 :
+					developerRoot = /Developer/Platforms/iPhoneSimulator.platform/Developer ;
 					isysroot = $(developerRoot)/SDKs/iPhoneSimulator5.0.sdk ;
 					sdkroot = iphoneos5.0 ;
 
 				case 5.1 :
+					developerRoot = /Developer/Platforms/iPhoneSimulator.platform/Developer ;
 					isysroot = @(../../../../Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator5.1.sdk:R=$(COMPILER_BIN_PATH)) ;
 					sdkroot = iphoneos5.1 ;
 
@@ -278,24 +319,45 @@ rule ios.SDK SDK_VERSION {
 					developerRoot = [ Match ([^$(NEWLINE)]*) : [ Shell "xcode-select --print-path" ] ] ;
 					isysroot = $(developerRoot)/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator10.1.sdk ;
 					sdkroot = iphoneos ;
-					minimumVersion = 6.0 ;
+					minimumVersion = 8.0 ;
 
 				case 10.2 :
 					developerRoot = [ Match ([^$(NEWLINE)]*) : [ Shell "xcode-select --print-path" ] ] ;
 					isysroot = $(developerRoot)/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator10.2.sdk ;
 					sdkroot = iphoneos ;
-					minimumVersion = 6.0 ;
+					minimumVersion = 8.0 ;
 
-				case * :		Exit "* ios.SDK: Unsupported version $(SDK_VERSION) for SDK platform $(SDK_PLATFORM)." ;
+				case 11.0 :
+					developerRoot = [ Match ([^$(NEWLINE)]*) : [ Shell "xcode-select --print-path" ] ] ;
+					isysroot = $(developerRoot)/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk ;
+					sdkroot = iphoneos ;
+					minimumVersion = 8.0 ;
 			}
+
+			if ! $(developerRoot) {
+				developerRoot = [ Match ([^$(NEWLINE)]*) : [ Shell "xcode-select --print-path" ] ] ;
+				isysroot = $(developerRoot)/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk ;
+				sdkroot = iphoneos ;
+				minimumVersion = 8.0 ;
+				local buffer = [ Shell "plutil -convert xml1 -o - $(developerRoot)/Platforms/iPhoneSimulator.platform/Info.plist" ] ;
+				LuaString "
+					if not plist then
+						plist = require 'plist'
+					end
+					local ospath = require 'ospath'
+					local versionPlist = plist.readbuffer(jam_getvar('buffer')[1])
+					jam_setvar('SDK_VERSION', versionPlist['CFBundleVersion'])
+				" ;
+			}
+
 			architecture = i386 ;
 	}
 
-	C.AR on $(C.COMPILER_SUITE_SYMBOL) = $(COMPILER_BIN_PATH)/$(C.AR:BSZ=$(C.COMPILER_SUITE_SYMBOL)) ;
-	C.CC on $(C.COMPILER_SUITE_SYMBOL) = $(COMPILER_BIN_PATH)/$(C.CC:BSZ=$(C.COMPILER_SUITE_SYMBOL)) ;
-	C.C++ on $(C.COMPILER_SUITE_SYMBOL) = $(COMPILER_BIN_PATH)/$(C.C++:BSZ=$(C.COMPILER_SUITE_SYMBOL)) ;
-	C.LINK on $(C.COMPILER_SUITE_SYMBOL) = $(COMPILER_BIN_PATH)/$(C.LINK:BSZ=$(C.COMPILER_SUITE_SYMBOL)) ;
-	C.RANLIB on $(C.COMPILER_SUITE_SYMBOL) = ;
+#	C.AR on $(C.COMPILER_SUITE_SYMBOL) = $(COMPILER_BIN_PATH)/$(C.AR:BSZ=$(C.COMPILER_SUITE_SYMBOL)) ;
+#	C.CC on $(C.COMPILER_SUITE_SYMBOL) = $(COMPILER_BIN_PATH)/$(C.CC:BSZ=$(C.COMPILER_SUITE_SYMBOL)) ;
+#	C.C++ on $(C.COMPILER_SUITE_SYMBOL) = $(COMPILER_BIN_PATH)/$(C.C++:BSZ=$(C.COMPILER_SUITE_SYMBOL)) ;
+#	C.LINK on $(C.COMPILER_SUITE_SYMBOL) = $(COMPILER_BIN_PATH)/$(C.LINK:BSZ=$(C.COMPILER_SUITE_SYMBOL)) ;
+#	C.RANLIB on $(C.COMPILER_SUITE_SYMBOL) = ;
 
 	C.ARCHITECTURE on $(C.ACTIVE_TOOLCHAIN_*) = $(C.ARCHITECTURE:E=$(architecture)) ;
 	ISYSROOT on $(C.ACTIVE_TOOLCHAIN_*) = $(isysroot) ;
@@ -327,7 +389,7 @@ rule ios.SDK SDK_VERSION {
 	C.LINK on $(C.COMPILER_SUITE_SYMBOL) = $(COMPILER_BIN_PATH)/$(C.LINK:BSZ=$(C.COMPILER_SUITE_SYMBOL)) ;
 	C.RANLIB on $(C.COMPILER_SUITE_SYMBOL) = ;
 
-	C.ARCHITECTURE on $(C.ACTIVE_TOOLCHAIN_*) = $(C.ARCHITECTURE:E=armv7) ;
+	C.ARCHITECTURE on $(C.ACTIVE_TOOLCHAIN_*) = $(C.ARCHITECTURE:E=arm64) ;
 	ISYSROOT on $(C.ACTIVE_TOOLCHAIN_*) = $(sysroot) ;
 	IPHONEOS_SDK_VERSION on $(C.ACTIVE_TOOLCHAIN_*) = $(SDK_VERSION) ;
 	IOS_SDK_VERSION_MIN on $(C.ACTIVE_TOOLCHAIN_*) = $(SDK_VERSION) ;
@@ -336,11 +398,15 @@ rule ios.SDK SDK_VERSION {
 } # if ! $(NT)
 
 
-rule C.ios.MinimumOSVersion TARGET : SDK_VERSION_MIN {
+rule ios.MinimumOSVersion TARGET : SDK_VERSION_MIN {
 	TARGET = [ ActiveTarget $(TARGET) ] ;
 
 	local SDK_PLATFORM ;
 	SDK_PLATFORM ?= $(C.PLATFORM) ;
+
+	if $(IOSBUILDENV_PATH) {
+		SDK_VERSION_MIN = 6.0 ;
+	}
 
 	IOS_SDK_VERSION_MIN on $(C.ACTIVE_TOOLCHAIN_TARGET) = $(SDK_VERSION_MIN) ;
 
@@ -546,7 +612,22 @@ rule ios.BundleInfo TARGET : TYPE : VALUE {
 				ios.BundleInfoBoolean : LSRequiresIPhoneOS : true ;
 				ios.BundleInfoArrayInteger : UIDeviceFamily : 1 2 ;
 				ios.BundleInfoString : DTPlatformName : iphoneos ;
+				ios.BundleInfoString : DTPlatformVersion : $(sdkversion) ;
 				ios.BundleInfoString : DTSDKName : iphoneos$(sdkversion) ;
+				if ! $(NT) {
+					local xcodeVersions = [ Match "Xcode ([^$(NEWLINE)]*).*Build version ([^$(NEWLINE)]*)" : [ Shell "xcodebuild -version" ] ] ;
+					xcodeVersions = [ Subst $(xcodeVersions[1]) : "%." : "" ] $(xcodeVersions[2]) ;
+					xcodeVersions = 0$(xcodeVersions[1]) $(xcodeVersions[2]) ;
+					ios.BundleInfoString : DTXcode : $(xcodeVersions[1]) ;
+					ios.BundleInfoString : DTXcodeBuild : $(xcodeVersions[2]) ;
+
+					local sdkVersion = [ Match "([^$(NEWLINE)]*)" : [ Shell "xcrun --sdk iphoneos$(sdkversion) --show-sdk-build-version" ] ] ;
+					ios.BundleInfoString : DTSDKBuild : $(sdkVersion) ;
+					ios.BundleInfoString : DTPlatformBuild : $(sdkVersion) ;
+
+					local osVersion = [ Match "([^$(NEWLINE)]*)" : [ Shell "sw_vers -buildVersion" ] ] ;
+					ios.BundleInfoString : BuildMachineOSBuild : $(osVersion) ;
+				}
 				ios.BundleInfoArrayString : CFBundleSupportedPlatforms : iPhoneOS ;
 				ios.BundleInfoString : MinimumOSVersion : $(minimumsdkversion) ;
 				if $(TARGETINFO_LOCATE) {
@@ -591,7 +672,7 @@ rule ios.BundleInfo TARGET : TYPE : VALUE {
 		case identifier :
 			ios.BundleInfoString : CFBundleIdentifier : $(VALUE) ;
 			CFBundleIdentifier on $(C.ACTIVE_TOOLCHAIN_TARGET) = $(VALUE) ;
-		case shortversion :			ios.BundleInfoString : CFShortVersionString : $(VALUE) ;
+		case shortversion :			ios.BundleInfoString : CFBundleShortVersionString : $(VALUE) ;
 		case bundleversion :
 			ios.BundleInfoString : CFBundleVersion : $(VALUE) ;
 			CFBundleVersion on $(C.ACTIVE_TOOLCHAIN_TARGET) = $(VALUE) ;
@@ -695,7 +776,7 @@ rule ios.InfoPListFile TARGET : SOURCE {
 
 
 actions C.ios._GenerateDSYMFile {
-	@($(COMPILER_BIN_PATH)/dsymutil:C) $(2:C) -o $(OUTPUT_PATH:C)
+	$(C.DSYMUTIL:C) $(2:C) -o $(OUTPUT_PATH:C)
 }
 
 
@@ -793,6 +874,7 @@ rule C.ios.Lipo TARGET : LINK_TARGETS : OUTPUT_PATH {
 	BINDING on $(_t) = $(BINDING:Z=$(LINK_TARGETS[0])) ;
 	Depends $(TARGET) : $(C.ACTIVE_TOOLCHAIN_TARGET) : $(_t) : $(LINK_TARGETS) ;
 	MakeLocate $(_t) : $(OUTPUT_PATH) ;
+	UseCommandLine $(_t) : $(LINK_TARGETS) ;
 	Clean $(C.ACTIVE_TOOLCHAIN_CLEAN_TARGET) : $(_t) ;
 	C.ios._Lipo $(_t) : $(LINK_TARGETS) : $(C.COMPILER_SUITE_SYMBOL) ;
 	LIPO_TARGET on $(C.ACTIVE_TOOLCHAIN_TARGET) = $(_t) ;
@@ -900,17 +982,15 @@ rule ios.Bundle TARGET : TOOLCHAINS {
 		local signingIdentity = $(SIGNING_IDENTITY:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) ;
 
 		local dependsList = [ DependsList $(bundleTarget) ] ;
+		dependsList = [ ListSort $(dependsList) ] ;
 
 		local codeResources = @(CodeResources:G=$(C.ACTIVE_TOOLCHAIN_TARGET_GRIST)) ;
 		MakeLocate $(codeResources) : $(bundlePath)/_CodeSignature ;
 
 		if $(IOSBUILDENV_PATH) {
-			local resourceRulesPlist = @(ResourceRules.plist:G=$(C.ACTIVE_TOOLCHAIN_TARGET_GRIST)) ;
-			MakeLocate $(resourceRulesPlist) : $(bundlePath) ;
-
-			UseCommandLine $(codeResources) $(resourceRulesPlist) : $(dependsList) ;
-			Depends $(bundleTarget) : $(codeResources) $(resourceRulesPlist) : $(dependsList) $(linkTarget) ;
-			Clean $(cleanBundleTarget) : $(codeResources) $(resourceRulesPlist) ;
+			UseCommandLine $(codeResources) : $(dependsList) ;
+			Depends $(bundleTarget) : $(codeResources) : $(dependsList) $(linkTarget) ;
+			Clean $(cleanBundleTarget) : $(codeResources) ;
 
 			CERTIFICATE_CHAIN on $(codeResources) $(linkTarget) = $(CERTIFICATE_CHAIN:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) ;
 			ios._CodeSign $(codeResources) $(linkTarget) : $(dependsList) $(linkTarget) : $(C.COMPILER_SUITE_SYMBOL) ;
@@ -925,11 +1005,12 @@ rule ios.Bundle TARGET : TOOLCHAINS {
 
 			local dsym_name = $(DSYM_NAME:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) ;
 			DSYM_NAME on $(codeResources) $(linkTarget) = $(dsym_name) ;
-			ios._CodeSign $(codeResources) $(linkTarget) : $(dependsList) : $(C.COMPILER_SUITE_SYMBOL) ;
 
-			UseCommandLine $(codeResources) : $(dependsList) ;
+			UseCommandLine $(codeResources) : $(dependsList) $(dsym_name) ;
 			Depends $(bundleTarget) : $(codeResources) : $(dependsList) $(dsym_name) ;
 			Clean $(cleanBundleTarget) : $(codeResources) $(codeResourcesSymbolicLink) ;
+
+			ios._CodeSign $(codeResources) : $(dependsList) $(dsym_name) : $(C.COMPILER_SUITE_SYMBOL) ;
 		}
 	}
 
@@ -939,7 +1020,9 @@ rule ios.Bundle TARGET : TOOLCHAINS {
 
 rule ios.Bundle TARGET : TOOLCHAINS {
 	TARGET = [ C.ActiveTarget $(TARGET) ] ;
-	local project = "Projects['$(TARGET)']" ;
+	local project = "Projects[ [[$(TARGET)]] ]" ;
+	local bundlePath = [ ios.GetBundlePath ] ;
+	Contents += "$(project).BUNDLE_PATH[ [[$(C.PLATFORM)]] ][ [[$(C.CONFIG)]] ] = [[$(bundlePath)]]$(NEWLINE)" ;
 	Contents += "if not $(project).Options then $(project).Options = {} end$(NEWLINE)" ;
 	Contents += "$(project).Options['bundle'] = true$(NEWLINE)" ;
 }
@@ -1006,7 +1089,7 @@ rule C.ios._MultiCppCompile_SetupFlags {
 			extraflags += --sysroot $(isysroot:C) ;
 		}
 		local noPeriodVersion = [ Subst $(minimumsdkversion) : %. : "" ] ;
-		extraflags += -integrated-as -fdiagnostics-format=msvc -fconstant-cfstrings -fmodules -fvisibility=hidden ;
+		extraflags += -integrated-as -fdiagnostics-format=msvc -fconstant-cfstrings -fvisibility=hidden ;
 		extraflags += -miphoneos-version-min=$(minimumsdkversion).0 ;
 		extraflags += -D__IPHONE_OS_VERSION_MIN_REQUIRED=$(noPeriodVersion)000 ;
 		extraflags += -I\"$(IOSBUILDENV_PATH)/Toolchain/include\" ;   #"
@@ -1035,12 +1118,12 @@ rule C.ios._MultiCppCompile_SetupFlags {
 
 	_flags = $(_flags[1-4]) $(extraflags) $(_flags[5-]) ;
 
-	C.clang._MultiCppCompile_SetupFlags ;
+	C.$(C.COMPILER_SUITE)._MultiCppCompile_SetupFlags ;
 }
 
 
 rule C.ios._ApplicationFromObjects_LinkFlags {
-	linkRule = C.ios.clang.Link ;
+	linkRule = C.ios.$(C.COMPILER_SUITE).Link ;
 
 	local isysroot = $(ISYSROOT:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) ;
 	isysroot ?= $(ISYSROOT:Z=$(C.ACTIVE_TOOLCHAIN_*)) ;
@@ -1056,7 +1139,7 @@ rule C.ios._ApplicationFromObjects_LinkFlags {
 
 	if $(IOSBUILDENV_PATH) {
 		linkFlags += "-arch $(architecture)" ;
-		linkFlags += "-syslibroot $(isysroot:C)" ;
+		linkFlags += "-syslibroot $(isysroot:C\\)" ;
 		linkFlags += -demangle -dead_strip ;
 		linkFlags += -ios_version_min $(minimumsdkversion) ;
 		linkFlags += -lobjc -lSystem -lc++ -lstdc++ ;
@@ -1081,7 +1164,7 @@ rule C.ios._ApplicationFromObjects_LinkFlags {
 
 
 rule C.ios._LibraryFromObjects_LibFlags {
-	archiveRule = C.ios.clang.Archive ;
+	archiveRule = C.ios.$(C.COMPILER_SUITE).Archive ;
 
 	local isysroot = $(ISYSROOT:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) ;
 	isysroot ?= $(ISYSROOT:Z=$(C.ACTIVE_TOOLCHAIN_*)) ;
@@ -1092,7 +1175,7 @@ rule C.ios._LibraryFromObjects_LibFlags {
 
 
 rule C.ios._SharedLibraryFromObjects_LinkFlags {
-	linkRule = C.ios.clang.Link ;
+	linkRule = C.ios.$(C.COMPILER_SUITE).Link ;
 
 	local isysroot = $(ISYSROOT:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) ;
 	isysroot ?= $(ISYSROOT:Z=$(C.ACTIVE_TOOLCHAIN_*)) ;
@@ -1128,9 +1211,59 @@ rule C.ios._SharedLibraryFromObjects_LinkFlags {
 }
 
 
+rule ios.ProvisionFile TARGET : FILENAME {
+	TARGET = [ C.ActiveTarget $(TARGET) ] ;
+
+	local _provisionDir = $(FILENAME:D) ;
+	if $(_provisionDir) = "" {
+	    _provisionDir = $(SUBDIR) ;
+	}
+
+	local _provisionFileTarget = $(FILENAME:BS/G=$(C.ACTIVE_TOOLCHAIN_TARGET_GRIST)) ;
+	SEARCH on $(_provisionFileTarget) = $(_provisionDir) ;
+	PROVISION_FILE_TARGET on $(C.ACTIVE_TOOLCHAIN_TARGET) = $(_provisionFileTarget) ;
+
+	_provisionFileTarget = $(_provisionFileTarget:T) ;
+
+	local bundleIdentifier ;
+	local teamIdentifier ;
+	local provisioningProfileSpecifier ;
+	LuaString "
+		local pl = require 'plist'.read(jam_getvar('_provisionFileTarget')[1])
+		local prefix = pl.ApplicationIdentifierPrefix
+		local identifier = pl.Entitlements[\"application-identifier\"]
+		identifier = identifier:sub(#prefix[1] + 2)
+		jam_setvar('bundleIdentifier', identifier)
+
+		local identifier = pl.Entitlements[\"com.apple.developer.team-identifier\"]
+		jam_setvar('teamIdentifier', identifier)
+
+		local name = pl.Name
+		jam_setvar('provisioningProfileSpecifier', name)
+	" ;
+	if $(bundleIdentifier) != * {
+		ios.BundleInfoString $(TARGET) : CFBundleIdentifier : $(bundleIdentifier) ;
+		CFBundleIdentifier on $(C.ACTIVE_TOOLCHAIN_TARGET) = $(bundleIdentifier) ;
+
+		if $(TARGETINFO_LOCATE) {
+			Contents += "Projects[ [[$(TARGET)]] ].PRODUCT_BUNDLE_IDENTIFIER[ [[$(C.PLATFORM)]] ][ [[$(C.CONFIG)]] ] = [[$(bundleIdentifier)]]
+" ;
+			Contents += "Projects[ [[$(TARGET)]] ].PROVISIONING_PROFILE_SPECIFIER[ [[$(C.PLATFORM)]] ][ [[$(C.CONFIG)]] ] = [[$(provisioningProfileSpecifier)]]
+" ;
+		}
+	}
+	if $(teamIdentifier) {
+		if $(TARGETINFO_LOCATE) {
+			Contents += "Projects[ [[$(TARGET)]] ].TEAM_IDENTIFIER[ [[$(C.PLATFORM)]] ][ [[$(C.CONFIG)]] ] = [[$(teamIdentifier)]]
+" ;
+		}
+	}
+}
+
+
 if $(TARGETINFO_LOCATE) {
 
-rule C.ios.XIB {
+rule ios.XIB {
 
 }
 
@@ -1165,7 +1298,7 @@ rule C.ios._ApplicationTargetInfo {
 
 } else {
 
-rule C.ios.XIB PARENT : SOURCES  {
+rule ios.XIB PARENT : SOURCES  {
 	PARENT = [ C.ActiveTarget $(PARENT) ] ;
 	
 	local bundlePath = [ ios.GetBundlePath ] ;
@@ -1204,6 +1337,101 @@ actions ios.CompileXIB
 }
 
 
+rule ios.Storyboard TARGET : SOURCES {
+    TARGET = [ ActiveTarget $(TARGET) ] ;
+
+    local bundleTarget = [ ios.GetBundleTarget ] ;
+    if ! $(bundleTarget)
+    {
+        Echo *** ios.Storyboard $(TARGET) \: $(SOURCES) ;
+        Exit *** Bundle target not setup for target $(TARGET) ;
+    }
+
+    local bundlePath = [ ios.GetBundlePath ] ;
+    if ! $(bundlePath)
+    {
+        Echo *** ios.Storyboard $(TARGET) \: $(SOURCES) ;
+        Exit *** Bundle path not setup for target $(TARGET) ;
+    }
+
+    SOURCES = $(SOURCES:G=$(C.ACTIVE_TOOLCHAIN_TARGET_GRIST)) ;
+    SEARCH on $(SOURCES) += $(SEARCH_SOURCE) ;
+
+    local LANGUAGE_SUBDIRECTORY = $(SOURCES[1]:TD) ;
+    LANGUAGE_SUBDIRECTORY = $(LANGUAGE_SUBDIRECTORY:BS) ;
+
+    local intermediateDirectory = $(LOCATE_TARGET)/$(LANGUAGE_SUBDIRECTORY) ;
+
+    local finalTargets ;
+    local storyboardsToLink ;
+    local source ;
+    for source in $(SOURCES) {
+        local compileTarget = @(Info.plist:G=$(C.ACTIVE_TOOLCHAIN_TARGET_GRIST)|$(source:BS)) ;
+        Depends $(bundleTarget) : $(compileTarget) : $(source) ;
+        local compileIntermediateDirectory = $(intermediateDirectory)/$(source:BS)c ;
+        LOCATE on $(compileTarget) = $(compileIntermediateDirectory) ;
+        CleanTree $(C.ACTIVE_TOOLCHAIN_CLEAN_TARGET) : $(compileIntermediateDirectory) ;
+        storyboardsToLink += $(compileTarget) ;
+
+        local finalTargetOutputDirectory ;
+        if $(LANGUAGE_SUBDIRECTORY:S) = .lproj {
+            finalTargetOutputDirectory = $(bundlePath)/$(LANGUAGE_SUBDIRECTORY)/$(source:BS)c ;
+        } else {
+            finalTargetOutputDirectory = $(bundlePath)/$(source:BS)c ;
+        }
+        local finalTarget = @(Info.plist:G=$(C.ACTIVE_TOOLCHAIN_TARGET_GRIST)|final|$(source:BS)) ;
+        Depends $(bundleTarget) : $(finalTarget) : $(compileTarget) ;
+        MakeLocate $(finalTarget) : $(finalTargetOutputDirectory) ;
+        CleanTree $(C.ACTIVE_TOOLCHAIN_CLEAN_TARGET) : $(finalTargetOutputDirectory) ;
+        finalTargets += $(finalTarget) ;
+
+        local partialInfo.plist = $(LOCATE_TARGET)/$(source:B)-SBPartialInfo.plist ;
+        Clean $(C.ACTIVE_TOOLCHAIN_CLEAN_TARGET) : $(partialInfo.plist) ;
+
+        TARGET on $(compileTarget) = $(TARGET) ;
+        OUTPUT_PARTIAL_INFO_PLIST on $(compileTarget) = $(partialInfo.plist) ;
+        OUTPUT_DIRECTORY on $(compileTarget) = $(intermediateDirectory) ;
+        ios._CompileStoryboard $(compileTarget) : $(source) : $(C.COMPILER_SUITE_SYMBOL) ;
+    }
+
+    TARGET on $(finalTargets) = $(TARGET) ;
+    BUNDLE_DIRECTORY on $(finalTargets) = $(bundlePath) ;
+    ios._LinkStoryboards $(finalTargets) : $(storyboardsToLink) ;
+}
+
+
+actions ios._CompileStoryboard
+{
+	PATH=$(MACOSX_SDK_DEVELOPER_ROOT)/usr/bin:$PATH
+	/Applications/Xcode.app/Contents/Developer/usr/bin/ibtool --errors --warnings --notices --module $(TARGET) --output-partial-info-plist $(OUTPUT_PARTIAL_INFO_PLIST) --auto-activate-custom-fonts --target-device iphone --target-device ipad --minimum-deployment-target 10.2 --output-format human-readable-text --compilation-directory $(OUTPUT_DIRECTORY) $(2:C)
+}
+
+
+actions ios._LinkStoryboards
+{
+	PATH=$(MACOSX_SDK_DEVELOPER_ROOT)/usr/bin:$PATH
+	/Applications/Xcode.app/Contents/Developer/usr/bin/ibtool --errors --warnings --notices --module $(TARGET) --target-device iphone --target-device ipad --minimum-deployment-target 10.2 --output-format human-readable-text --link $(BUNDLE_DIRECTORY) $(2:CD)
+}
+
+
+rule ios.Storyboards TARGET : LANGUAGE_DIRECTORY : STORYBOARD_FILES {
+    LANGUAGE_DIRECTORY = $(LANGUAGE_DIRECTORY:R=$(SUBDIR)) ;
+    local storyboards = [ Glob $(LANGUAGE_DIRECTORY) : *.storyboard ] ;
+    storyboards = $(storyboards:BSG=$(C.ACTIVE_TOOLCHAIN_TARGET_GRIST)) ;
+    SEARCH on $(storyboards) = $(LANGUAGE_DIRECTORY) ;
+    ios.Storyboard $(TARGET) : $(storyboards) ;
+
+    if $(STORYBOARD_FILES[1]) {
+        ios.BundleInfoString : UILaunchStoryboardName : $(STORYBOARD_FILES[1]) ;
+    }
+    if $(STORYBOARD_FILES[2]) {
+        ios.BundleInfoString : UIMainStoryboardFile : $(STORYBOARD_FILES[2]) ;
+    }
+}
+
+
+
+
 
 if $(NT) {
     actions ios._ImageCopy {
@@ -1220,16 +1448,25 @@ if $(NT) {
 }
 
 
-rule ios.AssetCatalog PARENT : TARGET_GRIST : DESTINATION_PATH : ASSET_CATALOG_PATH : APP_ICON_NAME : LAUNCH_IMAGE_NAME {
+rule ios.AssetCatalog PARENT : ASSET_CATALOG_PATH : APP_ICON_NAME : LAUNCH_IMAGE_NAME : DESTINATION_PATH {
     ASSET_CATALOG_PATH = $(ASSET_CATALOG_PATH:R=$(SUBDIR)) ;
 
+    local target = [ ios.GetBundleTarget ] ;
     local cleanTarget = $(CLEAN_BUNDLE_TARGET:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) ;
+    local bundlePath = [ ios.GetBundlePath ] ;
+    if ! $(DESTINATION_PATH) {
+        DESTINATION_PATH = $(bundlePath) ;
+    }
+    ASSET_CATALOG_PATH = $(ASSET_CATALOG_PATH:R=$(SUBDIR)) ;
 
-    LuaString "
+    local COLON = ":" ;
+    local code = "
         local ospath = require 'ospath'
+        local filefind = require 'filefind'
 
-        local parent = jam_getvar('PARENT')[1]
-        local targetGrist = jam_getvar('TARGET_GRIST')[1]
+        local parent = jam_getvar('target')[1]
+        local targetGrist = jam_getvar('C.ACTIVE_TOOLCHAIN_TARGET_GRIST')[1]
+        targetGrist = targetGrist .. '|assetcatalog'
         local assetCatalogPath = jam_getvar('ASSET_CATALOG_PATH')[1]
         local destinationPath = jam_getvar('DESTINATION_PATH')[1]
         local cleanTarget = jam_getvar('cleanTarget')[1]
@@ -1237,127 +1474,219 @@ rule ios.AssetCatalog PARENT : TARGET_GRIST : DESTINATION_PATH : ASSET_CATALOG_P
         local destinationTargets = {}
         local sourceTargets = {}
 
-        local appIcon = jam_getvar('APP_ICON_NAME')[1]
-        local launchImage = jam_getvar('LAUNCH_IMAGE_NAME')[1]
+        local appIcon = ''
+        local launchImage = ''
         local NT = jam_getvar('NT')[1]
 
-        if appIcon ~= '' then
-            local sourcePath = ospath.join(assetCatalogPath, appIcon .. '.appiconset')
-            local contentsJsonFilename = ospath.join(sourcePath, 'Contents.json')
-            local contents = require 'cjson'.decode(ospath.read_file(contentsJsonFilename))
+        local appIcons = {}
+        local launchImages = {}
 
-            for _, entry in ipairs(contents.images) do repeat
-                if not entry.filename then break end
+        local at = '@'
+        local dollar = '$'
+" ;
 
-                local filename = appIcon .. entry.size
-                local scale = 1
-                if entry.scale  and  entry.scale ~= '1x' then
-                    filename = filename .. '@' .. entry.scale
-                    scale = tonumber(entry.scale:match('(%d+)x'))
+    code += "
+        for directoryEntry in filefind.match(ospath.join(assetCatalogPath, '*.*')) do repeat
+            if not directoryEntry.is_directory then break end
+
+            local extension = ospath.get_extension(directoryEntry.filename)
+            if extension == '.appiconset' then
+                appIcon = ospath.remove_extension(ospath.get_filename(directoryEntry.filename))
+                local sourcePath = ospath.join(assetCatalogPath, directoryEntry.filename)
+                local contentsJsonFilename = ospath.join(sourcePath, 'Contents.json')
+                local contents = require 'cjson'.decode(ospath.read_file(contentsJsonFilename))
+
+                for _, entry in ipairs(contents.images) do repeat
+                    if not entry.filename then break end
+
+                    local filename = appIcon .. entry.size
+                    local scale = 1
+                    if entry.scale  and  entry.scale ~= '1x' then
+                        filename = filename .. '@' .. entry.scale
+                        scale = tonumber(entry.scale:match('(%d+)x'))
+                    end
+                    if entry.idiom  and  entry.idiom ~= 'iphone' then
+                        filename = filename .. '~' .. entry.idiom
+                    end
+                    filename = filename .. '.png'
+
+                    local inputTarget = '<' .. targetGrist .. ':source>' .. entry.filename
+                    local outputTarget = '<' .. targetGrist .. '>' .. filename
+                    jam_setvar(inputTarget, 'SEARCH', sourcePath)
+                    jam_evaluaterule('MakeLocate', outputTarget, destinationPath)
+                    jam_evaluaterule('Depends', parent, outputTarget, inputTarget)
+                    jam_evaluaterule('Clean', cleanTarget, outputTarget)
+
+                    if NT then
+                        local width, height = entry.size:match('(%d+)x(%d+)')
+                        jam_setvar(outputTarget, 'IMAGE_SIZE', (width * scale) .. 'x' .. (height * scale))
+                        jam_evaluaterule('ios._ImageResize', outputTarget, inputTarget, jam_getvar('C.COMPILER_SUITE_SYMBOL'))
+                    else
+                        destinationTargets[#destinationTargets + 1] = outputTarget
+                        sourceTargets[#sourceTargets + 1] = inputTarget
+                    end
+
+                    local textToExpand = at .. '(' .. outputTarget:gsub(':', dollar .. '(COLON)') .. ':BS)'
+                    appIcons[#appIcons + 1] = jam_expand(textToExpand)[1]
+                until true end
+" ;
+
+    code += "
+            elseif extension == '.imageset' then
+                local imageset = ospath.remove_extension(ospath.get_filename(directoryEntry.filename))
+                local sourcePath = ospath.join(assetCatalogPath, directoryEntry.filename)
+                local contentsJsonFilename = ospath.join(sourcePath, 'Contents.json')
+                local contents = require 'cjson'.decode(ospath.read_file(contentsJsonFilename))
+
+                local activeFilenames = {}
+                local function MakeFilename(entry, build)
+                    local filename = imageset
+
+                    if entry.scale  and  entry.scale ~= '1x' then
+                        filename = filename .. '@' .. entry.scale
+                    end
+
+--                    if entry.idiom  and  entry.idiom ~= 'iphone' then
+--                        filename = filename .. '~' .. entry.idiom
+--                    end
+
+                    if build then
+                        activeFilenames[filename] = true
+                    end
+
+                    return filename
                 end
-                if entry.idiom  and  entry.idiom ~= 'iphone' then
-                    filename = filename .. '~' .. entry.idiom
-                end
-                filename = filename .. '.png'
 
-                local inputTarget = '<' .. targetGrist .. ':source>' .. entry.filename
-                local outputTarget = '<' .. targetGrist .. '>' .. filename
-                jam_setvar(inputTarget, 'SEARCH', sourcePath)
-                jam_evaluaterule('MakeLocate', outputTarget, destinationPath)
-                jam_evaluaterule('Depends', parent, outputTarget, inputTarget)
-                jam_evaluaterule('Clean', cleanTarget, outputTarget)
-
-                if NT then
-                    local width, height = entry.size:match('(%d+)x(%d+)')
-                    jam_setvar(outputTarget, 'IMAGE_SIZE', (width * scale) .. 'x' .. (height * scale))
-                    jam_evaluaterule('ios._ImageResize', outputTarget, inputTarget, jam_getvar('C.COMPILER_SUITE_SYMBOL'))
-                else
-                    destinationTargets[#destinationTargets + 1] = outputTarget
-                    sourceTargets[#sourceTargets + 1] = inputTarget
-                end
-            until true end
-        end
-
-        if launchImage ~= '' then
-            local sourcePath = ospath.join(assetCatalogPath, launchImage .. '.launchimage')
-            local contentsJsonFilename = ospath.join(sourcePath, 'Contents.json')
-            local contents = require 'cjson'.decode(ospath.read_file(contentsJsonFilename))
-
-            local activeFilenames = {}
-            local function MakeLaunchImageFilename(entry, build)
-                local filename = launchImage
-                local minimumSystemVersion = entry['minimum-system-version']
-                if minimumSystemVersion == '7.0' then
-                    filename = filename .. '-700'
-                elseif minimumSystemVersion == '8.0' then
-                    filename = filename .. '-800'
+                for _, entry in ipairs(contents.images) do
+                    MakeFilename(entry, true)
                 end
 
-                if entry.orientation == 'portrait' then
-                    if not build then
-                        entry.orientation = 'landscape'
-                        local alternateFilename = MakeLaunchImageFilename(entry)
-                        if activeFilenames[alternateFilename] then
+                for _, entry in ipairs(contents.images) do repeat
+                    if not entry.filename then break end
+                    local filename = MakeFilename(entry)
+                    if not filename then break end
+                    filename = filename .. '.png'
+
+                    local inputTarget = '<' .. targetGrist .. ':source>' .. entry.filename
+                    local outputTarget = '<' .. targetGrist .. '>' .. filename
+                    jam_setvar(inputTarget, 'SEARCH', sourcePath)
+                    jam_evaluaterule('MakeLocate', outputTarget, destinationPath)
+                    jam_evaluaterule('Depends', parent, outputTarget, inputTarget)
+                    jam_evaluaterule('Clean', cleanTarget, outputTarget)
+
+                    if NT then
+                        jam_setvar(outputTarget, 'IMAGE_SIZE', entry.size)
+                        jam_evaluaterule('ios._ImageCopy', outputTarget, inputTarget, jam_getvar('C.COMPILER_SUITE_SYMBOL'))
+                    else
+                        destinationTargets[#destinationTargets + 1] = outputTarget
+                        sourceTargets[#sourceTargets + 1] = inputTarget
+                    end
+
+--                    local textToExpand = at .. '(' .. outputTarget:gsub(':', dollar .. '(COLON)') .. ':B)'
+--                    launchImages[#launchImages + 1] = {
+--                        osVersion = entry['minimum-system-version'],
+--                        fileTitle = jam_expand(textToExpand)[1],
+--                        orientation = entry.orientation,
+--    --                    imageSize = '{' .. entry.size .. '}',
+--                    }
+                until true end
+
+            elseif extension == '.launchimage' then
+                launchImage = ospath.remove_extension(ospath.get_filename(directoryEntry.filename))
+                local sourcePath = ospath.join(assetCatalogPath, directoryEntry.filename)
+                local contentsJsonFilename = ospath.join(sourcePath, 'Contents.json')
+                local contents = require 'cjson'.decode(ospath.read_file(contentsJsonFilename))
+
+                local activeFilenames = {}
+                local function MakeLaunchImageFilename(entry, build)
+                    local filename = launchImage
+                    local minimumSystemVersion = entry['minimum-system-version']
+                    if minimumSystemVersion == '7.0' then
+                        filename = filename .. '-700'
+                    elseif minimumSystemVersion == '8.0' then
+                        filename = filename .. '-800'
+                    elseif minimumSystemVersion == '11.0' then
+                        filename = filename .. '-1100'
+                    end
+
+                    if entry.orientation == 'portrait' then
+                        if not build then
+                            entry.orientation = 'landscape'
+                            local alternateFilename = MakeLaunchImageFilename(entry)
+                            if activeFilenames[alternateFilename] then
+                                filename = filename .. '-Portrait'
+                            end
+                            entry.orientation = 'portrait'
+                        else
                             filename = filename .. '-Portrait'
                         end
-                        entry.orientation = 'portrait'
-                    else
-                        filename = filename .. '-Portrait'
+                    elseif entry.orientation == 'landscape' then
+                        filename = filename .. '-Landscape'
                     end
-                elseif entry.orientation == 'landscape' then
-                    filename = filename .. '-Landscape'
-                end
 
-                if entry.subtype then
-                    if entry.subtype == 'retina4' then
-                        filename = filename .. '-568h'
-                    else
-                        filename = filename .. '-' .. entry.subtype
+                    if entry.subtype then
+                        if entry.subtype == 'retina4' then
+                            filename = filename .. '-568h'
+                        else
+                            filename = filename .. '-' .. entry.subtype
+                        end
                     end
+
+                    if entry.scale  and  entry.scale ~= '1x' then
+                        filename = filename .. '@' .. entry.scale
+                    end
+
+                    if entry.idiom  and  entry.idiom ~= 'iphone' then
+                        filename = filename .. '~' .. entry.idiom
+                    end
+
+                    if build then
+                        activeFilenames[filename] = true
+                    end
+
+                    return filename
                 end
 
-                if entry.scale  and  entry.scale ~= '1x' then
-                    filename = filename .. '@' .. entry.scale
+                for _, entry in ipairs(contents.images) do
+                    MakeLaunchImageFilename(entry, true)
                 end
 
-                if entry.idiom  and  entry.idiom ~= 'iphone' then
-                    filename = filename .. '~' .. entry.idiom
-                end
+                for _, entry in ipairs(contents.images) do repeat
+                    if not entry.filename then break end
+                    local filename = MakeLaunchImageFilename(entry)
+                    if not filename then break end
+                    filename = filename .. '.png'
 
-                if build then
-                    activeFilenames[filename] = true
-                end
+                    local inputTarget = '<' .. targetGrist .. ':source>' .. entry.filename
+                    local outputTarget = '<' .. targetGrist .. '>' .. filename
+                    jam_setvar(inputTarget, 'SEARCH', sourcePath)
+                    jam_evaluaterule('MakeLocate', outputTarget, destinationPath)
+                    jam_evaluaterule('Depends', parent, outputTarget, inputTarget)
+                    jam_evaluaterule('Clean', cleanTarget, outputTarget)
 
-                return filename
+                    if NT then
+                        jam_setvar(outputTarget, 'IMAGE_SIZE', entry.size)
+                        jam_evaluaterule('ios._ImageCopy', outputTarget, inputTarget, jam_getvar('C.COMPILER_SUITE_SYMBOL'))
+                    else
+                        destinationTargets[#destinationTargets + 1] = outputTarget
+                        sourceTargets[#sourceTargets + 1] = inputTarget
+                    end
+
+                    local textToExpand = at .. '(' .. outputTarget:gsub(':', dollar .. '(COLON)') .. ':B)'
+                    launchImages[#launchImages + 1] = {
+                        osVersion = entry['minimum-system-version'],
+                        fileTitle = jam_expand(textToExpand)[1],
+                        orientation = entry.orientation,
+    --                    imageSize = '{' .. entry.size .. '}',
+                    }
+                until true end
             end
-
-            for _, entry in ipairs(contents.images) do
-                MakeLaunchImageFilename(entry, true)
-            end
-
-            for _, entry in ipairs(contents.images) do repeat
-                local filename = MakeLaunchImageFilename(entry)
-                if not filename then break end
-                filename = filename .. '.png'
-
-                local inputTarget = '<' .. targetGrist .. ':source>' .. entry.filename
-                local outputTarget = '<' .. targetGrist .. '>' .. filename
-                jam_setvar(inputTarget, 'SEARCH', sourcePath)
-                jam_evaluaterule('MakeLocate', outputTarget, destinationPath)
-                jam_evaluaterule('Depends', parent, outputTarget, inputTarget)
-                jam_evaluaterule('Clean', cleanTarget, outputTarget)
-
-                if NT then
-                    jam_setvar(outputTarget, 'IMAGE_SIZE', entry.size)
-                    jam_evaluaterule('ios._ImageCopy', outputTarget, inputTarget, jam_getvar('C.COMPILER_SUITE_SYMBOL'))
-                else
-                    destinationTargets[#destinationTargets + 1] = outputTarget
-                    sourceTargets[#sourceTargets + 1] = inputTarget
-                end
-            until true end
-        end
+        until true end
 
         if not NT then
+            local generatedInfoPlist = jam_getvar('LOCATE_TARGET')[1] .. '/assetcatalog_generated_info.plist'
+            jam_evaluaterule('Clean', cleanTarget, generatedInfoPlist)
+
             for _, target in ipairs(destinationTargets) do
                 if appIcon ~= '' then
                     jam_setvar(target, 'APP_ICON',  '--app-icon ' .. appIcon)
@@ -1366,38 +1695,33 @@ rule ios.AssetCatalog PARENT : TARGET_GRIST : DESTINATION_PATH : ASSET_CATALOG_P
                     jam_setvar(target, 'LAUNCH_IMAGE',  '--launch-image ' .. launchImage)
                 end
                 jam_setvar(target, 'SOURCE_PATH',  assetCatalogPath)
-                jam_setvar(target, 'OUTPUT_PARTIAL_INFO_PLIST', jam_getvar('LOCATE_TARGET')[1] .. '/assetcatalog_generated_info.plist')
+                jam_setvar(target, 'OUTPUT_PARTIAL_INFO_PLIST', generatedInfoPlist)
             end
             jam_evaluaterule('ios._CompileAssetCatalog', destinationTargets, sourceTargets, jam_getvar('C.COMPILER_SUITE_SYMBOL')[1])
         end
+
+        if appIcons[1] then
+            local dict = GetInfoPlistCurrentLevel()
+            dict.CFBundleIconFiles = appIcons
+        end
+
+        if false  and  launchImages[1] then
+            jam_evaluaterule('ios.BundleInfoArrayBegin', 'UILaunchImages')
+
+            for _, launchImageInfo in ipairs(launchImages) do
+                jam_evaluaterule('ios.BundleInfoArrayDictBegin')
+                    jam_evaluaterule('ios.BundleInfoString', 'UILaunchImageMinimumOSVersion', launchImageInfo.osVersion)
+                    jam_evaluaterule('ios.BundleInfoString', 'UILaunchImageName', launchImageInfo.fileTitle)
+                    jam_evaluaterule('ios.BundleInfoString', 'UILaunchImageOrientation', launchImageInfo.orientation)
+                    jam_evaluaterule('ios.BundleInfoString', 'UILaunchImageSize', launchImageInfo.imageSize)
+                jam_evaluaterule('ios.BundleInfoArrayDictEnd')
+            end
+
+            jam_evaluaterule('ios.BundleInfoArrayEnd')
+        end
 " ;
-}
 
-
-rule ios.ProvisionFile TARGET : FILENAME {
-	TARGET = [ C.ActiveTarget $(TARGET) ] ;
-
-	local _provisionDir = $(FILENAME:D) ;
-	if $(_provisionDir) = "" {
-	    _provisionDir = $(SUBDIR) ;
-	}
-
-	local _provisionFileTarget = $(FILENAME:BS/G=$(C.ACTIVE_TOOLCHAIN_TARGET_GRIST)) ;
-	SEARCH on $(_provisionFileTarget) = $(_provisionDir) ;
-	PROVISION_FILE_TARGET on $(C.ACTIVE_TOOLCHAIN_TARGET) = $(_provisionFileTarget) ;
-
-	_provisionFileTarget = $(_provisionFileTarget:T) ;
-	local bundleIdentifier = [ LuaString "
-		local pl = require 'plist'.read(jam_getvar('_provisionFileTarget')[1])
-		local prefix = pl.ApplicationIdentifierPrefix
-		local identifier = pl.Entitlements[\"application-identifier\"]
-		identifier = identifier:sub(#prefix[1] + 2)
-		return identifier
-	" ] ;
-	if $(bundleIdentifier) != * {
-		ios.BundleInfoString $(TARGET) : CFBundleIdentifier : $(bundleIdentifier) ;
-		CFBundleIdentifier on $(C.ACTIVE_TOOLCHAIN_TARGET) = $(bundleIdentifier) ;
-	}
+    LuaString $(code:J) ;
 }
 
 
@@ -1472,7 +1796,7 @@ if $(NT) {
 
 actions ios._CodeSign
 {
-    "$(IOSBUILDENV_PATH)/Toolchain/ldid" -n -k"$(IOSBUILDENV_PATH)/Keychain" -S$(CERTIFICATE_CHAIN) -E"" $(1[2]:CT)
+    "$(IOSBUILDENV_PATH)/Toolchain/ldid" -k"$(IOSBUILDENV_PATH)/Keychain" -S$(CERTIFICATE_CHAIN) -E"" $(1[2]:CT)
     copy /B $(1[2]:CT\\)+,, $(1[2]:CT\\) > nul
     copy /B $(1[1]:C\\)+,, $(1[1]:CT\\) > nul
 }
@@ -1481,7 +1805,7 @@ actions ios._CodeSign
 
 actions ios._CodeSign
 {
-	export CODESIGN_ALLOCATE=$(COMPILER_BIN_PATH)/codesign_allocate
+	export CODESIGN_ALLOCATE=$(COMPILER_BIN_PATH_SECONDARY)/codesign_allocate
 	/usr/bin/codesign --force --no-strict --sign "$(SIGNING_IDENTITY)" --entitlements $(ENTITLEMENTS:CT) --timestamp=none $(BUNDLE_PATH)
 	touch $(1[1]:C)
 	touch $(DSYM_NAME:CT)
@@ -1508,7 +1832,7 @@ rule ios.CodeSign TARGET : SIGNING_IDENTITY : CERTIFICATE_CHAIN {
 }
 
 
-rule ios.Archive TARGET : OUTPUT_PATH : ITUNES_ARTWORK {
+rule ios.Archive TARGET : OUTPUT_PATH : ITUNES_ARTWORK : OPTIONS {
 	# Set up the archive support.
 	if $(C.PLATFORM) in ios {
 		TARGET = [ ActiveTarget $(TARGET) ] ;
@@ -1532,7 +1856,67 @@ rule ios.Archive TARGET : OUTPUT_PATH : ITUNES_ARTWORK {
 		SIGNING_IDENTITY on $(ipaTarget) = $(SIGNING_IDENTITY:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) ;
 		ITUNES_ARTWORK on $(ipaTarget) = $(ITUNES_ARTWORK) ;
 		ios._Archive $(ipaTarget) : $(linkTarget) : $(C.COMPILER_SUITE_SYMBOL) ;
+
+		if $(NT) {
+			# Set up an install target.
+			Depends install:$(TARGET) : $(ipaTarget) ;
+			Always install:$(TARGET) ;
+			NotFile install:$(TARGET) ;
+			IPA_TARGET on install:$(TARGET) = $(ipaTarget) ;
+			ios._Install install:$(TARGET) : $(ipaTarget) : $(C.COMPILER_SUITE_SYMBOL) ;
+
+			# Set up an auto-install if requested.
+			if install in $(OPTIONS) {
+				Depends autoinstall:$(TARGET) : $(ipaTarget) ;
+				NotFile autoinstall:$(TARGET) ;
+				IPA_TARGET on autoinstall:$(TARGET) = $(ipaTarget) ;
+				ios._Install autoinstall:$(TARGET) : $(ipaTarget) : $(C.COMPILER_SUITE_SYMBOL) ;
+				Depends $(TARGET) : autoinstall:$(TARGET) ;
+			}
+
+			# Set up an uninstall target.
+			Always uninstall:$(TARGET) ;
+			NotFile uninstall:$(TARGET) ;
+			APPID on uninstall:$(TARGET) = $(CFBundleIdentifier:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) ;
+			ios._Uninstall uninstall:$(TARGET) : : $(C.COMPILER_SUITE_SYMBOL) ;
+
+			# Set up a run target.
+			Depends run:$(TARGET) : install:$(TARGET) ;
+			Always run:$(TARGET) ;
+			NotFile run:$(TARGET) ;
+			APPID on run:$(TARGET) = $(CFBundleIdentifier:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) ;
+			ios._Run run:$(TARGET) : : $(C.COMPILER_SUITE_SYMBOL) ;
+
+			# Set up an auto-run if requested.
+			if run in $(OPTIONS) {
+				Depends autorun:$(TARGET) : install:$(TARGET) ;
+				NotFile autorun:$(TARGET) ;
+				APPID on autorun:$(TARGET) = $(CFBundleIdentifier:Z=$(C.ACTIVE_TOOLCHAIN_TARGET)) ;
+				ios._Run autorun:$(TARGET) : : $(C.COMPILER_SUITE_SYMBOL) ;
+				Depends $(TARGET) : autorun:$(TARGET) ;
+			}
+		}
+
+		# Set up the webserver.
+		if webserver in $(OPTIONS) {
+			ios.WebServer ;
+		}
 	}
+}
+
+
+actions screenoutput ios._Install {
+	"$(JAM_EXECUTABLE_PATH:D)/../libimobiledevice/ideviceinstaller" -i $(IPA_TARGET:TC)
+}
+
+
+actions screenoutput ios._Uninstall {
+	"$(JAM_EXECUTABLE_PATH:D)/../libimobiledevice/ideviceinstaller" -U $(APPID)
+}
+
+
+actions screenoutput ios._Run {
+	"$(JAM_EXECUTABLE_PATH:D)/../libimobiledevice/idevicedebug" run $(APPID)
 }
 
 
@@ -1664,7 +2048,8 @@ actions screenoutput ios._WebServer {
 	$(JAM_EXECUTABLE_PATH:C) --webserver -ssl $(OUTPUT_PATH)
 }
 
-if $(NT) {
+#if $(NT) {
+if 1 {
 
 
 actions lua ios._Archive
