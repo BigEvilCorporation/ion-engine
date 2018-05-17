@@ -1546,6 +1546,7 @@ bool Project::GenerateTerrainFromBeziers(int granularity)
 			for(int y = 0; y < mapHeight; y++)
 			{
 				collisionMap.SetTerrainTile(x, y, InvalidTerrainTileId);
+				collisionMap.SetCollisionTileFlags(x, y, collisionMap.GetCollisionTileFlags(x, y) & (eCollisionTileFlagSolid | eCollisionTileFlagHole));
 			}
 		}
 	}
@@ -3103,22 +3104,21 @@ bool Project::ExportTerrainBlocks(const std::string& filename, bool binary, int 
 	return false;
 }
 
-bool Project::ExportTerrainBlockMap(MapId mapId, const std::string& filename, bool binary, int blockWidth, int blockHeight) const
+bool Project::ExportTerrainBlockMap(MapId mapId, const std::string& filename, bool binary, int blockWidth, int blockHeight)
 {
 	const Map& map = m_maps.find(mapId)->second;
-	const CollisionMap& collisionMap = m_collisionMaps.find(mapId)->second;
+	CollisionMap& collisionMap = m_collisionMaps.find(mapId)->second;
 	const int tileWidth = GetPlatformConfig().tileWidth;
 	const int tileHeight = GetPlatformConfig().tileHeight;
 	const int mapHeightPixels = (collisionMap.GetHeight() * tileHeight);
 	const std::string& mapName = map.GetName();
 
-	ion::Vector2i topLeft;
-	ion::Vector2i size;
-	collisionMap.GetPhysicsWorldBounds(topLeft, size, tileWidth, tileHeight, blockWidth, blockHeight);
-
 	ion::Vector2i topLeftBlocks;
 	ion::Vector2i sizeBlocks;
-	collisionMap.GetPhysicsWorldBoundsBlocks(topLeftBlocks, sizeBlocks, tileWidth, tileHeight, blockWidth, blockHeight);
+	collisionMap.CalculatePhysicsWorldBoundsBlocks(topLeftBlocks, sizeBlocks, tileWidth, tileHeight, blockWidth, blockHeight);
+
+	ion::Vector2i topLeftTiles = topLeftBlocks * ion::Vector2i(blockWidth, blockHeight);
+	ion::Vector2i sizeTiles = sizeBlocks * ion::Vector2i(blockWidth, blockHeight);
 
 	if(collisionMap.GetNumTerrainBeziers() > 0)
 	{
@@ -3170,10 +3170,10 @@ bool Project::ExportTerrainBlockMap(MapId mapId, const std::string& filename, bo
 			stream << "terrainmap_blockmap_" << mapName << "_size_l\tequ (terrainmap_blockmap_" << mapName << "_size_b/4)\t; Size in longwords" << std::endl;
 
 			stream << std::hex << std::setfill('0') << std::uppercase;
-			stream << "terrainmap_" << mapName << "_left\tequ " << "0x" << std::setw(2) << topLeft.x << std::endl;
-			stream << "terrainmap_" << mapName << "_top\tequ " << "0x" << std::setw(2) << topLeft.y << std::endl;
-			stream << "terrainmap_" << mapName << "_width\tequ " << "0x" << std::setw(2) << size.x << std::endl;
-			stream << "terrainmap_" << mapName << "_height\tequ " << "0x" << std::setw(2) << size.y << std::endl;
+			stream << "terrainmap_" << mapName << "_left\tequ " << "0x" << std::setw(2) << topLeftTiles.x << std::endl;
+			stream << "terrainmap_" << mapName << "_top\tequ " << "0x" << std::setw(2) << topLeftTiles.y << std::endl;
+			stream << "terrainmap_" << mapName << "_width\tequ " << "0x" << std::setw(2) << sizeTiles.x << std::endl;
+			stream << "terrainmap_" << mapName << "_height\tequ " << "0x" << std::setw(2) << sizeTiles.y << std::endl;
 			stream << "terrainmap_blockmap_" << mapName << "_left\tequ " << "0x" << std::setw(2) << topLeftBlocks.x << std::endl;
 			stream << "terrainmap_blockmap_" << mapName << "_top\tequ " << "0x" << std::setw(2) << topLeftBlocks.y << std::endl;
 			stream << "terrainmap_blockmap_" << mapName << "_width\tequ " << "0x" << std::setw(2) << sizeBlocks.x << std::endl;

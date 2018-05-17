@@ -276,7 +276,7 @@ public:
 	bool ExportStampMap(MapId mapId, const std::string& filename, bool binary) const;
 	bool ExportCollisionMap(MapId mapId, const std::string& filename, bool binary) const;
 	bool ExportTerrainBlocks(const std::string& filename, bool binary, int blockWidth, int blockHeight);
-	bool ExportTerrainBlockMap(MapId mapId, const std::string& filename, bool binary, int blockWidth, int blockHeight) const;
+	bool ExportTerrainBlockMap(MapId mapId, const std::string& filename, bool binary, int blockWidth, int blockHeight);
 	bool ExportGameObjects(MapId mapId, const std::string& filename) const;
 
 	//Serialise

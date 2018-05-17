@@ -47,6 +47,9 @@ void CollisionMap::Clear()
 		for(int y = 0; y < m_height; y++)
 		{
 			SetTerrainTile(x, y, InvalidTerrainTileId);
+
+			//Clear terrain flags, except types that are hand-placed on map
+			SetCollisionTileFlags(x, y, GetCollisionTileFlags(x, y) & (eCollisionTileFlagSolid | eCollisionTileFlagHole));
 		}
 	}
 }
@@ -57,16 +60,23 @@ void CollisionMap::Serialise(ion::io::Archive& archive)
 	archive.Serialise(m_height, "height");
 	archive.Serialise(m_terrainBeziers, "beziers");
 	archive.Serialise(m_collisionTiles, "collisionTiles");
+	archive.Serialise(m_physicsWorldTopLeft, "physicsWorldTopLeft");
+	archive.Serialise(m_physicsWorldSize, "physicsWorldSize");
+	archive.Serialise(m_physicsWorldTopLeftBlocks, "physicsWorldTopLeftBlocks");
+	archive.Serialise(m_physicsWorldSizeBlocks, "physicsWorldSizeBlocks");
 
-	if(archive.GetDirection() == ion::io::Archive::eIn && m_terrainBeziers.size() == 0)
+	if(archive.GetDirection() == ion::io::Archive::eIn)
 	{
-		//Legacy, no bezier flags
-		std::vector<ion::gamekit::BezierPath> beziers;
-		archive.Serialise(beziers, "terrainBeziers");
-
-		for(int i = 0; i < beziers.size(); i++)
+		if(m_terrainBeziers.size() == 0)
 		{
-			m_terrainBeziers.push_back(TerrainBezier({ beziers[i], 0 }));
+			//Legacy, no bezier flags
+			std::vector<ion::gamekit::BezierPath> beziers;
+			archive.Serialise(beziers, "terrainBeziers");
+
+			for(int i = 0; i < beziers.size(); i++)
+			{
+				m_terrainBeziers.push_back(TerrainBezier({ beziers[i], 0 }));
+			}
 		}
 	}
 }
@@ -256,7 +266,7 @@ int CollisionMap::GetNumTerrainBeziers() const
 	return m_terrainBeziers.size();
 }
 
-void CollisionMap::GenerateBlocks(const Project& project, int blockWidth, int blockHeight)
+void CollisionMap::GenerateBlocks(const Project& project, int blockWidth, int blockHeight) 
 {
 	//Align map size to block size
 	int mapWidth = GetBlockAlignedWidth(blockWidth);
@@ -314,6 +324,7 @@ void CollisionMap::GenerateBlocks(const Project& project, int blockWidth, int bl
 					int y = (blockY * blockHeight) + tileY;
 
 					int tileOffset = (y * mapWidth) + x;
+					u16 tileId = tiles[tileOffset] = tiles[tileOffset];
 					block.m_tiles.push_back(tiles[tileOffset]);
 				}
 			}
@@ -321,7 +332,7 @@ void CollisionMap::GenerateBlocks(const Project& project, int blockWidth, int bl
 	}
 }
 
-void CollisionMap::GetPhysicsWorldBounds(ion::Vector2i& topLeft, ion::Vector2i& size, int tileWidth, int tileHeight, int blockWidth, int blockHeight) const
+void CollisionMap::CalculatePhysicsWorldBounds(ion::Vector2i& topLeft, ion::Vector2i& size, int tileWidth, int tileHeight, int blockWidth, int blockHeight)
 {
 	ion::Vector2i bottomRight;
 
@@ -336,22 +347,23 @@ void CollisionMap::GetPhysicsWorldBounds(ion::Vector2i& topLeft, ion::Vector2i& 
 
 	for(int i = 0; i < m_terrainBeziers.size(); i++)
 	{
-		const ion::gamekit::BezierPath& bezier = m_terrainBeziers[i].bezier;
+		ion::gamekit::BezierPath& bezier = m_terrainBeziers[i].bezier;
 
 		if(bezier.GetNumCurves() > 0)
 		{
 			ion::Vector2 boundsMin;
 			ion::Vector2 boundsMax;
+			bezier.CalculateBounds();
 			bezier.GetBounds(boundsMin, boundsMax);
 
-			if(boundsMin.x < bezierMin.x)
-				bezierMin.x = boundsMin.x;
-			if(boundsMin.y < bezierMin.y)
-				bezierMin.y = boundsMin.y;
-			if(boundsMax.x > bezierMax.x)
-				bezierMax.x = boundsMax.x;
-			if(boundsMax.y > bezierMax.y)
-				bezierMax.y = boundsMax.y;
+			if((boundsMin.x - tileWidth) < bezierMin.x)
+				bezierMin.x = (boundsMin.x - tileWidth);
+			if((boundsMin.y - tileHeight) < bezierMin.y)
+				bezierMin.y = (boundsMin.y - tileHeight);
+			if((boundsMax.x + tileWidth) > bezierMax.x)
+				bezierMax.x = (boundsMax.x + tileWidth);
+			if((boundsMax.y + tileHeight) > bezierMax.y)
+				bezierMax.y = (boundsMax.y + tileHeight);
 		}
 	}
 
@@ -389,19 +401,26 @@ void CollisionMap::GetPhysicsWorldBounds(ion::Vector2i& topLeft, ion::Vector2i& 
 
 	size = bottomRight - topLeft;
 
+	m_physicsWorldTopLeft = topLeft;
+	m_physicsWorldSize = size;
+}
+
+void CollisionMap::CalculatePhysicsWorldBoundsBlocks(ion::Vector2i& topLeft, ion::Vector2i& size, int tileWidth, int tileHeight, int blockWidth, int blockHeight)
+{
+	CalculatePhysicsWorldBounds(topLeft, size, tileWidth, tileHeight, blockWidth, blockHeight);
+
 	topLeft.x = ion::maths::RoundDownToNearest(topLeft.x, blockWidth);
 	topLeft.y = ion::maths::RoundDownToNearest(topLeft.y, blockHeight);
 	size.x = ion::maths::RoundUpToNearest(size.x, blockWidth);
 	size.y = ion::maths::RoundUpToNearest(size.y, blockHeight);
-}
 
-void CollisionMap::GetPhysicsWorldBoundsBlocks(ion::Vector2i& topLeft, ion::Vector2i& size, int tileWidth, int tileHeight, int blockWidth, int blockHeight) const
-{
-	GetPhysicsWorldBounds(topLeft, size, tileWidth, tileHeight, blockWidth, blockHeight);
 	topLeft.x = topLeft.x / blockWidth;
 	topLeft.y = topLeft.y / blockHeight;
 	size.x = (size.x / blockWidth);
 	size.y = (size.y / blockHeight);
+
+	m_physicsWorldTopLeftBlocks = topLeft;
+	m_physicsWorldSizeBlocks = size;
 }
 
 std::vector<CollisionMap::Block>& CollisionMap::GetBlocks()
@@ -479,7 +498,7 @@ void CollisionMap::ExportBlockMap(const Project& project, std::stringstream& str
 
 	ion::Vector2i topLeft;
 	ion::Vector2i size;
-	GetPhysicsWorldBoundsBlocks(topLeft, size, tileWidth, tileHeight, blockWidth, blockHeight);
+	GetPhysicsWorldBoundsBlocks(topLeft, size);
 
 	int widthBlocks = GetWidthBlocks(blockWidth);
 
@@ -515,10 +534,12 @@ void CollisionMap::ExportBlockMap(const Project& project, ion::io::File& file, i
 
 	ion::Vector2i topLeft;
 	ion::Vector2i size;
-	GetPhysicsWorldBoundsBlocks(topLeft, size, tileWidth, tileHeight, blockWidth, blockHeight);
+	GetPhysicsWorldBoundsBlocks(topLeft, size);
 
 	int widthBlocks = GetWidthBlocks(blockWidth);
 	int fileOffsetY = 0;
+
+	int numRowsExported = 0;
 
 	//Export block map
 	for(int blockY = topLeft.y; blockY < (topLeft.y + size.y); blockY++)
@@ -542,6 +563,7 @@ void CollisionMap::ExportBlockMap(const Project& project, ion::io::File& file, i
 
 		//Next row
 		fileOffsetY += size.x;
+		numRowsExported++;
 	}
 }
 

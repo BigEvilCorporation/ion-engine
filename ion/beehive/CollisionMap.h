@@ -88,8 +88,10 @@ public:
 	std::vector<Block>& GetBlocks();
 
 	//Get populated collision area
-	void GetPhysicsWorldBounds(ion::Vector2i& topLeft, ion::Vector2i& size, int tileWidth, int tileHeight, int blockWidth, int blockHeight) const;
-	void GetPhysicsWorldBoundsBlocks(ion::Vector2i& topLeft, ion::Vector2i& size, int tileWidth, int tileHeight, int blockWidth, int blockHeight) const;
+	void CalculatePhysicsWorldBounds(ion::Vector2i& topLeft, ion::Vector2i& size, int tileWidth, int tileHeight, int blockWidth, int blockHeight);
+	void CalculatePhysicsWorldBoundsBlocks(ion::Vector2i& topLeft, ion::Vector2i& size, int tileWidth, int tileHeight, int blockWidth, int blockHeight);
+	void GetPhysicsWorldBounds(ion::Vector2i& topLeft, ion::Vector2i& size) const { topLeft = m_physicsWorldTopLeft; size = m_physicsWorldSize; }
+	void GetPhysicsWorldBoundsBlocks(ion::Vector2i& topLeft, ion::Vector2i& size) const { topLeft = m_physicsWorldTopLeftBlocks; size = m_physicsWorldSizeBlocks; }
 
 	void Serialise(ion::io::Archive& archive);
 	void Export(const Project& project, std::stringstream& stream) const;
@@ -114,6 +116,11 @@ private:
 	int m_width;
 	int m_height;
 
+	ion::Vector2i m_physicsWorldTopLeft;
+	ion::Vector2i m_physicsWorldSize;
+	ion::Vector2i m_physicsWorldTopLeftBlocks;
+	ion::Vector2i m_physicsWorldSizeBlocks;
+
 	//Tiles
 	std::vector<TerrainTileId> m_collisionTiles;
 
@@ -126,6 +133,7 @@ private:
 
 void CollisionMap::SetTerrainTile(int x, int y, TerrainTileId tile)
 {
+	ion::debug::Assert(tile <= eCollisionTileFlagNone, "CollisionMap::SetTerrainTile() - Collision tile ID out of range");
 	u32 tileIdx = (y * m_width) + x;
 	ion::debug::Assert(tileIdx < (m_width * m_height), "CollisionMap::SetTerrainTile() - Out of range");
 	u32& entry = m_collisionTiles[tileIdx];
