@@ -503,7 +503,16 @@ rule ApplyOpenGLESSDK TARGET
 rule ApplyOpenALSDK TARGET
 {
 	C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/OpenAL/include ;
-	C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/OpenAL/lib/Win32 ;
+
+	if ( win32 in $(PLATFORM) )
+	{
+		C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/OpenAL/lib/Win32 ;
+	}
+
+	if ( win64 in $(PLATFORM) )
+	{
+		C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/OpenAL/lib/Win64 ;
+	}
 
 	local OPENAL_LIBS =
 		OpenAL32.lib
