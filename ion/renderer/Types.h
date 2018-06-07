@@ -16,6 +16,7 @@
 
 #if defined ION_PLATFORM_MACOSX || defined ION_PLATFORM_LINUX || defined ION_PLATFORM_RASPBERRYPI
 struct SDL_Window;
+typedef void* SDL_GLContext;
 #endif
 
 namespace ion
