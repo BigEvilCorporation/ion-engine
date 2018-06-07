@@ -186,7 +186,7 @@ if $(NT) {
 
 
     actions C.gcc.Link {
-        "$(C.LINK)" -o $(<[1]:C) $(>:C) $(NEEDLIBS:TC) $(LINKLIBS:TC) $(LINKFLAGS)
+	"$(C.LINK)" -o $(<[1]:C) $(>:C) -Wl,--start-group $(NEEDLIBS:TC) -Wl,--end-group $(LINKLIBS:TC) $(LINKFLAGS) 
     }
 
 
