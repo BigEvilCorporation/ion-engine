@@ -17,42 +17,7 @@
 #include "core/Platform.h"
 #include "core/thread/CriticalSection.h"
 #include "renderer/Renderer.h"
-
-#if defined ION_RENDER_SUPPORTS_GLEW
-#include <GL/glew.h>
-#endif
-
-#if defined ION_RENDER_SUPPORTS_GLUT
-#include <GL/glut.h>
-#endif
-
-#if defined ION_PLATFORM_MACOSX
-#include <OpenGL/gl.h>
-#include <OpenGL/glu.h>
-#include <OpenGL/glext.h>
-#include <SDL.h>
-#include <SDL_OpenGL.h>
-#elif defined ION_PLATFORM_LINUX
-#include <GL/gl.h>
-#include <GL/glu.h>
-#include <GL/glext.h>
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_opengl.h>
-#elif defined ION_PLATFORM_RASPBERRYPI
-#include <GL/gl.h>
-#include <GL/glu.h>
-#include <GL/glext.h>
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_opengl.h>
-#else
-#include <GL/gl.h>
-#include <GL/glu.h>
-#include <GL/glext.h>
-#endif
-
-#if defined ION_PLATFORM_WINDOWS
-#include <GL/wglext.h>
-#endif
+#include "renderer/opengl/OpenGLInclude.h"
 
 namespace ion
 {
@@ -88,6 +53,7 @@ namespace ion
 			virtual void SetClearColour(const Colour& colour);
 			virtual void ClearColour();
 			virtual void ClearDepth();
+			virtual void EnableVSync(bool enabled);
 
 			//Render states
 			virtual void SetAlphaBlending(AlphaBlendType alphaBlendType);

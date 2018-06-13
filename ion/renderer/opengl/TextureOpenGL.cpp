@@ -16,6 +16,7 @@
 #include "core/memory/Memory.h"
 #include "renderer/opengl/TextureOpenGL.h"
 #include "renderer/opengl/RendererOpenGL.h"
+#include "renderer/opengl/OpenGLExtensions.h"
 
 #if defined ION_RENDER_SUPPORTS_SDL
 #if defined ION_PLATFORM_MACOSX
@@ -47,9 +48,9 @@ namespace ion
 			return new TextureOpenGL(width, height);
 		}
 
-		Texture* Texture::Create(u32 width, u32 height, Format sourceFormat, Format destFormat, BitsPerPixel bitsPerPixel, bool generateMipmaps, const u8* data)
+		Texture* Texture::Create(u32 width, u32 height, Format sourceFormat, Format destFormat, BitsPerPixel bitsPerPixel, bool generateMipmaps, bool generatePixelBuffer, const u8* data)
 		{
-			return new TextureOpenGL(width, height, sourceFormat, destFormat, bitsPerPixel, generateMipmaps, data);
+			return new TextureOpenGL(width, height, sourceFormat, destFormat, bitsPerPixel, generateMipmaps, generatePixelBuffer, data);
 		}
 
 		void Texture::RegisterSerialiseType(io::Archive& archive)
@@ -60,6 +61,7 @@ namespace ion
 		TextureOpenGL::TextureOpenGL()
 		{
 			m_glTextureId = 0;
+			m_glPixelBufferId = 0;
 			m_bitsPerPixel = eBPP8;
 
 			//Generate texture
@@ -70,23 +72,32 @@ namespace ion
 			: Texture(width, height)
 		{
 			m_glTextureId = 0;
+			m_glPixelBufferId = 0;
 			m_bitsPerPixel = eBPP8;
 
 			//Generate texture
 			glGenTextures(1, &m_glTextureId);
 		}
 
-		TextureOpenGL::TextureOpenGL(u32 width, u32 height, Format sourceFormat, Format destFormat, BitsPerPixel bitsPerPixel,  bool generateMipmaps, const u8* data)
+		TextureOpenGL::TextureOpenGL(u32 width, u32 height, Format sourceFormat, Format destFormat, BitsPerPixel bitsPerPixel,  bool generateMipmaps, bool generatePixelBuffer, const u8* data)
 			: TextureOpenGL(width, height)
 		{
 			m_glTextureId = 0;
+			m_glPixelBufferId = 0;
 			m_bitsPerPixel = eBPP8;
 
 			//Generate texture
 			glGenTextures(1, &m_glTextureId);
 
+			if (generatePixelBuffer)
+			{
+				//Generate pixel buffer
+				debug::Assert(OpenGLExt::glGenBuffersARB, "Cannot create pixel buffer without glGenBuffersARB extension");
+				OpenGLExt::glGenBuffersARB(1, &m_glPixelBufferId);
+			}
+
 			//Load from data
-			Load(width, height, sourceFormat, destFormat, bitsPerPixel, generateMipmaps, data);
+			Load(width, height, sourceFormat, destFormat, bitsPerPixel, generateMipmaps, generatePixelBuffer, data);
 		}
 
 		TextureOpenGL::~TextureOpenGL()
@@ -135,7 +146,7 @@ namespace ion
 			return m_glTextureId != 0;
 		}
 
-		bool TextureOpenGL::Load(u32 width, u32 height, Format sourceFormat, Format destFormat, BitsPerPixel bitsPerPixel, bool generateMipmaps, const u8* data)
+		bool TextureOpenGL::Load(u32 width, u32 height, Format sourceFormat, Format destFormat, BitsPerPixel bitsPerPixel, bool generateMipmaps, bool generatePixelBuffer, const u8* data)
 		{
 			if(!m_glTextureId)
 			{
@@ -148,12 +159,17 @@ namespace ion
 
 			//Get GL format
 			int glByteFormat = 0;
-			GetOpenGLMode(destFormat, bitsPerPixel, m_glFormat, glByteFormat);
+			int glColourFormat = 0;
+			int pixelSize = 0;
+			GetOpenGLMode(destFormat, bitsPerPixel, m_glFormat, glByteFormat, glColourFormat, pixelSize);
 			m_bitsPerPixel = bitsPerPixel;
 
 			//Bind the texture
 			glBindTexture(GL_TEXTURE_2D, m_glTextureId);
 			RendererOpenGL::CheckGLError("TextureOpenGL::Load");
+
+			//Set pixel alignment
+			glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
 			//Generate mipmaps
 #if !defined ION_RENDERER_OPENGLES
@@ -180,28 +196,38 @@ namespace ion
 
 			RendererOpenGL::CheckGLError("TextureOpenGL::Load");
 
-			//If first time load, init size
-			//if(m_width == 0 && m_height == 0)
-			{
-				m_width = width;
-				m_height = height;
-			}
+			//Set size
+			m_width = width;
+			m_height = height;
 
 			//Copy all pixels in surface to GL texture
-			//if(width == m_width && height == m_height)
+			glTexImage2D(GL_TEXTURE_2D, 0, glColourFormat, width, height, 0, m_glFormat, glByteFormat, data);
+			RendererOpenGL::CheckGLError("TextureOpenGL::Load");
+
+			if (m_glPixelBufferId)
 			{
-				//Width/height match, just copy
-				glTexImage2D(GL_TEXTURE_2D, 0, m_glFormat, width, height, 0, m_glFormat, glByteFormat, data);
-				RendererOpenGL::CheckGLError("TextureOpenGL::Load");
+				//Bind the pixel buffer
+				OpenGLExt::glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_EXT, m_glPixelBufferId);
+
+				//Create data container and map
+				OpenGLExt::glBufferDataARB(GL_PIXEL_UNPACK_BUFFER_EXT, width * height * pixelSize, NULL, GL_STREAM_DRAW_ARB);
+				unsigned char* pixelBufferData = (unsigned char*)OpenGLExt::glMapBufferARB(GL_PIXEL_UNPACK_BUFFER_EXT, GL_WRITE_ONLY);
+
+				//Copy pixels
+				if (data)
+				{
+					ion::memory::MemCopy(pixelBufferData, data, width * height * pixelSize);
+				}
+
+				//Unmap
+				if (!OpenGLExt::glUnmapBufferARB(GL_PIXEL_UNPACK_BUFFER_EXT))
+				{
+					debug::error << "TextureOpenGL::Load() - Could not unmap PBO" << debug::end;
+				}
+
+				//Unbind
+				OpenGLExt::glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_EXT, 0);
 			}
-#if !defined ION_RENDERER_KGL
-			//else
-			//{
-			//	//Width/height mismatch, copy subimage
-			//	glTexImage2D(GL_TEXTURE_2D, 0, m_glFormat, m_width, m_height, 0, m_glFormat, glByteFormat, NULL);
-			//	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, m_glFormat, glByteFormat, data);
-			//}
-#endif
 
 			//Unbind texture
 			glBindTexture(GL_TEXTURE_2D, 0);
@@ -217,6 +243,12 @@ namespace ion
 			{
 				glDeleteTextures(1, &m_glTextureId);
 				m_glTextureId = 0;
+			}
+
+			if (m_glPixelBufferId)
+			{
+				OpenGLExt::glDeleteBuffersARB(1, &m_glPixelBufferId);
+				m_glPixelBufferId = 0;
 			}
 		}
 
@@ -248,10 +280,53 @@ namespace ion
 #if !defined ION_RENDERER_KGL
 			GLint glMode;
 			GLint glByteFormat;
-			GetOpenGLMode(sourceFormat, m_bitsPerPixel, glMode, glByteFormat);
-			glBindTexture(GL_TEXTURE_2D, m_glTextureId);
-			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_width, m_height, glMode, glByteFormat, data);
-			glBindTexture(GL_TEXTURE_2D, 0);
+			GLint glColourFormat;
+			int pixelSize = 0;
+			GetOpenGLMode(sourceFormat, m_bitsPerPixel, glMode, glByteFormat, glColourFormat, pixelSize);
+
+			if (m_glPixelBufferId)
+			{
+				//Bind pixel buffer
+				OpenGLExt::glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_EXT, m_glPixelBufferId);
+				RendererOpenGL::CheckGLError("TextureOpenGL::SetPixels");
+
+				//Bind texture
+				glBindTexture(GL_TEXTURE_2D, m_glTextureId);
+				RendererOpenGL::CheckGLError("TextureOpenGL::SetPixels");
+
+				//Get buffer data ptr
+				unsigned char* pixelBufferData = (unsigned char*)OpenGLExt::glMapBufferARB(GL_PIXEL_UNPACK_BUFFER_EXT, GL_WRITE_ONLY);
+				RendererOpenGL::CheckGLError("TextureOpenGL::SetPixels");
+
+				//Copy data
+				ion::memory::MemCopy(pixelBufferData, data, m_width * m_height * pixelSize);
+
+				//Unmap buffer
+				if (!OpenGLExt::glUnmapBufferARB(GL_PIXEL_UNPACK_BUFFER_EXT))
+				{
+					debug::error << "TextureOpenGL::SetPixels() - Could not unmap PBO" << debug::end;
+				}
+				RendererOpenGL::CheckGLError("TextureOpenGL::SetPixels");
+
+				//Copy to texture
+				glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_width, m_height, glMode, glByteFormat, 0);
+				RendererOpenGL::CheckGLError("TextureOpenGL::SetPixels");
+
+				//Unbind texture
+				glBindTexture(GL_TEXTURE_2D, 0);
+				RendererOpenGL::CheckGLError("TextureOpenGL::SetPixels");
+
+				//Unbind buffer
+				OpenGLExt::glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_EXT, 0);
+				RendererOpenGL::CheckGLError("TextureOpenGL::SetPixels");
+			}
+			else
+			{
+				//Copy direct to texture
+				glBindTexture(GL_TEXTURE_2D, m_glTextureId);
+				glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_width, m_height, glMode, glByteFormat, data);
+				glBindTexture(GL_TEXTURE_2D, 0);
+			}
 
 			RendererOpenGL::CheckGLError("TextureOpenGL::SetPixels");
 #endif
@@ -268,7 +343,9 @@ namespace ion
 
 			GLint glMode;
 			GLint glByteFormat;
-			GetOpenGLMode(format, m_bitsPerPixel, glMode, glByteFormat);
+			GLint glColourFormat;
+			int pixelSize = 0;
+			GetOpenGLMode(format, m_bitsPerPixel, glMode, glByteFormat, glColourFormat, pixelSize);
 
 			glBindTexture(GL_TEXTURE_2D, m_glTextureId);
 			glGetTexImage(GL_TEXTURE_2D, 0, glMode, glByteFormat, buffer);
@@ -377,7 +454,7 @@ namespace ion
 			RendererOpenGL::CheckGLError("TextureOpenGL::SetWrapping");
 		}
 
-		void TextureOpenGL::GetOpenGLMode(Format format, BitsPerPixel bitsPerPixel, int& mode, int& byteFormat)
+		void TextureOpenGL::GetOpenGLMode(Format format, BitsPerPixel bitsPerPixel, int& mode, int& byteFormat, int& colourFormat, int& pixelSize)
 		{
 			switch(bitsPerPixel)
 			{
@@ -388,10 +465,14 @@ namespace ion
 				case eRGB:
 					mode = GL_RGB8;
 					byteFormat = GL_UNSIGNED_BYTE;
+					colourFormat = GL_RGB;
+					pixelSize = 1;
 					break;
 				case eRGBA:
 					mode = GL_RGBA8;
 					byteFormat = GL_UNSIGNED_BYTE;
+					colourFormat = GL_RGB;
+					pixelSize = 1;
 					break;
 #endif
 				default:
@@ -404,10 +485,14 @@ namespace ion
 				case eRGB:
 					mode = GL_RGB;
 					byteFormat = GL_UNSIGNED_SHORT_4_4_4_4;
+					colourFormat = GL_RGB;
+					pixelSize = 2;
 					break;
 				case eRGBA:
 					mode = GL_RGBA;
 					byteFormat = GL_UNSIGNED_SHORT_4_4_4_4;
+					colourFormat = GL_RGBA;
+					pixelSize = 2;
 					break;
 				default:
 					break;
@@ -419,19 +504,27 @@ namespace ion
 				case eRGB:
 					mode = GL_RGB;
 					byteFormat = GL_UNSIGNED_BYTE;
+					colourFormat = GL_RGB;
+					pixelSize = 3;
 					break;
 				case eRGBA:
 					mode = GL_RGBA;
 					byteFormat = GL_UNSIGNED_BYTE;
+					colourFormat = GL_RGBA;
+					pixelSize = 4;
 					break;
 #if !defined ION_RENDERER_KGL
 				case eBGRA:
 					mode = GL_BGRA;
 					byteFormat = GL_UNSIGNED_BYTE;
+					colourFormat = GL_RGBA;
+					pixelSize = 4;
 					break;
 				case eRGBA_DXT5:
 					mode = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
 					byteFormat = GL_UNSIGNED_BYTE;
+					colourFormat = GL_RGBA;
+					pixelSize = 4;
 					break;
 #endif
 				default:
@@ -445,10 +538,14 @@ namespace ion
 				case eRGB:
 					mode = GL_RGB;
 					byteFormat = GL_UNSIGNED_INT_10_10_10_2;
+					colourFormat = GL_RGB;
+					pixelSize = 4;
 					break;
 				case eRGBA:
 					mode = GL_RGBA;
 					byteFormat = GL_UNSIGNED_INT_8_8_8_8;
+					colourFormat = GL_RGBA;
+					pixelSize = 4;
 					break;
 				default:
 					break;

@@ -30,9 +30,9 @@ namespace ion
 		{
 		}
 
-		Texture::Texture(u32 width, u32 height, Format sourceFormat, Format destFormat, BitsPerPixel bitsPerPixel, bool generateMipmaps, const u8* data)
+		Texture::Texture(u32 width, u32 height, Format sourceFormat, Format destFormat, BitsPerPixel bitsPerPixel, bool generateMipmaps, bool generatePixelBuffer, const u8* data)
 		{
-			Load(width, height, sourceFormat, destFormat, bitsPerPixel, generateMipmaps, data);
+			Load(width, height, sourceFormat, destFormat, bitsPerPixel, generateMipmaps, generatePixelBuffer, data);
 		}
 
 		Texture::~Texture()

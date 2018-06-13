@@ -130,7 +130,7 @@ namespace ion
 			PIXELFORMATDESCRIPTOR pixelFormatDesc = { 0 };
 			pixelFormatDesc.nSize = sizeof(PIXELFORMATDESCRIPTOR);
 			pixelFormatDesc.nVersion = 1;
-			pixelFormatDesc.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+			pixelFormatDesc.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_SUPPORT_COMPOSITION | PFD_DOUBLEBUFFER;
 			pixelFormatDesc.iPixelType = PFD_TYPE_RGBA;
 			pixelFormatDesc.cColorBits = 32;
 			pixelFormatDesc.cDepthBits = 24;
@@ -162,17 +162,34 @@ namespace ion
 		bool WindowWin32::Update()
 		{
 			MSG message;
-			bool active = true;
+			bool quit = false;
 
-			while(PeekMessage(&message, NULL, 0, 0, PM_REMOVE) > 0)
+			//Filter out input events
+			while(PeekMessage(&message, NULL, WM_NULL, WM_KEYFIRST -1, PM_REMOVE) > 0)
 			{
-				active = (message.message != WM_QUIT);
+				quit |= (message.message == WM_QUIT);
 
 				TranslateMessage(&message);
 				DispatchMessage(&message);
 			}
 
-			return active;
+			while (PeekMessage(&message, NULL, WM_KEYLAST+1, WM_MOUSEFIRST - 1, PM_REMOVE) > 0)
+			{
+				quit |= (message.message == WM_QUIT);
+
+				TranslateMessage(&message);
+				DispatchMessage(&message);
+			}
+
+			while (PeekMessage(&message, NULL, WM_MOUSELAST + 1, WM_USER, PM_REMOVE) > 0)
+			{
+				quit |= (message.message == WM_QUIT);
+
+				TranslateMessage(&message);
+				DispatchMessage(&message);
+			}
+
+			return !quit;
 		}
 
 		bool WindowWin32::Resize(u32 clientAreaWidth, u32 clientAreaHeight)

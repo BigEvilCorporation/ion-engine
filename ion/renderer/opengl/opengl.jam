@@ -10,6 +10,9 @@ local SRC =
 	RendererOpenGL.h
 	TextureOpenGL.cpp
 	TextureOpenGL.h
+	OpenGLExtensions.cpp
+	OpenGLExtensions.h
+	OpenGLInclude.h
 	;
 
 if ( win32 in $(PLATFORM) )

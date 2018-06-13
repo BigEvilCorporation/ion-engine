@@ -80,6 +80,7 @@ namespace ion
 			virtual void SetClearColour(const Colour& colour) = 0;
 			virtual void ClearColour() = 0;
 			virtual void ClearDepth() = 0;
+			virtual void EnableVSync(bool enabled) = 0;
 
 			//Render states
 			virtual void SetAlphaBlending(AlphaBlendType alphaBlendType) = 0;

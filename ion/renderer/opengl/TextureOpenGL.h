@@ -16,20 +16,7 @@
 
 #include "core/Platform.h"
 #include "renderer/Texture.h"
-
-#if defined ION_RENDER_SUPPORTS_GLEW
-#include <GL/glew.h>
-#endif
-
-#if defined ION_PLATFORM_MACOSX
-#include <OpenGL/gl.h>
-#else
-#include <GL/gl.h>
-#endif
-
-#ifdef ION_PLATFORM_WINDOWS
-#include <GL/glext.h>
-#endif
+#include "OpenGLInclude.h"
 
 #include <string>
 
@@ -42,10 +29,10 @@ namespace ion
 		public:
 			TextureOpenGL();
 			TextureOpenGL(u32 width, u32 height);
-			TextureOpenGL(u32 width, u32 height, Format sourceFormat, Format destFormat, BitsPerPixel bitsPerPixel, bool generateMipmaps, const u8* data);
+			TextureOpenGL(u32 width, u32 height, Format sourceFormat, Format destFormat, BitsPerPixel bitsPerPixel, bool generateMipmaps, bool generatePixelBuffer, const u8* data);
 			virtual ~TextureOpenGL();
 
-			virtual bool Load(u32 width, u32 height, Format sourceFormat, Format destFormat, BitsPerPixel bitsPerPixel, bool generateMipmaps, const u8* data);
+			virtual bool Load(u32 width, u32 height, Format sourceFormat, Format destFormat, BitsPerPixel bitsPerPixel, bool generateMipmaps, bool generatePixelBuffer, const u8* data);
 			GLuint GetTextureId() const;
 
 			virtual void SetMinifyFilter(Filter filter);
@@ -59,9 +46,10 @@ namespace ion
 		protected:
 			virtual bool Load();
 			virtual void Unload();
-			static void GetOpenGLMode(Format format, BitsPerPixel bitsPerPixel, int& mode, int& byteFormat);
+			static void GetOpenGLMode(Format format, BitsPerPixel bitsPerPixel, int& mode, int& byteFormat, int& colourFormat, int& pixelSize);
 
 			GLuint m_glTextureId;
+			GLuint m_glPixelBufferId;
 			int m_glFormat;
 			BitsPerPixel m_bitsPerPixel;
 		};

@@ -61,14 +61,14 @@ namespace ion
 
 			static Texture* Create();
 			static Texture* Create(u32 width, u32 height);
-			static Texture* Create(u32 width, u32 height, Format sourceFormat, Format destFormat, BitsPerPixel bitsPerPixel, bool generateMipmaps, const u8* data);
+			static Texture* Create(u32 width, u32 height, Format sourceFormat, Format destFormat, BitsPerPixel bitsPerPixel, bool generateMipmaps, bool generatePixelBuffer, const u8* data);
 
 			virtual ~Texture();
 
 			u32 GetWidth() const;
 			u32 GetHeight() const;
 
-			virtual bool Load(u32 width, u32 height, Format sourceFormat, Format destFormat, BitsPerPixel bitsPerPixel, bool generateMipmaps, const u8* data) { return false; }
+			virtual bool Load(u32 width, u32 height, Format sourceFormat, Format destFormat, BitsPerPixel bitsPerPixel, bool generateMipmaps, bool generatePixelBuffer, const u8* data) { return false; }
 			void SetImageFilename(const std::string& filename);
 
 			virtual void SetMinifyFilter(Filter filter) = 0;
@@ -86,7 +86,7 @@ namespace ion
 		protected:
 			Texture();
 			Texture(u32 width, u32 height);
-			Texture(u32 width, u32 height, Format sourceFormat, Format destFormat, BitsPerPixel bitsPerPixel, bool generateMipmaps, const u8* data);
+			Texture(u32 width, u32 height, Format sourceFormat, Format destFormat, BitsPerPixel bitsPerPixel, bool generateMipmaps, bool generatePixelBuffer, const u8* data);
 
 			virtual bool Load() { return false; }
 			virtual void Unload() { }

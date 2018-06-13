@@ -19,33 +19,60 @@
 #include "renderer/IndexBuffer.h"
 #include "renderer/Shader.h"
 #include "renderer/opengl/RendererOpenGL.h"
+#include "renderer/opengl/OpenGLExtensions.h"
 
-#if defined ION_RENDER_SUPPORTS_CGGL
-#include "renderer/cggl/ShaderCgGL.h"
-#endif
-
-#if defined ION_RENDERER_SUPPORTS_GLUT
-#include <GLUT/glut.h>
-#endif
+#define ION_RENDERER_LOG_WARNINGS 0
+#define ION_RENDERER_WARNING_AS_ERROR 0
 
 namespace ion
 {
 	namespace render
 	{
-		//OpenGL extensions
-#if defined ION_RENDER_SUPPORTS_GLEW
-		PFNGLACTIVETEXTUREARBPROC glActiveTextureARB;
-		PFNGLGENFRAMEBUFFERSEXTPROC glGenFramebuffersEXT;
-		PFNGLBINDFRAMEBUFFEREXTPROC glBindFramebufferEXT;
-		PFNGLGENRENDERBUFFERSEXTPROC glGenRenderbuffersEXT;
-		PFNGLBINDRENDERBUFFEREXTPROC glBindRenderbufferEXT;
-		PFNGLRENDERBUFFERSTORAGEEXTPROC glRenderbufferStorageEXT;
-		PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC glFramebufferRenderbufferEXT;
-		PFNGLFRAMEBUFFERTEXTURE2DEXTPROC glFramebufferTexture2DEXT;
-		PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC glCheckFramebufferStatusEXT;
-		PFNGLDELETEFRAMEBUFFERSEXTPROC glDeleteFramebuffersEXT;
-		PFNGLDELETERENDERBUFFERSEXTPROC glDeleteRenderbuffersEXT;
-		PFNGLDRAWBUFFERSPROC glDrawBuffers;
+#if defined DEBUG
+#if defined ION_PLATFORM_WINDOWS
+		void OnOpenGLError(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void *userParam)
+		{
+#if !ION_RENDERER_LOG_WARNINGS
+			if (type == GL_DEBUG_TYPE_ERROR || type == GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR)
+#endif
+			{
+#if !ION_RENDERER_WARNING_AS_ERROR
+				if (type == GL_DEBUG_TYPE_ERROR || type == GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR)
+#endif
+				{
+					debug::error
+						<< "==============================================================\n"
+						<< "OpenGL error: \n"
+						<< "==============================================================\n"
+						<< "GLenum source = " << source << "\n"
+						<< "GLenum type = " << type << "\n"
+						<< "GLuint id = " << id << "\n"
+						<< "GLenum severity = " << severity << "\n"
+						<< "GLsizei length = " << length << "\n"
+						<< "const GLchar* message = " << message << "\n"
+						<< "==============================================================\n"
+						<< debug::end;
+				}
+#if !ION_RENDERER_WARNING_AS_ERROR
+				else
+				{
+					debug::log
+						<< "==============================================================\n"
+						<< "OpenGL warning: \n"
+						<< "==============================================================\n"
+						<< "GLenum source = " << source << "\n"
+						<< "GLenum type = " << type << "\n"
+						<< "GLuint id = " << id << "\n"
+						<< "GLenum severity = " << severity << "\n"
+						<< "GLsizei length = " << length << "\n"
+						<< "const GLchar* message = " << message << "\n"
+						<< "==============================================================\n"
+						<< debug::end;
+				}
+#endif
+			}
+		}
+#endif
 #endif
 
 		Renderer* Renderer::Create(DeviceContext globalDeviceContext)
@@ -59,6 +86,9 @@ namespace ion
 			m_contextLockStack = 0;
             m_openGLContext = 0;
 
+			//Intialise OpenGL extensions
+			OpenGLExt::LoadExtensions(globalDeviceContext);
+
 			//Using existing global DC
 			m_globalDC = globalDeviceContext;
 
@@ -67,6 +97,14 @@ namespace ion
 
 			//Init context
 			InitContext(globalDeviceContext);
+
+			//Output version
+			const GLubyte* vendor = glGetString(GL_VENDOR);
+			const GLubyte* renderer = glGetString(GL_RENDERER);
+			const GLubyte* version = glGetString(GL_VERSION);
+			debug::log << "OpenGL vendor: " << (const char*)vendor << debug::end;
+			debug::log << "OpenGL device: " << (const char*)renderer << debug::end;
+			debug::log << "OpenGL version: " << (const char*)version << debug::end;
 		}
 
 		RendererOpenGL::~RendererOpenGL()
@@ -80,7 +118,24 @@ namespace ion
 		{
 			//Create OpenGL context
 #if defined ION_PLATFORM_WINDOWS
-			m_openGLContext = wglCreateContext(deviceContext);
+			if (OpenGLExt::wglCreateContextAttribsARB)
+			{
+				int flags[] = 
+				{
+					WGL_CONTEXT_MAJOR_VERSION_ARB, 1,
+					WGL_CONTEXT_MINOR_VERSION_ARB, 0,
+#if defined DEBUG
+					WGL_CONTEXT_FLAGS_ARB,  WGL_CONTEXT_DEBUG_BIT_ARB,
+#endif
+					0
+				};
+
+				m_openGLContext = OpenGLExt::wglCreateContextAttribsARB(deviceContext, 0, flags);
+			}
+			else
+			{
+				m_openGLContext = wglCreateContext(deviceContext);
+			}
 #elif defined ION_PLATFORM_MACOSX
             m_openGLContext = SDL_GL_CreateContext(deviceContext);
 #elif defined ION_PLATFORM_LINUX
@@ -90,7 +145,7 @@ namespace ion
 #elif defined ION_PLATFORM_DREAMCAST
             m_openGLContext = 1;
 #endif
-            
+
             if(!m_openGLContext)
             {
                 debug::Error("Could not create OpenGL context");
@@ -102,20 +157,15 @@ namespace ion
 			//Lock context
 			LockContext(deviceContext);
 
-			//Intialise OpenGL extensions
-#if defined ION_RENDER_SUPPORTS_GLEW
-			glActiveTextureARB = (PFNGLACTIVETEXTUREARBPROC)wglGetProcAddress("glActiveTextureARB");
-			glGenFramebuffersEXT = (PFNGLGENFRAMEBUFFERSEXTPROC)wglGetProcAddress("glGenFramebuffersEXT");
-			glBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)wglGetProcAddress("glBindFramebufferEXT");
-			glGenRenderbuffersEXT = (PFNGLGENRENDERBUFFERSEXTPROC)wglGetProcAddress("glGenRenderbuffersEXT");
-			glBindRenderbufferEXT = (PFNGLBINDRENDERBUFFEREXTPROC)wglGetProcAddress("glBindRenderbufferEXT");
-			glRenderbufferStorageEXT = (PFNGLRENDERBUFFERSTORAGEEXTPROC)wglGetProcAddress("glRenderbufferStorageEXT");
-			glFramebufferRenderbufferEXT = (PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC)wglGetProcAddress("glFramebufferRenderbufferEXT");
-			glFramebufferTexture2DEXT = (PFNGLFRAMEBUFFERTEXTURE2DEXTPROC)wglGetProcAddress("glFramebufferTexture2DEXT");
-			glCheckFramebufferStatusEXT = (PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC)wglGetProcAddress("glCheckFramebufferStatusEXT");
-			glDeleteFramebuffersEXT = (PFNGLDELETEFRAMEBUFFERSEXTPROC)wglGetProcAddress("glDeleteFramebuffersEXT");
-			glDeleteRenderbuffersEXT = (PFNGLDELETERENDERBUFFERSEXTPROC)wglGetProcAddress("glDeleteRenderbuffersEXT");
-			glDrawBuffers = (PFNGLDRAWBUFFERSPROC)wglGetProcAddress("glDrawBuffers");
+			//Set error callback
+#if defined DEBUG
+#if defined ION_PLATFORM_WINDOWS
+			if (OpenGLExt::glDebugMessageCallback)
+			{
+				glEnable(GL_DEBUG_OUTPUT);
+				OpenGLExt::glDebugMessageCallback(OnOpenGLError, nullptr);
+			}
+#endif
 #endif
 
 #if defined ION_RENDERER_KGL
@@ -172,6 +222,9 @@ namespace ion
 #if defined ION_RENDERER_SHADER
 			m_shaderManager = ShaderManager::Create();
 #endif
+
+			//Disable vsync by default
+			EnableVSync(false);
 
 			//Unlock context (binds global DC)
 			UnlockContext();
@@ -297,7 +350,7 @@ namespace ion
 			m_contextLockStack--;
 			if(!m_contextLockStack)
 			{
-#if defined ION_PLATFORM_WINDOWS
+#if defined ION_PLATFORM_WINDOWS && defined ION_RENDERER_MULTITHREADED
 				//Unbind current DC
 				wglMakeCurrent(m_currentDC, NULL);
 
@@ -330,6 +383,7 @@ namespace ion
 
 		bool RendererOpenGL::CheckGLError(const char* message)
 		{
+#if defined DEBUG
 			GLenum error = glGetError();
 
 			if(error != GL_NO_ERROR)
@@ -343,6 +397,9 @@ namespace ion
 			}
 
 			return error == GL_NO_ERROR;
+#else
+			return true;
+#endif
 		}
 
 		bool RendererOpenGL::Update(float deltaTime)
@@ -521,6 +578,14 @@ namespace ion
 #endif
 
 			CheckGLError("RendererOpenGL::SetLineWidth");
+		}
+
+		void RendererOpenGL::EnableVSync(bool enabled)
+		{
+			if (OpenGLExt::glSwapIntervalEXT)
+			{
+				OpenGLExt::glSwapIntervalEXT(enabled ? 1 : 0);
+			}
 		}
 
 		void RendererOpenGL::DrawVertexBuffer(const VertexBuffer& vertexBuffer)
