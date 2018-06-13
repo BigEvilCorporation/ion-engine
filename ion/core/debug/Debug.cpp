@@ -193,8 +193,6 @@ namespace ion
 
 		LogStream& LogStream::operator << (LogTokenEnd token)
 		{
-			m_stream << "\n";
-
 			if(m_type == eLog)
 			{
 				Log(m_stream.str().c_str());
@@ -204,7 +202,7 @@ namespace ion
 				Error(m_stream.str().c_str());
 			}
 
-			m_stream.clear();
+			m_stream.str(std::string());
 			return *this;
 		}
 	}
