@@ -521,6 +521,27 @@ rule ApplyOpenALSDK TARGET
 	C.LinkPrebuiltLibraries $(TARGET) : $(OPENAL_LIBS) ;
 }
 
+rule ApplyOpenALSoftSDK TARGET
+{
+	C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/OpenAL-soft/include ;
+
+	if ( win32 in $(PLATFORM) )
+	{
+		C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/OpenAL-soft/lib/Win32 ;
+	}
+
+	if ( win64 in $(PLATFORM) )
+	{
+		C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/OpenAL-soft/lib/Win64 ;
+	}
+
+	local OPENAL_LIBS =
+		OpenAL32.lib
+		;
+
+	C.LinkPrebuiltLibraries $(TARGET) : $(OPENAL_LIBS) ;
+}
+
 rule ApplyGlewSDK TARGET
 {
 	C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/glew/include ;
