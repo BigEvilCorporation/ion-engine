@@ -507,18 +507,35 @@ rule ApplyOpenALSDK TARGET
 	if ( win32 in $(PLATFORM) )
 	{
 		C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/OpenAL/lib/Win32 ;
+
+		local OPENAL_LIBS =
+			OpenAL32.lib
+			;
+
+		C.LinkPrebuiltLibraries $(TARGET) : $(OPENAL_LIBS) ;
 	}
 
 	if ( win64 in $(PLATFORM) )
 	{
 		C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/OpenAL/lib/Win64 ;
+
+		local OPENAL_LIBS =
+			OpenAL32.lib
+			;
+
+		C.LinkPrebuiltLibraries $(TARGET) : $(OPENAL_LIBS) ;
 	}
 
-	local OPENAL_LIBS =
-		OpenAL32.lib
-		;
+	if ( linux64 in $(PLATFORM) )
+	{
+		local OPENAL_LIBS =
+			openal
+			;
 
-	C.LinkPrebuiltLibraries $(TARGET) : $(OPENAL_LIBS) ;
+		C.LinkPrebuiltLibraries $(TARGET) : $(OPENAL_LIBS) ;
+	}
+
+
 }
 
 rule ApplyOpenALSoftSDK TARGET
