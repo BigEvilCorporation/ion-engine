@@ -18,10 +18,6 @@ namespace ion
 {
 	namespace thread
 	{
-		Semaphore::Semaphore()
-		{
-		}
-
 		Semaphore::Semaphore(int maxSignalCount)
 		{
 			#if defined ION_PLATFORM_WINDOWS

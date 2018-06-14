@@ -34,6 +34,7 @@ local SRC =
 	thread/LocalStorage.h
 	thread/Semaphore.cpp
 	thread/Semaphore.h
+	thread/Sleep.h
 	thread/Thread.cpp
 	thread/Thread.h
 

@@ -1,13 +1,13 @@
 ///////////////////////////////////////////////////
-// (c) 2016 Matt Phillips, Big Evil Corporation
+// (c) 2018 Matt Phillips, Big Evil Corporation
 // http://www.bigevilcorporation.co.uk
 // mattphillips@mail.com
 // @big_evil_corp
 //
 // Licensed under GPLv3, see http://www.gnu.org/licenses/gpl-3.0.html
 //
-// File:		Semaphore.h
-// Date:		8th January 2014
+// File:		Thread.h
+// Date:		13th June 2018
 // Authors:		Matt Phillips
 // Description:	Threading and synchronisation
 ///////////////////////////////////////////////////
@@ -21,19 +21,11 @@ namespace ion
 {
 	namespace thread
 	{
-		class Semaphore
+		void Sleep(u32 milliseconds)
 		{
-		public:
-			Semaphore(int maxSignalCount);
-			~Semaphore();
-
-			void Signal();
-			void Wait();
-
-		private:
 			#if defined ION_PLATFORM_WINDOWS
-			HANDLE m_semaphoreHndl;
+			::Sleep(milliseconds);
 			#endif
-		};
+		}
 	}
 }
