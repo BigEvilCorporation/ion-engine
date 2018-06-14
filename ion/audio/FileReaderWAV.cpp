@@ -18,7 +18,7 @@ namespace ion
 
 		bool FileReaderWAV::Open()
 		{
-			if(mFile.Open(mFilename.c_str(), io::File::OpenRead))
+			if(mFile.Open(mFilename.c_str(), io::File::eOpenRead))
 			{
 				//Seek to 'RIFF' chunk
 				RIFFChunk chunk;

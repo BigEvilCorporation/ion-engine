@@ -1,3 +1,4 @@
+#include <core/Types.h>
 #include <audio/Callback.h>
 
 namespace ion
@@ -25,11 +26,17 @@ namespace ion
 			virtual void Pause() = 0;
 			virtual void Resume() = 0;
 
+			virtual u64 GetPositionSamples() = 0;
+			virtual float GetPositionSeconds() = 0;
+
 			State GetState() const;
 
 			//Properties
-			virtual void SetVolume(float volume) = 0;
+			virtual void SetVolume(float volume);
+			virtual void SetPitch(float pitch);
+
 			float GetVolume() const;
+			float GetPitch() const;
 
 		protected:
 			Voice(Source& source, bool loop);
@@ -39,6 +46,10 @@ namespace ion
 
 			Source& mSource;
 			State mState;
+			bool mLoop;
+
+			float m_volume;
+			float m_pitch;
 		};
 	}
 }

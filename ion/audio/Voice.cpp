@@ -6,7 +6,10 @@ namespace ion
 	{
 		Voice::Voice(Source& source, bool loop)
 			: mSource(source)
+			, mLoop(loop)
 		{
+			m_volume = 0.0f;
+			m_pitch = 0.0f;
 		}
 
 		Voice::~Voice()
@@ -18,9 +21,24 @@ namespace ion
 			return mState;
 		}
 
+		void Voice::SetVolume(float volume)
+		{
+			m_volume = volume;
+		}
+
+		void Voice::SetPitch(float pitch)
+		{
+			m_pitch = pitch;
+		}
+
 		float Voice::GetVolume() const
 		{
-			return 1.0f;
+			return m_volume;
+		}
+
+		float Voice::GetPitch() const
+		{
+			return m_pitch;
 		}
 	}
 }

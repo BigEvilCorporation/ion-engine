@@ -39,6 +39,7 @@ namespace ion
 
 			//Set default properties
 			SetVolume(1.0f);
+			SetPitch(1.0f);
 		}
 
 		VoiceXAudio::~VoiceXAudio()
@@ -52,7 +53,11 @@ namespace ion
 			xaudioBuffer.pAudioData = (const BYTE*)buffer.Get(0);
 			xaudioBuffer.AudioBytes = buffer.GetSize();
 			xaudioBuffer.PlayLength = mSource.GetStreamDesc()->GetSizeSamples();
-			xaudioBuffer.Flags = XAUDIO2_END_OF_STREAM;
+
+			if (!mLoop)
+			{
+				xaudioBuffer.Flags = XAUDIO2_END_OF_STREAM;
+			}
 
 			mXAudioVoice->SubmitSourceBuffer(&xaudioBuffer);
 		}
@@ -65,14 +70,32 @@ namespace ion
 
 		void VoiceXAudio::Stop()
 		{
+			mXAudioVoice->Stop();
+			mState = Stopped;
 		}
 
 		void VoiceXAudio::Pause()
 		{
+			mXAudioVoice->Stop();
+			mState = Paused;
 		}
 
 		void VoiceXAudio::Resume()
 		{
+			mXAudioVoice->Start();
+			mState = Playing;
+		}
+
+		u64 VoiceXAudio::GetPositionSamples()
+		{
+			XAUDIO2_VOICE_STATE state;
+			mXAudioVoice->GetState(&state);
+			return state.SamplesPlayed;
+		}
+
+		float VoiceXAudio::GetPositionSeconds()
+		{
+			return (float)GetPositionSamples() / (float)mSource.GetStreamDesc()->GetSampleRate();
 		}
 
 		void VoiceXAudio::Update()
@@ -81,11 +104,29 @@ namespace ion
 
 		void VoiceXAudio::SetVolume(float volume)
 		{
+			mXAudioVoice->SetVolume(volume);
+			Voice::SetVolume(volume);
+		}
+
+		void VoiceXAudio::SetPitch(float pitch)
+		{
+			mXAudioVoice->SetFrequencyRatio(pitch);
+			Voice::SetPitch(pitch);
+		}
+
+		void VoiceXAudio::OnBufferEnd(void* bufferContext)
+		{
+			mSource.RequestBuffer(*this);
 		}
 
 		void VoiceXAudio::OnStreamEnd()
 		{
 			mState = Stopped;
+		}
+
+		void VoiceXAudio::OnVoiceError(void* bufferContext, HRESULT error)
+		{
+			ion::debug::error << "VoiceXAudio::OnVoiceError() - error: " << error << ion::debug::end;
 		}
 	}
 }
