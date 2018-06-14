@@ -26,7 +26,7 @@
 #elif defined ION_PLATFORM_RASPBERRYPI
 #include <SDL2/SDL.h>
 #else
-#include <SDL/SDL.h>
+#include <SDL2/SDL.h>
 #endif
 #endif
 

@@ -52,6 +52,7 @@ namespace ion
 
 		void EngineXAudio::ReleaseVoice(Voice& voice)
 		{
+			delete &(VoiceXAudio&)voice;
 		}
 	}
 }

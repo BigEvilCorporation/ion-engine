@@ -239,7 +239,7 @@ rule ApplyRendererImpl TARGET : RENDER_IMPL_OPTS
 	{
 		if ( sdk in $(RENDER_IMPL_OPTS) )
 		{
-			ApplySDLSDK $(TARGET) ;
+			ApplySDL2SDK $(TARGET) : render ;
 		}
 	}
 
@@ -599,20 +599,28 @@ rule ApplyGlfwSDK TARGET
 	C.LinkPrebuiltLibraries $(TARGET) : $(GLFW_LIBS) ;
 }
 
-rule ApplySDLSDK TARGET
+rule ApplySDL2SDK TARGET : OPTIONS
 {
-	C.Defines $(TARGET) : ION_RENDER_SUPPORTS_SDL ;
+	if ( audio in $(OPTIONS) )
+	{
+		C.Defines $(TARGET) : ION_AUDIO_SUPPORTS_SDL ;
+	}
+	
+	if ( render in $(OPTIONS) )
+	{
+		C.Defines $(TARGET) : ION_RENDER_SUPPORTS_SDL ;
+	}
 
 	if ( win32 in $(PLATFORM) )
 	{
-		C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDL/include ;
-		C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDL/include/SDL ;
-		C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDL/lib ;
+		C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDL2/include ;
+		C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDL2/include/SDL2 ;
+		C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDL2/lib/win32 ;
 
 		local SDL_LIBS =
-			SDL2main_d.lib
-			SDL2_d.lib
-			SDL2_image_d.lib
+			SDL2main.lib
+			SDL2.lib
+			SDL2_image.lib
 			;
 
 
@@ -626,14 +634,14 @@ rule ApplySDLSDK TARGET
 
 	if ( win64 in $(PLATFORM) )
 	{
-		C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDL/include ;
-		C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDL/include/SDL ;
-		C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDL/lib ;
+		C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDL2/include ;
+		C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDL/include/SDL2 ;
+		C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDL2/lib/win64 ;
 
 		local SDL_LIBS =
-			SDL2main_d.lib
-			SDL2_d.lib
-			SDL2_image_d.lib
+			SDL2main.lib
+			SDL2.lib
+			SDL2_image.lib
 			;
 
 

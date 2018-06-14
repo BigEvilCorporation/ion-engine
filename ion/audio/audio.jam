@@ -1,5 +1,8 @@
 SubDir bigevilcorp ion audio ;
 
+ApplyIonDefines audio ;
+ApplyIonIncludes audio ;
+
 local SRC =
 	Buffer.cpp
 	Buffer.h
@@ -27,20 +30,34 @@ local SRC =
 	Voice.h
 	;
 
-#if ( win32 in $(PLATFORM) )
-SRC +=
-	xaudio/EngineXAudio.cpp
-	xaudio/EngineXAudio.h
-	xaudio/OutputDeviceXAudio.cpp
-	xaudio/OutputDeviceXAudio.h
-	xaudio/VoiceXAudio.cpp
-	xaudio/VoiceXAudio.h
-	;
+# if ( ( win32 in $(PLATFORM) ) | ( win64 in $(PLATFORM) ) )
+# {
+# 	SRC +=
+# 		xaudio/EngineXAudio.cpp
+# 		xaudio/EngineXAudio.h
+# 		xaudio/OutputDeviceXAudio.cpp
+# 		xaudio/OutputDeviceXAudio.h
+# 		xaudio/VoiceXAudio.cpp
+# 		xaudio/VoiceXAudio.h
+# 		;
+# 
+# 	ApplyWin32SDK audio ;
+# 	ApplyXAudio2SDK audio ;
+# }
 
-ApplyIonDefines audio ;
-ApplyIonIncludes audio ;
-ApplyWin32SDK audio ;
-ApplyXAudio2SDK audio ;
+if ( ( win64 in $(PLATFORM) ) | ( linux64 in $(PLATFORM) ) | ( macosx64 in $(PLATFORM) ) )
+{
+	SRC +=
+		sdl2/EngineSDL2.cpp
+		sdl2/EngineSDL2.h
+		sdl2/OutputDeviceSDL2.cpp
+		sdl2/OutputDeviceSDL2.h
+		sdl2/VoiceSDL2.cpp
+		sdl2/VoiceSDL2.h
+		;
+
+	ApplySDL2SDK audio : audio ;
+}
 
 AutoSourceGroup audio : $(SRC) ;
 C.RuntimeType audio : static ;
