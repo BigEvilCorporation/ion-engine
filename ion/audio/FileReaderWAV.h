@@ -1,6 +1,8 @@
 #include <audio/DataFormat.h>
 #include <audio/FileReader.h>
 
+#if defined ION_PLATFORM_WINDOWS
+
 //TODO: Windows only, replace WAVEFORMATEXTENSIBLE
 #include <windows.h>
 #include <mmreg.h>
@@ -57,3 +59,6 @@ namespace ion
 		};
 	}
 }
+
+#endif
+

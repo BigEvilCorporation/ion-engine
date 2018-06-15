@@ -18,6 +18,7 @@
 #include "renderer/Types.h"
 #include "renderer/opengl/OpenGLInclude.h"
 
+#if defined ION_PLATFORM_WINDOWS
 typedef void (APIENTRYP PFNGLSWAPINTERVALEXTPROC) (int interval);
 typedef void (APIENTRYP PFNGLGENBUFFERSARBPROC) (GLsizei n, GLuint *buffers);
 typedef void (APIENTRYP PFNGLBINDBUFFERARBPROC) (GLenum target, GLuint buffer);
@@ -26,7 +27,6 @@ typedef void (APIENTRYP PFNGLBUFFERDATAARBPROC) (GLenum target, GLsizeiptrARB si
 typedef GLvoid* (APIENTRYP PFNGLMAPBUFFERARBPROC) (GLenum target, GLenum access);
 typedef GLboolean(APIENTRYP PFNGLUNMAPBUFFERARBPROC) (GLenum target);
 
-#if defined ION_PLATFORM_WINDOWS
 typedef HGLRC(APIENTRYP PFNWGLCREATECONTEXTATTRIBSARBPROC) (HDC hDC, HGLRC hShareContext, const int *attribList);
 
 typedef void (APIENTRYP DEBUGPROC)(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void *userParam);
@@ -40,9 +40,9 @@ namespace ion
 		class OpenGLExt
 		{
 		public:
-
 			static void LoadExtensions(DeviceContext deviceContext);
 
+#if defined ION_PLATFORM_WINDOWS
 			static PFNGLACTIVETEXTUREARBPROC glActiveTextureARB;
 
 			static PFNGLGENFRAMEBUFFERSEXTPROC glGenFramebuffersEXT;
@@ -68,7 +68,6 @@ namespace ion
 			static PFNGLDRAWBUFFERSPROC glDrawBuffers;
 			static PFNGLSWAPINTERVALEXTPROC glSwapIntervalEXT;
 
-#if defined ION_PLATFORM_WINDOWS
 			static PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB;
 			static PFNGLDEBUGMESSAGECALLBACKPROC glDebugMessageCallback;
 #endif

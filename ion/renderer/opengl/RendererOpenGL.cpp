@@ -582,10 +582,12 @@ namespace ion
 
 		void RendererOpenGL::EnableVSync(bool enabled)
 		{
+#if defined ION_PLATFORM_WINDOWS
 			if (OpenGLExt::glSwapIntervalEXT)
 			{
 				OpenGLExt::glSwapIntervalEXT(enabled ? 1 : 0);
 			}
+#endif
 		}
 
 		void RendererOpenGL::DrawVertexBuffer(const VertexBuffer& vertexBuffer)

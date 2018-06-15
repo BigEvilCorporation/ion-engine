@@ -91,9 +91,11 @@ namespace ion
 
 			if (generatePixelBuffer)
 			{
+#if defined ION_PLATFORM_WINDOWS
 				//Generate pixel buffer
 				debug::Assert(OpenGLExt::glGenBuffersARB, "Cannot create pixel buffer without glGenBuffersARB extension");
 				OpenGLExt::glGenBuffersARB(1, &m_glPixelBufferId);
+#endif
 			}
 
 			//Load from data
@@ -206,6 +208,7 @@ namespace ion
 
 			if (m_glPixelBufferId)
 			{
+#if defined ION_PLATFORM_WINDOWS
 				//Bind the pixel buffer
 				OpenGLExt::glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_EXT, m_glPixelBufferId);
 
@@ -227,6 +230,7 @@ namespace ion
 
 				//Unbind
 				OpenGLExt::glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_EXT, 0);
+#endif
 			}
 
 			//Unbind texture
@@ -247,8 +251,10 @@ namespace ion
 
 			if (m_glPixelBufferId)
 			{
+#if defined ION_PLATFORM_WINDOWS
 				OpenGLExt::glDeleteBuffersARB(1, &m_glPixelBufferId);
 				m_glPixelBufferId = 0;
+#endif
 			}
 		}
 
@@ -286,6 +292,7 @@ namespace ion
 
 			if (m_glPixelBufferId)
 			{
+#if defined ION_PLATFORM_WINDOWS
 				//Bind pixel buffer
 				OpenGLExt::glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_EXT, m_glPixelBufferId);
 				RendererOpenGL::CheckGLError("TextureOpenGL::SetPixels");
@@ -319,6 +326,7 @@ namespace ion
 				//Unbind buffer
 				OpenGLExt::glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_EXT, 0);
 				RendererOpenGL::CheckGLError("TextureOpenGL::SetPixels");
+#endif
 			}
 			else
 			{

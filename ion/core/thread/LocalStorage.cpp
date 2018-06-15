@@ -24,6 +24,8 @@ namespace ion
 			#if defined ION_PLATFORM_WINDOWS
 			m_TLSIndex = TlsAlloc();
 			debug::Assert(m_TLSIndex != TLS_OUT_OF_INDEXES, "Could not create TLS - out of indices");
+            #else
+            debug::Error("Event::Event() - Not implemented on this platform");
 			#endif
 		}
 

@@ -33,6 +33,8 @@ namespace ion
 		private:
 			#if defined ION_PLATFORM_WINDOWS
 			HANDLE m_semaphoreHndl;
+            #elif defined ION_PLATFORM_LINUX
+            sem_t m_semaphoreHndl;
 			#endif
 		};
 	}

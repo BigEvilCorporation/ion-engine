@@ -14,7 +14,10 @@
 #elif defined ION_PLATFORM_MACOSX
 #include <sys/time.h>
 #elif defined ION_PLATFORM_LINUX
+#include <unistd.h>
 #include <sys/time.h>
+#include <pthread.h>
+#include <semaphore.h>
 #elif defined ION_PLATFORM_RASPBERRYPI
 #include <sys/time.h>
 #elif defined ION_PLATFORM_DREAMCAST

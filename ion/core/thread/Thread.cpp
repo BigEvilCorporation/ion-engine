@@ -13,6 +13,7 @@
 ///////////////////////////////////////////////////
 
 #include "core/thread/Thread.h"
+#include "core/debug/Debug.h"
 
 namespace ion
 {
@@ -66,6 +67,9 @@ namespace ion
 			__except(EXCEPTION_CONTINUE_EXECUTION)
 			{
 			}
+			#elif defined ION_PLATFORM_LINUX
+			int result = pthread_create(&m_threadHndl, NULL, ThreadFunction, this);
+			debug::Assert(result == 0, "Thread::Thread() - pthread_create() failed");
 			#endif
 		}
 
@@ -95,6 +99,14 @@ namespace ion
 			Thread* thread = (Thread*)params;
 			thread->Entry();
 			return 0;
+		}
+		#elif defined ION_PLATFORM_LINUX
+		void* Thread::ThreadFunction(void* params)
+		{
+			
+			Thread* thread = (Thread*)params;
+			thread->Entry();
+			return NULL;
 		}
 		#endif
 	}

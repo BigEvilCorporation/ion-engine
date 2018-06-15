@@ -13,6 +13,7 @@
 ///////////////////////////////////////////////////
 
 #include "core/thread/Event.h"
+#include "core/debug/Debug.h"
 
 namespace ion
 {
@@ -22,6 +23,8 @@ namespace ion
 		{
 			#if defined ION_PLATFORM_WINDOWS
 			m_threadEventHndl = CreateEvent(NULL, FALSE, FALSE, NULL);
+            #else
+            debug::Error("Event::Event() - Not implemented on this platform");
 			#endif
 		}
 

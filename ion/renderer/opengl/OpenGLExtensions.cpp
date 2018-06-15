@@ -19,6 +19,7 @@ namespace ion
 {
 	namespace render
 	{
+#if defined ION_PLATFORM_WINDOWS
 		PFNGLACTIVETEXTUREARBPROC OpenGLExt::glActiveTextureARB = NULL;
 		PFNGLGENFRAMEBUFFERSEXTPROC OpenGLExt::glGenFramebuffersEXT = NULL;
 		PFNGLBINDFRAMEBUFFEREXTPROC OpenGLExt::glBindFramebufferEXT = NULL;
@@ -39,8 +40,6 @@ namespace ion
 		PFNGLDRAWBUFFERSPROC OpenGLExt::glDrawBuffers = NULL;
 		PFNGLSWAPINTERVALEXTPROC OpenGLExt::glSwapIntervalEXT = NULL;
 		PFNGLDEBUGMESSAGECALLBACKPROC OpenGLExt::glDebugMessageCallback = NULL;
-
-#if defined ION_PLATFORM_WINDOWS
 		PFNWGLCREATECONTEXTATTRIBSARBPROC OpenGLExt::wglCreateContextAttribsARB = NULL;
 #endif
 
@@ -71,8 +70,6 @@ namespace ion
 			wglCreateContextAttribsARB = (PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress("wglCreateContextAttribsARB");
 			glDebugMessageCallback = (PFNGLDEBUGMESSAGECALLBACKPROC)wglGetProcAddress("glDebugMessageCallback");
 			wglDeleteContext(context);
-#else
-			#error ION_PLATFORM_IMPLEMENT_ME
 #endif
 		}
 	}

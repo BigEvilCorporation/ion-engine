@@ -13,6 +13,7 @@
 ///////////////////////////////////////////////////
 
 #include "core/thread/CriticalSection.h"
+#include "core/debug/Debug.h"
 
 namespace ion
 {
@@ -22,6 +23,11 @@ namespace ion
 		{
 			#if defined ION_PLATFORM_WINDOWS
 			InitializeCriticalSection(&m_criticalSectionHndl);
+            #elif defined ION_PLATFORM_LINUX
+            if (pthread_mutex_init(&m_criticalSectionHndl, NULL) != 0)
+            {
+                debug::error << "CriticalSection::CriticalSection() - pthread_mutex_init() failed" << debug::end;
+            }
 			#endif
 		}
 
@@ -29,6 +35,8 @@ namespace ion
 		{
 			#if defined ION_PLATFORM_WINDOWS
 			DeleteCriticalSection(&m_criticalSectionHndl);
+            #elif defined ION_PLATFORM_LINUX
+            pthread_mutex_destroy(&m_criticalSectionHndl);
 			#endif
 		}
 
@@ -36,6 +44,8 @@ namespace ion
 		{
 			#if defined ION_PLATFORM_WINDOWS
 			return TryEnterCriticalSection(&m_criticalSectionHndl) != 0;
+            #elif defined ION_PLATFORM_LINUX
+            return pthread_mutex_trylock(&m_criticalSectionHndl) == 0;
 			#else
 			return false;
 			#endif
@@ -45,6 +55,8 @@ namespace ion
 		{
 			#if defined ION_PLATFORM_WINDOWS
 			EnterCriticalSection(&m_criticalSectionHndl);
+            #elif defined ION_PLATFORM_LINUX
+            pthread_mutex_lock(&m_criticalSectionHndl);
 			#endif
 		}
 
@@ -52,6 +64,8 @@ namespace ion
 		{
 			#if defined ION_PLATFORM_WINDOWS
 			LeaveCriticalSection(&m_criticalSectionHndl);
+            #elif defined ION_PLATFORM_LINUX
+            pthread_mutex_unlock(&m_criticalSectionHndl);
 			#endif
 		}
 	}

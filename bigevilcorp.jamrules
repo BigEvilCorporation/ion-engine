@@ -98,6 +98,11 @@ rule ApplyIonCore TARGET
 		ApplyWin32SDK $(TARGET) ;
 	}
 
+	if ( linux64 in $(PLATFORM) )
+	{
+		C.LinkPrebuiltLibraries $(TARGET) : pthread ;
+	}
+
 	if ( dreamcast in $(PLATFORM) )
 	{
 		ApplyKOSSDK $(TARGET) ;
@@ -113,8 +118,16 @@ rule ApplyIonAudio TARGET
 {
 	ApplyIonLib $(TARGET) : audio ;
 
-	ApplyWin32SDK $(TARGET) ;
-	ApplyXAudio2SDK $(TARGET) ;
+	if ( ( win32 in $(PLATFORM) ) | ( win64 in $(PLATFORM) ) )
+	{
+		ApplyWin32SDK $(TARGET) ;
+		ApplyXAudio2SDK $(TARGET) ;
+	}
+
+	if ( linux64 in $(PLATFORM) )
+	{
+		ApplySDL2SDK $(TARGET) : audio ;
+	}
 }
 
 rule ApplyIonGui TARGET

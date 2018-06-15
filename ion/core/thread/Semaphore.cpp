@@ -13,6 +13,7 @@
 ///////////////////////////////////////////////////
 
 #include "core/thread/Semaphore.h"
+#include "core/debug/Debug.h"
 
 namespace ion
 {
@@ -22,6 +23,11 @@ namespace ion
 		{
 			#if defined ION_PLATFORM_WINDOWS
 			m_semaphoreHndl = CreateSemaphore(NULL, 0, maxSignalCount, NULL);
+            #elif defined ION_PLATFORM_LINUX
+            if(sem_init(&m_semaphoreHndl, 0, 0) != 0)
+            {
+                debug::error << "Semaphore::Semaphore() - sem_init() failed" << debug::end;
+            }
 			#endif
 		}
 
@@ -29,6 +35,8 @@ namespace ion
 		{
 			#if defined ION_PLATFORM_WINDOWS
 			CloseHandle(m_semaphoreHndl);
+            #elif defined ION_PLATFORM_LINUX
+            sem_destroy(&m_semaphoreHndl);
 			#endif
 		}
 
@@ -36,6 +44,8 @@ namespace ion
 		{
 			#if defined ION_PLATFORM_WINDOWS
 			ReleaseSemaphore(m_semaphoreHndl, 1, NULL);
+            #elif defined ION_PLATFORM_LINUX
+            sem_post(&m_semaphoreHndl);
 			#endif
 		}
 
@@ -43,6 +53,8 @@ namespace ion
 		{
 			#if defined ION_PLATFORM_WINDOWS
 			WaitForSingleObject(m_semaphoreHndl, INFINITE);
+            #elif defined ION_PLATFORM_LINUX
+            sem_wait(&m_semaphoreHndl);
 			#endif
 		}
 	}

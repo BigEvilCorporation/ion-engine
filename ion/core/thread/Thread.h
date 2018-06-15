@@ -40,12 +40,16 @@ namespace ion
 		private:
 			#if defined ION_PLATFORM_WINDOWS
 			static unsigned long WINAPI ThreadFunction(void* params);
+			#elif defined ION_PLATFORM_LINUX
+			static void* ThreadFunction(void* params);
 			#endif
 
 			unsigned long m_threadId;
 
 			#if defined ION_PLATFORM_WINDOWS
 			HANDLE m_threadHndl;
+			#elif defined ION_PLATFORM_LINUX
+			pthread_t m_threadHndl;
 			#endif
 		};
 	}

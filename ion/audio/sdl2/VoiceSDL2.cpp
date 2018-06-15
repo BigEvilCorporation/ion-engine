@@ -1,6 +1,3 @@
-#include <windows.h>
-#include <mmreg.h>
-
 #include <core/debug/Debug.h>
 #include <core/memory/Memory.h>
 #include <maths/Maths.h>

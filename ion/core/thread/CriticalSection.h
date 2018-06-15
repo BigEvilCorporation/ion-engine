@@ -34,6 +34,8 @@ namespace ion
 		private:
 			#if defined ION_PLATFORM_WINDOWS
 			CRITICAL_SECTION m_criticalSectionHndl;
+            #elif defined ION_PLATFORM_LINUX
+            pthread_mutex_t m_criticalSectionHndl;
 			#endif
 		};
 	}

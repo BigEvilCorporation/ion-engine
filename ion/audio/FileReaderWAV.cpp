@@ -1,6 +1,8 @@
 #include <core/debug/Debug.h>
 #include <core/memory/Memory.h>
 
+#if defined ION_PLATFORM_WINDOWS
+
 #include "FileReaderWAV.h"
 
 namespace ion
@@ -134,3 +136,6 @@ namespace ion
 		}
 	}
 }
+
+#endif
+

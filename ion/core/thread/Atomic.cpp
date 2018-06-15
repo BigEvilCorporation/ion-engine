@@ -24,6 +24,8 @@ namespace ion
 			{
 				#if defined ION_PLATFORM_WINDOWS
 				InterlockedIncrement((LONG*)&integer);
+                #elif defined ION_PLATFORM_LINUX
+                __atomic_fetch_add(&integer, 1, __ATOMIC_SEQ_CST);
 				#endif
 			}
 
@@ -31,6 +33,8 @@ namespace ion
 			{
 				#if defined ION_PLATFORM_WINDOWS
 				InterlockedDecrement((LONG*)&integer);
+				#elif defined ION_PLATFORM_LINUX
+                __atomic_fetch_sub(&integer, 1, __ATOMIC_SEQ_CST);
 				#endif
 			}
 		}
