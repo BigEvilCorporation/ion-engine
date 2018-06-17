@@ -30,11 +30,21 @@ namespace ion
 		class Thread
 		{
 		public:
+
+			enum class Priority
+			{
+				Low,
+				Normal,
+				High
+			};
+
 			Thread(const char* name = NULL);
 			virtual ~Thread();
 
 			void Run();
 			void Join();
+			void SetPriority(Priority priority);
+			
 			u32 GetId() const;
 
 		protected:

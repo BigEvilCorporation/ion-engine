@@ -98,6 +98,40 @@ namespace ion
 			return m_threadId;
 		}
 
+		void Thread::SetPriority(Priority priority)
+		{
+#if defined ION_PLATFORM_WINDOWS
+#elif defined ION_PLATFORM_LINUX
+			int result = 0;
+
+			int policy = 0;
+			sched_param param;
+			pthread_getschedparam(m_threadHndl, &policy, &param);
+
+			int minPrio = sched_get_priority_min(policy);
+			int maxPrio = sched_get_priority_max(policy);
+			int medPrio = (maxPrio - minPrio) / 2;
+			
+			switch(priority)
+			{
+				case Priority::Low:
+					result = pthread_setschedprio(m_threadHndl, minPrio);
+					break;
+				case Priority::Normal:
+					result = pthread_setschedprio(m_threadHndl, medPrio);
+					break;
+				case Priority::High:
+					result = pthread_setschedprio(m_threadHndl, maxPrio);
+					break;
+			}
+
+			if(result != 0)
+			{
+				debug::error << "Thread::SetPriority() - pthread_setschedprio() failed" << debug::end;
+			}
+#endif
+		}
+
 		#if defined ION_PLATFORM_WINDOWS
 		unsigned long WINAPI Thread::ThreadFunction(void* params)
 		{
