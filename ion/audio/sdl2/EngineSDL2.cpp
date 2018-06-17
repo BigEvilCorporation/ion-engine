@@ -1,8 +1,9 @@
 
+#include <core/debug/Debug.h>
+
 #include "EngineSDL2.h"
 #include "OutputDeviceSDL2.h"
 #include "VoiceSDL2.h"
-#include <core/debug/Debug.h>
 
 namespace ion
 {

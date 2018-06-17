@@ -8,6 +8,7 @@ namespace ion
 			: mSource(source)
 			, mLoop(loop)
 		{
+			mState = Stopped;
 			m_volume = 0.0f;
 			m_pitch = 0.0f;
 		}

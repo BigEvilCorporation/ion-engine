@@ -15,15 +15,20 @@ namespace ion
 			void Lock();
 			void Unlock();
 
+			void Add(const char* data, u32 size);
 			void Put(const char* data, u32 size, u32 position);
 			char* Get(u32 position) const;
+			void Clear();
+			void Reset();
 
-			u32 GetSize() const;
+			u32 GetReservedSize() const;
+			u32 GetDataSize() const;
 
 		private:
-			char* mData;
-			u32 mSize;
-			u32 mLockCount;
+			char* m_data;
+			u32 m_reservedSize;
+			u32 m_dataSize;
+			u32 m_lockCount;
 		};
 	}
 }

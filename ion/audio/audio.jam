@@ -30,32 +30,46 @@ local SRC =
 	Voice.h
 	;
 
-# if ( ( win32 in $(PLATFORM) ) | ( win64 in $(PLATFORM) ) )
-# {
-# 	SRC +=
-# 		xaudio/EngineXAudio.cpp
-# 		xaudio/EngineXAudio.h
-# 		xaudio/OutputDeviceXAudio.cpp
-# 		xaudio/OutputDeviceXAudio.h
-# 		xaudio/VoiceXAudio.cpp
-# 		xaudio/VoiceXAudio.h
-# 		;
-# 
-# 	ApplyWin32SDK audio ;
-# 	ApplyXAudio2SDK audio ;
-# }
+SRC_ENGINE_XAUDIO =
+	xaudio/EngineXAudio.cpp
+	xaudio/EngineXAudio.h
+	xaudio/OutputDeviceXAudio.cpp
+	xaudio/OutputDeviceXAudio.h
+	xaudio/VoiceXAudio.cpp
+	xaudio/VoiceXAudio.h
+	;
 
-if ( ( win64 in $(PLATFORM) ) | ( linux64 in $(PLATFORM) ) | ( macosx64 in $(PLATFORM) ) )
+SRC_ENGINE_SDL2 =
+	sdl2/EngineSDL2.cpp
+	sdl2/EngineSDL2.h
+	sdl2/OutputDeviceSDL2.cpp
+	sdl2/OutputDeviceSDL2.h
+	sdl2/VoiceSDL2.cpp
+	sdl2/VoiceSDL2.h
+	;
+
+if ( ( win32 in $(PLATFORM) ) | ( win64 in $(PLATFORM) ) )
 {
-	SRC +=
-		sdl2/EngineSDL2.cpp
-		sdl2/EngineSDL2.h
-		sdl2/OutputDeviceSDL2.cpp
-		sdl2/OutputDeviceSDL2.h
-		sdl2/VoiceSDL2.cpp
-		sdl2/VoiceSDL2.h
-		;
+	if ( xaudio in $(ion_audio_engine) )
+	{
+		echo "ion::audio using XAudio2 engine" ;
+		SRC += $(SRC_ENGINE_XAUDIO) ;
+		ApplyWin32SDK audio ;
+		ApplyXAudio2SDK audio ;
+	}
 
+	if ( sdl2 in $(ion_audio_engine) )
+	{
+		echo "ion::audio using SDL2 engine" ;
+		SRC += $(SRC_ENGINE_SDL2) ;
+		ApplySDL2SDK audio : audio ;
+	}
+}
+
+if ( ( linux64 in $(PLATFORM) ) | ( macosx64 in $(PLATFORM) ) )
+{
+	echo "ion::audio using SDL2 engine" ;
+	SRC += $(SRC_ENGINE_SDL2) ;
 	ApplySDL2SDK audio : audio ;
 }
 

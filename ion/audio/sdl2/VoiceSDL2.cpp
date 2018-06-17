@@ -7,6 +7,8 @@
 
 #include "VoiceSDL2.h"
 
+#define ION_SDL_USE_CALLBACK 0
+
 namespace ion
 {
 	namespace audio
@@ -16,21 +18,27 @@ namespace ion
 		{
 			m_currentBuffer = NULL;
 			m_bufferPos = 0;
+			m_startTime = 0;
 
 			//Get stream desc
 			const StreamDesc* streamDesc = source.GetStreamDesc();
 
 			//Create audio spec
+#if ION_SDL_USE_CALLBACK
 			m_sdlAudioSpec.callback = SDLDataCallback;
+#else
+			m_sdlAudioSpec.callback = NULL;
+#endif
 			m_sdlAudioSpec.userdata = this;
 			m_sdlAudioSpec.format = CreateFormatFlags(*streamDesc);
 			m_sdlAudioSpec.channels = streamDesc->GetNumChannels();
 			m_sdlAudioSpec.freq = streamDesc->GetSampleRate();
 			m_sdlAudioSpec.samples = streamDesc->GetSizeSamples();
-			m_sdlAudioSpec.size = streamDesc->GetDecodedSizeBytes();
+
+			SDL_AudioSpec createdSpec;
 
 			//Create hardware voice
-			m_sdlVoiceId = SDL_OpenAudioDevice(NULL, 0, &m_sdlAudioSpec, NULL, 0);
+			m_sdlVoiceId = SDL_OpenAudioDevice(NULL, 0, &m_sdlAudioSpec, &createdSpec, 0);
 			if (m_sdlVoiceId < 0)
 			{
 				debug::error << "VoiceSDL2::VoiceSDL2() - SDL_OpenAudioDevice() failed with error: " << SDL_GetError() << debug::end;
@@ -48,14 +56,27 @@ namespace ion
 		{
 		}
 
+		int bufferIdx = 0;
+
 		void VoiceSDL2::SubmitBuffer(Buffer& buffer)
 		{
+#if ION_SDL_USE_CALLBACK
 			Buffer* bufferPtr = &buffer;
-			m_bufferQueue.Push(bufferPtr);
+			m_bufferQueue.push(bufferPtr);
+#else
+			//Pass data directly to SDL
+			buffer.Lock();
+			if (SDL_QueueAudio(m_sdlVoiceId, buffer.Get(0), buffer.GetDataSize()) != 0)
+			{
+				debug::error << "VoiceSDL2::SubmitBuffer() - SDL_QueueAudio() failed: " << SDL_GetError();
+			}
+			buffer.Unlock();
+#endif
 		}
 
 		void VoiceSDL2::Play()
 		{
+			m_startTime = time::GetSystemTicks();
 			SDL_PauseAudioDevice(m_sdlVoiceId, 0);
 			mState = Playing;
 		}
@@ -80,12 +101,19 @@ namespace ion
 
 		u64 VoiceSDL2::GetPositionSamples()
 		{
-			return 0;
+			return GetPositionSeconds() * (float)mSource.GetStreamDesc()->GetSampleRate();
 		}
 
 		float VoiceSDL2::GetPositionSeconds()
 		{
-			return (float)GetPositionSamples() / (float)mSource.GetStreamDesc()->GetSampleRate();
+			if (mState == Playing)
+			{
+				return time::TicksToSeconds(time::GetSystemTicks() - m_startTime);
+			}
+			else
+			{
+				return 0.0f;
+			}
 		}
 
 		void VoiceSDL2::Update()
@@ -138,6 +166,7 @@ namespace ion
 			{
 				//Pop next buffer
 				m_currentBuffer = m_bufferQueue.Pop();
+				m_currentBuffer->Lock();
 			}
 
 			if (m_currentBuffer)
@@ -146,13 +175,17 @@ namespace ion
 
 				while (bytesRemaining > 0)
 				{
-					int bytesToCopy = maths::Min(bytesRemaining, (int)m_currentBuffer->GetSize() - m_bufferPos);
+					int bytesToCopy = maths::Min(bytesRemaining, (int)m_currentBuffer->GetDataSize() - m_bufferPos);
 					memory::MemCopy(stream, m_currentBuffer->Get(m_bufferPos), bytesToCopy);
+
 					bytesRemaining -= bytesToCopy;
 					m_bufferPos += bytesToCopy;
 
-					if (m_bufferPos == m_currentBuffer->GetSize())
+					if (m_bufferPos == m_currentBuffer->GetDataSize())
 					{
+						//Unlock buffer
+						m_currentBuffer->Unlock();
+
 						//Reset read head
 						m_bufferPos = 0;
 						m_currentBuffer = NULL;
@@ -163,13 +196,13 @@ namespace ion
 						if (m_bufferQueue.IsEmpty())
 						{
 							//Starved
-							debug::log << "VoiceSDL2::SDLFillBuffer() - Buffer starved" << debug::end;
 							bytesRemaining = 0;
 						}
 						else
 						{
 							//Pop next buffer
 							m_currentBuffer = m_bufferQueue.Pop();
+							m_currentBuffer->Lock();
 						}
 					}
 				}

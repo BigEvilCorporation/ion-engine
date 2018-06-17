@@ -48,10 +48,12 @@ namespace ion
 
 		void VoiceXAudio::SubmitBuffer(Buffer& buffer)
 		{
+			buffer.Lock();
+
 			XAUDIO2_BUFFER xaudioBuffer = {0};
 
 			xaudioBuffer.pAudioData = (const BYTE*)buffer.Get(0);
-			xaudioBuffer.AudioBytes = buffer.GetSize();
+			xaudioBuffer.AudioBytes = buffer.GetDataSize();
 			xaudioBuffer.PlayLength = mSource.GetStreamDesc()->GetSizeSamples();
 
 			if (!mLoop)
@@ -60,6 +62,8 @@ namespace ion
 			}
 
 			mXAudioVoice->SubmitSourceBuffer(&xaudioBuffer);
+
+			buffer.Unlock();
 		}
 
 		void VoiceXAudio::Play()

@@ -25,7 +25,10 @@ namespace ion
 		{
 #if defined ION_PLATFORM_WINDOWS
 			LARGE_INTEGER ticks;
-			QueryPerformanceCounter(&ticks);
+			if (!QueryPerformanceCounter(&ticks))
+			{
+				debug::Error("ion::time::GetSystemTicks() - QueryPerformanceCounter() failed");
+			}
 			return (u64)ticks.QuadPart;
 #elif defined ION_PLATFORM_MACOSX
 			timeval time;

@@ -21,7 +21,7 @@ namespace ion
 {
 	namespace thread
 	{
-		void Sleep(u32 milliseconds)
+		static void Sleep(u32 milliseconds)
 		{
 			#if defined ION_PLATFORM_WINDOWS
 			::Sleep(milliseconds);

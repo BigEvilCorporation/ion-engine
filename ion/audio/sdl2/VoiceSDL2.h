@@ -2,6 +2,7 @@
 #include <audio/Buffer.h>
 #include <audio/StreamDesc.h>
 #include <core/containers/Queue.h>
+#include <core/time/Time.h>
 
 #include <SDL2/SDL.h>
 
@@ -36,12 +37,16 @@ namespace ion
 			virtual void Update();
 
 		private:
+			static const int s_starvedBufferSize = 1024;
+
 			static SDL_AudioFormat CreateFormatFlags(const StreamDesc& streamDesc);
 			static void SDLDataCallback(void* userdata, Uint8* stream, int len);
 			void SDLFillBuffer(Uint8* stream, int len);
 
 			SDL_AudioSpec m_sdlAudioSpec;
 			SDL_AudioDeviceID m_sdlVoiceId;
+
+			u64 m_startTime;
 
 			static const int s_bufferQueueSize = 2;
 			Queue<Buffer*, s_bufferQueueSize> m_bufferQueue;
