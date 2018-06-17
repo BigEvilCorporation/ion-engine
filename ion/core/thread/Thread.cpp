@@ -77,7 +77,7 @@ namespace ion
 				RaiseException(MS_VC_EXCEPTION, 0, sizeof(nameInfo)/sizeof(DWORD), (ULONG_PTR*)&nameInfo);
 			}
 			__except(EXCEPTION_CONTINUE_EXECUTION)
-			{m_name
+			{
 			}
 			#elif defined ION_PLATFORM_LINUX
 			int result = pthread_create(&m_threadHndl, NULL, ThreadFunction, this);
