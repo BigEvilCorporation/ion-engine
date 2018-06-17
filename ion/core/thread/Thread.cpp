@@ -34,9 +34,21 @@ namespace ion
 			{
 				name = "ion::thread";
 			}
+			
+			m_name = name;
+		}
 
+		Thread::~Thread()
+		{
 			#if defined ION_PLATFORM_WINDOWS
-			m_threadHndl = CreateThread(	NULL,                   //Default security attributes
+			CloseHandle(m_threadHndl);
+			#endif
+		}
+
+		void Thread::Run()
+		{
+#if defined ION_PLATFORM_WINDOWS
+			m_threadHndl = CreateThread(NULL,                   //Default security attributes
 										0,                      //Default stack size  
 										Thread::ThreadFunction, //Thread function
 										this,					//User data
@@ -56,7 +68,7 @@ namespace ion
 
 			THREADNAME_INFO nameInfo;
 			nameInfo.dwType = 0x1000;
-			nameInfo.szName = name;
+			nameInfo.szName = m_name.c_str();
 			nameInfo.dwThreadID = m_threadId;
 			nameInfo.dwFlags = 0;
 
@@ -65,18 +77,12 @@ namespace ion
 				RaiseException(MS_VC_EXCEPTION, 0, sizeof(nameInfo)/sizeof(DWORD), (ULONG_PTR*)&nameInfo);
 			}
 			__except(EXCEPTION_CONTINUE_EXECUTION)
-			{
+			{m_name
 			}
 			#elif defined ION_PLATFORM_LINUX
 			int result = pthread_create(&m_threadHndl, NULL, ThreadFunction, this);
 			debug::Assert(result == 0, "Thread::Thread() - pthread_create() failed");
-			#endif
-		}
-
-		Thread::~Thread()
-		{
-			#if defined ION_PLATFORM_WINDOWS
-			CloseHandle(m_threadHndl);
+            pthread_setname_np(m_threadHndl, m_name.c_str());
 			#endif
 		}
 

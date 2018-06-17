@@ -22,6 +22,7 @@ namespace ion
 		ResourceManager::ResourceManager()
 		{
 			m_workerThread = new WorkerThread();
+			m_workerThread->Run();
 		}
 
 		ResourceManager::~ResourceManager()

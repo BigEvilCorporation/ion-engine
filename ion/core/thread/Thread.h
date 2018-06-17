@@ -17,6 +17,8 @@
 #include "core/Platform.h"
 #include "core/Types.h"
 
+#include <string>
+
 namespace ion
 {
 	namespace thread
@@ -31,6 +33,7 @@ namespace ion
 			Thread(const char* name = NULL);
 			virtual ~Thread();
 
+			void Run();
 			void Join();
 			u32 GetId() const;
 
@@ -45,6 +48,7 @@ namespace ion
 			#endif
 
 			unsigned long m_threadId;
+            std::string m_name;
 
 			#if defined ION_PLATFORM_WINDOWS
 			HANDLE m_threadHndl;
