@@ -165,6 +165,7 @@ namespace ion
 			bool quit = false;
 
 			//Filter out input events
+			/*
 			while(PeekMessage(&message, NULL, WM_NULL, WM_KEYFIRST -1, PM_REMOVE) > 0)
 			{
 				quit |= (message.message == WM_QUIT);
@@ -182,6 +183,15 @@ namespace ion
 			}
 
 			while (PeekMessage(&message, NULL, WM_MOUSELAST + 1, WM_USER, PM_REMOVE) > 0)
+			{
+				quit |= (message.message == WM_QUIT);
+
+				TranslateMessage(&message);
+				DispatchMessage(&message);
+			}
+			*/
+
+			while (PeekMessage(&message, NULL, 0, 0, PM_REMOVE) > 0)
 			{
 				quit |= (message.message == WM_QUIT);
 

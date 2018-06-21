@@ -47,10 +47,10 @@ namespace ion
 #endif
 		}
 
-		float TicksToSeconds(u64 ticks)
+		double TicksToSeconds(u64 ticks)
 		{
 #if defined ION_PLATFORM_WINDOWS
-			static float timerFrequency = 0.0;
+			static double timerFrequency = 0.0;
 
 			if(timerFrequency == 0)
 			{
@@ -59,15 +59,15 @@ namespace ion
 				timerFrequency = (double)freq.QuadPart;
 			}
 
-			return (float)ticks / timerFrequency;
+			return (double)ticks / timerFrequency;
 #elif defined ION_PLATFORM_MACOSX
-			return (float)ticks / 1000000.0f;
+			return (double)ticks / 1000000.0f;
 #elif defined ION_PLATFORM_LINUX
-			return (float)ticks / 1000000.0f;
+			return (double)ticks / 1000000.0f;
 #elif defined ION_PLATFORM_RASPBERRYPI
-			return (float)ticks / 1000000.0f;
+			return (double)ticks / 1000000.0f;
 #elif defined ION_PLATFORM_DREAMCAST
-			return (float)ticks / 1000000.0f;
+			return (double)ticks / 1000000.0f;
 #endif
 		}
 	}

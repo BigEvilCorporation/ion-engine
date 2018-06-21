@@ -158,14 +158,12 @@ namespace ion
 			LockContext(deviceContext);
 
 			//Set error callback
-#if defined DEBUG
-#if defined ION_PLATFORM_WINDOWS
+#if defined DEBUG && defined ION_PLATFORM_WINDOWS && defined ION_PLATFORM_64BIT
 			if (OpenGLExt::glDebugMessageCallback)
 			{
 				glEnable(GL_DEBUG_OUTPUT);
 				OpenGLExt::glDebugMessageCallback(OnOpenGLError, nullptr);
 			}
-#endif
 #endif
 
 #if defined ION_RENDERER_KGL

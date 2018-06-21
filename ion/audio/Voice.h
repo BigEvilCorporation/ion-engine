@@ -26,8 +26,9 @@ namespace ion
 			virtual void Pause() = 0;
 			virtual void Resume() = 0;
 
+			virtual u32 GetBufferedBytes() = 0;
 			virtual u64 GetPositionSamples() = 0;
-			virtual float GetPositionSeconds() = 0;
+			virtual double GetPositionSeconds() = 0;
 
 			State GetState() const;
 

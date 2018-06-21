@@ -38,4 +38,8 @@
 #undef MessageBox
 #endif
 
+#ifdef Yield
+#undef Yield
+#endif
+
 #endif

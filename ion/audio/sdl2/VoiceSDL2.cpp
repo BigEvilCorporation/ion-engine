@@ -39,7 +39,7 @@ namespace ion
 
 			//Create hardware voice
 			m_sdlVoiceId = SDL_OpenAudioDevice(NULL, 0, &m_sdlAudioSpec, &createdSpec, 0);
-			if (m_sdlVoiceId < 0)
+			if (m_sdlVoiceId <= 0)
 			{
 				debug::error << "VoiceSDL2::VoiceSDL2() - SDL_OpenAudioDevice() failed with error: " << SDL_GetError() << debug::end;
 			}
@@ -99,12 +99,17 @@ namespace ion
 			mState = Playing;
 		}
 
-		u64 VoiceSDL2::GetPositionSamples()
+		u32 VoiceSDL2::GetBufferedBytes()
 		{
-			return GetPositionSeconds() * (float)mSource.GetStreamDesc()->GetSampleRate();
+			return SDL_GetQueuedAudioSize(m_sdlVoiceId);
 		}
 
-		float VoiceSDL2::GetPositionSeconds()
+		u64 VoiceSDL2::GetPositionSamples()
+		{
+			return GetPositionSeconds() * (double)mSource.GetStreamDesc()->GetSampleRate();
+		}
+
+		double VoiceSDL2::GetPositionSeconds()
 		{
 			if (mState == Playing)
 			{

@@ -27,6 +27,7 @@ rule ApplyIonDefines TARGET
 	{
 		C.Defines $(TARGET) :
 			ION_PLATFORM_WINDOWS
+			ION_PLATFORM_32BIT
 			ION_ENDIAN_LITTLE
 			;
 	}
@@ -35,6 +36,7 @@ rule ApplyIonDefines TARGET
 	{
 		C.Defines $(TARGET) :
 			ION_PLATFORM_WINDOWS
+			ION_PLATFORM_64BIT
 			ION_ENDIAN_LITTLE
 			;
 	}
@@ -43,6 +45,7 @@ rule ApplyIonDefines TARGET
     {
         C.Defines $(TARGET) :
             ION_PLATFORM_MACOSX
+			ION_PLATFORM_64BIT
             ION_ENDIAN_LITTLE
             ;
     }
@@ -51,6 +54,7 @@ rule ApplyIonDefines TARGET
     {
         C.Defines $(TARGET) :
             ION_PLATFORM_LINUX
+			ION_PLATFORM_64BIT
             ION_ENDIAN_LITTLE
             ;
     }
@@ -59,6 +63,7 @@ rule ApplyIonDefines TARGET
 	{
 		C.Defines $(TARGET) :
 			ION_PLATFORM_DREAMCAST
+			ION_PLATFORM_32BIT
 			ION_TOOLCHAIN_KOS
 			ION_ENDIAN_LITTLE
 			;
@@ -68,6 +73,7 @@ rule ApplyIonDefines TARGET
 	{
 		C.Defines $(TARGET) :
 			ION_PLATFORM_RASPBERRYPI
+			ION_PLATFORM_32BIT
 			ION_ENDIAN_LITTLE
 			;
 	}
@@ -395,6 +401,10 @@ rule ApplyWin32SDK TARGET
 		ole32.lib
 		delayimp.lib
 		Ws2_32.lib
+		mincore.lib
+		version.lib
+		imm32.lib
+		winmm.lib
 		;
 
 	C.LinkPrebuiltLibraries $(TARGET) : $(WIN32_LIBS) ;
@@ -638,40 +648,60 @@ rule ApplySDL2SDK TARGET : OPTIONS
 		C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDL2/include/SDL2 ;
 		C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDL2/lib/win32 ;
 
-		local SDL_LIBS =
+		local SDL_LIBS_DEBUG =
+			SDL2maind.lib
+			SDL2-staticd.lib
+			;
+
+		local SDL_LIBS_RELEASE =
 			SDL2main.lib
-			SDL2.lib
-			SDL2_image.lib
+			SDL2-static.lib
 			;
 
 
 		C.LinkFlags $(TARGET) :
 			/DelayLoad:SDL2.dll
-			/DelayLoad:SDL2main.dll
 			;
 
-		C.LinkPrebuiltLibraries $(TARGET) : $(SDL_LIBS) ;
+		if ( debug in $(CONFIG) )
+		{
+			C.LinkPrebuiltLibraries $(TARGET) : $(SDL_LIBS_DEBUG) ;
+		}
+		else
+		{
+			C.LinkPrebuiltLibraries $(TARGET) : $(SDL_LIBS_RELEASE) ;
+		}
 	}
 
 	if ( win64 in $(PLATFORM) )
 	{
 		C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDL2/include ;
-		C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDL/include/SDL2 ;
+		C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDL2/include/SDL2 ;
 		C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDL2/lib/win64 ;
 
-		local SDL_LIBS =
+		local SDL_LIBS_DEBUG =
+			SDL2maind.lib
+			SDL2-staticd.lib
+			;
+
+		local SDL_LIBS_RELEASE =
 			SDL2main.lib
-			SDL2.lib
-			SDL2_image.lib
+			SDL2-static.lib
 			;
 
 
 		C.LinkFlags $(TARGET) :
 			/DelayLoad:SDL2.dll
-			/DelayLoad:SDL2main.dll
 			;
 
-		C.LinkPrebuiltLibraries $(TARGET) : $(SDL_LIBS) ;
+		if ( debug in $(CONFIG) )
+		{
+			C.LinkPrebuiltLibraries $(TARGET) : $(SDL_LIBS_DEBUG) ;
+		}
+		else
+		{
+			C.LinkPrebuiltLibraries $(TARGET) : $(SDL_LIBS_RELEASE) ;
+		}
 	}
 
     if ( macosx64 in $(PLATFORM) )

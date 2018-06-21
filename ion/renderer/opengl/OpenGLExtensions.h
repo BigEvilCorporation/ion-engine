@@ -30,7 +30,7 @@ typedef GLboolean(APIENTRYP PFNGLUNMAPBUFFERARBPROC) (GLenum target);
 typedef HGLRC(APIENTRYP PFNWGLCREATECONTEXTATTRIBSARBPROC) (HDC hDC, HGLRC hShareContext, const int *attribList);
 
 typedef void (APIENTRYP DEBUGPROC)(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void *userParam);
-typedef void (APIENTRYP PFNGLDEBUGMESSAGECALLBACKPROC) (DEBUGPROC callback, const void * userParam);
+typedef void (APIENTRYP DEBUGMESSAGECALLBACKPROC) (DEBUGPROC callback, const void * userParam);
 #endif
 
 namespace ion
@@ -69,7 +69,7 @@ namespace ion
 			static PFNGLSWAPINTERVALEXTPROC glSwapIntervalEXT;
 
 			static PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB;
-			static PFNGLDEBUGMESSAGECALLBACKPROC glDebugMessageCallback;
+			static DEBUGMESSAGECALLBACKPROC glDebugMessageCallback;
 #endif
 		};
 	}

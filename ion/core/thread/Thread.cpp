@@ -79,18 +79,25 @@ namespace ion
 			__except(EXCEPTION_CONTINUE_EXECUTION)
 			{
 			}
-			#elif defined ION_PLATFORM_LINUX
+#elif defined ION_PLATFORM_LINUX
 			int result = pthread_create(&m_threadHndl, NULL, ThreadFunction, this);
 			debug::Assert(result == 0, "Thread::Thread() - pthread_create() failed");
             pthread_setname_np(m_threadHndl, m_name.c_str());
-			#endif
+#endif
 		}
 
 		void Thread::Join()
 		{
-			#if defined ION_PLATFORM_WINDOWS
+#if defined ION_PLATFORM_WINDOWS
 			WaitForSingleObject(m_threadHndl, INFINITE);
-			#endif
+#endif
+		}
+
+		void Thread::Yield()
+		{
+#if defined ION_PLATFORM_WINDOWS
+			SwitchToThread();
+#endif
 		}
 
 		u32 Thread::GetId() const
@@ -101,6 +108,29 @@ namespace ion
 		void Thread::SetPriority(Priority priority)
 		{
 #if defined ION_PLATFORM_WINDOWS
+			int value = 0;
+
+			switch (priority)
+			{
+			case Priority::Low:
+				value = THREAD_MODE_BACKGROUND_BEGIN;
+				break;
+			case Priority::Normal:
+				value = THREAD_PRIORITY_NORMAL;
+				break;
+			case Priority::High:
+				value = THREAD_PRIORITY_HIGHEST;
+				break;
+			case Priority::Critical:
+				value = THREAD_PRIORITY_TIME_CRITICAL;
+				break;
+			}
+
+			if (!SetThreadPriority(m_threadHndl, value))
+			{
+				debug::error << "Thread::SetPriority() - SetThreadPriority() failed" << debug::end;
+			}
+
 #elif defined ION_PLATFORM_LINUX
 			int result = 0;
 
@@ -111,6 +141,7 @@ namespace ion
 			int minPrio = sched_get_priority_min(policy);
 			int maxPrio = sched_get_priority_max(policy);
 			int medPrio = (maxPrio - minPrio) / 2;
+			int highPrio = medPrio + ((medPrio - maxPrio) / 2);
 			
 			switch(priority)
 			{
@@ -121,6 +152,9 @@ namespace ion
 					result = pthread_setschedprio(m_threadHndl, medPrio);
 					break;
 				case Priority::High:
+					result = pthread_setschedprio(m_threadHndl, highPrio);
+					break;
+				case Priority::Critical:
 					result = pthread_setschedprio(m_threadHndl, maxPrio);
 					break;
 			}
@@ -132,7 +166,7 @@ namespace ion
 #endif
 		}
 
-		#if defined ION_PLATFORM_WINDOWS
+#if defined ION_PLATFORM_WINDOWS
 		unsigned long WINAPI Thread::ThreadFunction(void* params)
 		{
 			
@@ -140,7 +174,7 @@ namespace ion
 			thread->Entry();
 			return 0;
 		}
-		#elif defined ION_PLATFORM_LINUX
+#elif defined ION_PLATFORM_LINUX
 		void* Thread::ThreadFunction(void* params)
 		{
 			
@@ -148,6 +182,6 @@ namespace ion
 			thread->Entry();
 			return NULL;
 		}
-		#endif
+#endif
 	}
 }

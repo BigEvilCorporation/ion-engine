@@ -39,7 +39,7 @@ namespace ion
 		PFNGLDELETERENDERBUFFERSEXTPROC OpenGLExt::glDeleteRenderbuffersEXT = NULL;
 		PFNGLDRAWBUFFERSPROC OpenGLExt::glDrawBuffers = NULL;
 		PFNGLSWAPINTERVALEXTPROC OpenGLExt::glSwapIntervalEXT = NULL;
-		PFNGLDEBUGMESSAGECALLBACKPROC OpenGLExt::glDebugMessageCallback = NULL;
+		DEBUGMESSAGECALLBACKPROC OpenGLExt::glDebugMessageCallback = NULL;
 		PFNWGLCREATECONTEXTATTRIBSARBPROC OpenGLExt::wglCreateContextAttribsARB = NULL;
 #endif
 
@@ -68,7 +68,7 @@ namespace ion
 			glMapBufferARB = (PFNGLMAPBUFFERARBPROC)wglGetProcAddress("glMapBuffer");
 			glUnmapBufferARB = (PFNGLUNMAPBUFFERARBPROC)wglGetProcAddress("glUnmapBuffer");
 			wglCreateContextAttribsARB = (PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress("wglCreateContextAttribsARB");
-			glDebugMessageCallback = (PFNGLDEBUGMESSAGECALLBACKPROC)wglGetProcAddress("glDebugMessageCallback");
+			glDebugMessageCallback = (DEBUGMESSAGECALLBACKPROC)wglGetProcAddress("glDebugMessageCallback");
 			wglDeleteContext(context);
 #endif
 		}

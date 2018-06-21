@@ -35,7 +35,8 @@ namespace ion
 			{
 				Low,
 				Normal,
-				High
+				High,
+				Critical
 			};
 
 			Thread(const char* name = NULL);
@@ -43,6 +44,7 @@ namespace ion
 
 			void Run();
 			void Join();
+			void Yield();
 			void SetPriority(Priority priority);
 			
 			u32 GetId() const;

@@ -20,8 +20,9 @@ namespace ion
 			virtual void Pause();
 			virtual void Resume();
 
+			virtual u32 GetBufferedBytes();
 			virtual u64 GetPositionSamples();
-			virtual float GetPositionSeconds();
+			virtual double GetPositionSeconds();
 
 			//Properties
 			virtual void SetVolume(float volume);

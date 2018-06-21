@@ -14,8 +14,13 @@ namespace ion
 			return new EngineSDL2();
 		}
 
+		static const std::string preferredAudioDriver = "wasapi";
+
 		EngineSDL2::EngineSDL2()
 		{
+			//Set preferred driver
+			SDL_setenv("SDL_AUDIODRIVER", preferredAudioDriver.c_str(), 1);
+
 			//Initialise SDL audio
 			int initResult = SDL_InitSubSystem(SDL_INIT_AUDIO);
 			if (initResult < 0)
