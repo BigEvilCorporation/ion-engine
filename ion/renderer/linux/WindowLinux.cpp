@@ -77,7 +77,7 @@ namespace ion
 
 		void WindowLinux::SetTitle(const std::string& title)
 		{
-
+			SDL_SetWindowTitle(m_windowHandle, title.c_str());
 		}
 	}
 }
