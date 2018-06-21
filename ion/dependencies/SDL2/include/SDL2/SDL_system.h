@@ -76,6 +76,18 @@ extern DECLSPEC SDL_bool SDLCALL SDL_DXGIGetOutputInfo( int displayIndex, int *a
 #endif /* __WIN32__ */
 
 
+/* Platform specific functions for Linux */
+#ifdef __LINUX__
+
+/**
+   \brief Sets the UNIX nice value for a thread, using setpriority() if possible, and RealtimeKit if available.
+
+   \return 0 on success, or -1 on error.
+ */
+extern DECLSPEC int SDLCALL SDL_LinuxSetThreadPriority(Sint64 threadID, int priority);
+ 
+#endif /* __LINUX__ */
+	
 /* Platform specific functions for iOS */
 #if defined(__IPHONEOS__) && __IPHONEOS__
 
@@ -112,6 +124,16 @@ extern DECLSPEC void * SDLCALL SDL_AndroidGetActivity(void);
    \brief Return true if the application is running on Android TV
  */
 extern DECLSPEC SDL_bool SDLCALL SDL_IsAndroidTV(void);
+
+/**
+   \brief Return true if the application is running on a Chromebook
+ */
+extern DECLSPEC SDL_bool SDLCALL SDL_IsChromebook(void);
+
+/**
+  \brief Return true is the application is running on a Samsung DeX docking station
+ */
+extern DECLSPEC SDL_bool SDLCALL SDL_IsDeXMode(void);
 
 /**
    See the official Android developer guide for more information:
