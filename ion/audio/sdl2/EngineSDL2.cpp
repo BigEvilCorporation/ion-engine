@@ -19,7 +19,9 @@ namespace ion
 		EngineSDL2::EngineSDL2()
 		{
 			//Set preferred driver
+#if defined ION_PLATFORM_WINDOWS
 			SDL_setenv("SDL_AUDIODRIVER", preferredAudioDriver.c_str(), 1);
+#endif
 
 			//Initialise SDL audio
 			int initResult = SDL_InitSubSystem(SDL_INIT_AUDIO);
