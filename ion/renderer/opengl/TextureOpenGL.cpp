@@ -34,7 +34,7 @@
 #if defined ION_PLATFORM_WINDOWS
 #include <SDLImage/SDL_image.h>
 #elif defined ION_PLATFORM_LINUX
-#include <SDL/SDL_image.h>
+#include <SDL2/SDL_image.h>
 #endif
 #endif
 
@@ -116,6 +116,11 @@ namespace ion
 #if defined ION_RENDER_SUPPORTS_SDLIMAGE
 			//Load image onto a new SDL surface
 			SDL_Surface* sdlSurface = IMG_Load(m_imageFilename.c_str());
+
+			if(!sdlSurface)
+			{
+				debug::log << "TextureOpenGL::Load() - Error loading " << m_imageFilename.c_str() << ", IMG_Load() failed with: " << IMG_GetError() << debug::end;
+			}
 
 			if(sdlSurface)
 			{
