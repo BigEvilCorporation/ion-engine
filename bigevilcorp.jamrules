@@ -185,12 +185,12 @@ rule ApplyDefaultRenderer TARGET : LINK_OPT
 	{
 		if ( shader in $(ion_renderer_opts) )
 		{
-			ApplyRendererImpl $(TARGET) : opengl cggl $(LINK_OPT) ;
+			ApplyRendererImpl $(TARGET) : opengl cggl sdl sdlimage $(LINK_OPT) ;
 		}
 		
 		if ( fixed in $(ion_renderer_opts) )
 		{
-			ApplyRendererImpl $(TARGET) : opengl $(LINK_OPT) ;
+			ApplyRendererImpl $(TARGET) : opengl sdl sdlimage $(LINK_OPT) ;
 		}
 	}
 
@@ -198,33 +198,33 @@ rule ApplyDefaultRenderer TARGET : LINK_OPT
 	{
 		if ( shader in $(ion_renderer_opts) )
 		{
-			ApplyRendererImpl $(TARGET) : opengl cggl $(LINK_OPT) ;
+			ApplyRendererImpl $(TARGET) : opengl cggl sdl sdlimage $(LINK_OPT) ;
 		}
 		
 		if ( fixed in $(ion_renderer_opts) )
 		{
-			ApplyRendererImpl $(TARGET) : opengl $(LINK_OPT) ;
+			ApplyRendererImpl $(TARGET) : opengl sdl sdlimage $(LINK_OPT) ;
 		}
 	}
 
 	if ( macosx64 in $(PLATFORM) )
 	{
-		ApplyRendererImpl $(TARGET) : opengl sdl $(LINK_OPT) ;
+		ApplyRendererImpl $(TARGET) : opengl sdl sdlimage $(LINK_OPT) ;
 	}
 
 	if ( linux64 in $(PLATFORM) )
 	{
-		ApplyRendererImpl $(TARGET) : opengl sdl $(LINK_OPT) ;
+		ApplyRendererImpl $(TARGET) : opengl sdl sdlimage $(LINK_OPT) ;
 	}
 
 	if ( raspberrypi in $(PLATFORM) )
 	{
-		ApplyRendererImpl $(TARGET) : opengles sdl $(LINK_OPT) ;
+		ApplyRendererImpl $(TARGET) : opengles sdl sdlimage $(LINK_OPT) ;
 	}
 
 	if ( dreamcast in $(PLATFORM) )
 	{
-		ApplyRendererImpl $(TARGET) : opengl glut $(LINK_OPT) ;
+		ApplyRendererImpl $(TARGET) : opengl glut sdlimage $(LINK_OPT) ;
 	}
 }
 
@@ -272,10 +272,7 @@ rule ApplyRendererImpl TARGET : RENDER_IMPL_OPTS
 
 	if ( sdlimage in $(RENDER_IMPL_OPTS) )
 	{
-		if ( sdk in $(RENDER_IMPL_OPTS) )
-		{
-			ApplySDLImageSDK $(TARGET) ;
-		}
+		ApplySDLImageSDK $(TARGET) ;
 	}
 }
 
@@ -565,8 +562,6 @@ rule ApplyOpenALSDK TARGET
 
 		C.LinkPrebuiltLibraries $(TARGET) : $(OPENAL_LIBS) ;
 	}
-
-
 }
 
 rule ApplyOpenALSoftSDK TARGET
@@ -649,15 +644,12 @@ rule ApplySDL2SDK TARGET : OPTIONS
 		C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDL2/lib/win32 ;
 
 		local SDL_LIBS_DEBUG =
-			SDL2maind.lib
 			SDL2-staticd.lib
 			;
 
 		local SDL_LIBS_RELEASE =
-			SDL2main.lib
 			SDL2-static.lib
 			;
-
 
 		C.LinkFlags $(TARGET) :
 			/DelayLoad:SDL2.dll
@@ -680,15 +672,12 @@ rule ApplySDL2SDK TARGET : OPTIONS
 		C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDL2/lib/win64 ;
 
 		local SDL_LIBS_DEBUG =
-			SDL2maind.lib
 			SDL2-staticd.lib
 			;
 
 		local SDL_LIBS_RELEASE =
-			SDL2main.lib
 			SDL2-static.lib
 			;
-
 
 		C.LinkFlags $(TARGET) :
 			/DelayLoad:SDL2.dll
@@ -739,38 +728,66 @@ rule ApplySDL2SDK TARGET : OPTIONS
 	}
 }
 
-rule ApplySDLImageSDK TARGET
+rule ApplySDLImageSDK TARGET : OPTIONS
 {
 	C.Defines $(TARGET) : ION_RENDER_SUPPORTS_SDLIMAGE ;
 
 	if ( win32 in $(PLATFORM) )
 	{
-		C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDLImage/include ;
+		C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDL2/include ;
+		C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDL2/lib/win32 ;
 
-		local SDL_LIBS =
-			SDL2_image_d.lib
+		local SDL_LIBS_DEBUG =
+			SDL2_imaged.lib
+			;
+
+		local SDL_LIBS_RELEASE =
+			SDL2_image.lib
 			;
 
 		C.LinkFlags $(TARGET) :
 			/DelayLoad:SDL2_image.dll
 			;
 
-		C.LinkPrebuiltLibraries $(TARGET) : $(SDL_LIBS) ;
+		if ( debug in $(CONFIG) )
+		{
+			C.LinkPrebuiltLibraries $(TARGET) : $(SDL_LIBS_DEBUG) ;
+		}
+		else
+		{
+			C.LinkPrebuiltLibraries $(TARGET) : $(SDL_LIBS_RELEASE) ;
+		}
+
+		ApplyPNGSDK $(TARGET) ;
 	}
 
 	if ( win64 in $(PLATFORM) )
 	{
-		C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDLImage/include ;
+		C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDL2/include ;
+		C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/SDL2/lib/win64 ;
 
-		local SDL_LIBS =
-			SDL2_image_d.lib
+		local SDL_LIBS_DEBUG =
+			SDL2_imaged.lib
+			;
+
+		local SDL_LIBS_RELEASE =
+			SDL2_imaged.lib
 			;
 
 		C.LinkFlags $(TARGET) :
 			/DelayLoad:SDL2_image.dll
 			;
 
-		C.LinkPrebuiltLibraries $(TARGET) : $(SDL_LIBS) ;
+		if ( debug in $(CONFIG) )
+		{
+			C.LinkPrebuiltLibraries $(TARGET) : $(SDL_LIBS_DEBUG) ;
+		}
+		else
+		{
+			C.LinkPrebuiltLibraries $(TARGET) : $(SDL_LIBS_RELEASE) ;
+		}
+
+		ApplyPNGSDK $(TARGET) ;
 	}
 }
 
@@ -855,6 +872,74 @@ rule ApplyBulletSDK TARGET
 	if ( release in $(CONFIG) )
 	{
 		C.LinkPrebuiltLibraries $(TARGET) : $(BULLET_LIBS_RELEASE) : release ;
+	}
+}
+
+rule ApplyPNGSDK TARGET
+{
+	C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/PNG/include ;
+
+	if ( win32 in $(PLATFORM) )
+	{
+		C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/PNG/lib/win32 ;
+		ApplyZLibSDK $(TARGET) ;
+	}
+
+	if ( win64 in $(PLATFORM) )
+	{
+		C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/PNG/lib/win64 ;
+		ApplyZLibSDK $(TARGET) ;
+	}
+
+	PNG_LIBS_DEBUG =
+		libpngd.lib
+		;
+
+	PNG_LIBS_RELEASE =
+		libpng.lib
+		;
+
+	if ( debug in $(CONFIG) )
+	{
+		C.LinkPrebuiltLibraries $(TARGET) : $(PNG_LIBS_DEBUG) ;
+	}
+
+	if ( release in $(CONFIG) )
+	{
+		C.LinkPrebuiltLibraries $(TARGET) : $(PNG_LIBS_RELEASE) ;
+	}
+}
+
+rule ApplyZLibSDK TARGET
+{
+	C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/zlib/include ;
+
+	if ( win32 in $(PLATFORM) )
+	{
+		C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/zlib/lib/win32 ;
+	}
+
+	if ( win64 in $(PLATFORM) )
+	{
+		C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/zlib/lib/win64 ;
+	}
+
+	ZLIB_LIBS_DEBUG =
+		zlibd.lib
+		;
+
+	ZLIB_LIBS_RELEASE =
+		zlib.lib
+		;
+
+	if ( debug in $(CONFIG) )
+	{
+		C.LinkPrebuiltLibraries $(TARGET) : $(ZLIB_LIBS_DEBUG) ;
+	}
+
+	if ( release in $(CONFIG) )
+	{
+		C.LinkPrebuiltLibraries $(TARGET) : $(ZLIB_LIBS_RELEASE) ;
 	}
 }
 

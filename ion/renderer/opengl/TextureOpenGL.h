@@ -32,6 +32,7 @@ namespace ion
 			TextureOpenGL(u32 width, u32 height, Format sourceFormat, Format destFormat, BitsPerPixel bitsPerPixel, bool generateMipmaps, bool generatePixelBuffer, const u8* data);
 			virtual ~TextureOpenGL();
 
+			virtual bool Load(const std::string& filename);
 			virtual bool Load(u32 width, u32 height, Format sourceFormat, Format destFormat, BitsPerPixel bitsPerPixel, bool generateMipmaps, bool generatePixelBuffer, const u8* data);
 			GLuint GetTextureId() const;
 

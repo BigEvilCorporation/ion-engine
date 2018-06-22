@@ -28,9 +28,12 @@ namespace ion
 			virtual ~WindowWin32();
 
 			virtual bool Update();
-			virtual bool Resize(u32 clientAreaWidth, u32 clientAreaHeight);
-			virtual void SetFullscreen(bool fullscreen);
+			virtual bool Resize(u32 clientAreaWidth, u32 clientAreaHeight, bool adjustForTitle);
+			virtual bool SetFullscreen(bool fullscreen);
 			virtual void SetTitle(const std::string& title);
+
+			virtual u32 GetDesktopWidth() const;
+			virtual u32 GetDesktopHeight() const;
 
 			virtual DeviceContext GetDeviceContext() const { return m_deviceContext; }
 			virtual WindowHandle GetWindowHandle() const { return m_windowHandle; }

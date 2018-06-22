@@ -36,11 +36,16 @@ namespace ion
 			u32 GetClientAreaWidth() const;
 			u32 GetClientAreaHeight() const;
 
+			bool GetFullscreen() const;
+
+			virtual u32 GetDesktopWidth() const = 0;
+			virtual u32 GetDesktopHeight() const = 0;
+
 			float GetAspectRatio() const;
 
 			virtual bool Update() = 0;
-			virtual bool Resize(u32 clientAreaWidth, u32 clientAreaHeight) = 0;
-			virtual void SetFullscreen(bool fullscreen) = 0;
+			virtual bool Resize(u32 clientAreaWidth, u32 clientAreaHeight, bool adjustForTitle) = 0;
+			virtual bool SetFullscreen(bool fullscreen) = 0;
 			virtual void SetTitle(const std::string& title) = 0;
 
 			virtual DeviceContext GetDeviceContext() const = 0;
@@ -52,6 +57,7 @@ namespace ion
 			u32 m_clientAreaWidth;
 			u32 m_clientAreaHeight;
 			float m_aspectRatio;
+			bool m_fullscreen;
 		};
 	}
 }

@@ -20,6 +20,7 @@ namespace ion
 	{
 		Window::Window(const std::string& title, u32 clientAreaWidth, u32 clientAreaHeight, bool fullscreen)
 		{
+			m_fullscreen = fullscreen;
 			m_clientAreaWidth = clientAreaWidth;
 			m_clientAreaHeight = clientAreaHeight;
 			m_aspectRatio = (float)clientAreaHeight / (float)clientAreaWidth;
@@ -48,6 +49,11 @@ namespace ion
 		float Window::GetAspectRatio() const
 		{
 			return m_aspectRatio;
+		}
+
+		bool Window::GetFullscreen() const
+		{
+			return m_fullscreen;
 		}
 	}
 }

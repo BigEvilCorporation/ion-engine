@@ -55,8 +55,8 @@ namespace ion
 			}
 
 			//Get desktop resolution
-			int desktopWidth = GetSystemMetrics(SM_CXSCREEN);
-			int desktopHeight = GetSystemMetrics(SM_CYSCREEN);
+			int desktopWidth = GetDesktopWidth();
+			int desktopHeight = GetDesktopHeight();
 
 			int x = 0;
 			int y = 0;
@@ -69,11 +69,6 @@ namespace ion
 
 				DEVMODE deviceMode;
 				EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &deviceMode);
-
-				//m_windowWidth = clientAreaWidth;
-				//m_windowHeight = clientAreaHeight;
-				//deviceMode.dmPelsWidth = clientAreaWidth;
-				//deviceMode.dmPelsHeight = clientAreaHeight;
 
 				//Use existing desktop size
 				m_windowWidth = deviceMode.dmPelsWidth;
@@ -89,8 +84,7 @@ namespace ion
 					fullscreen = false;
 				}
 			}
-			
-			if(!fullscreen)
+			else
 			{
 				m_windowStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU;
 				m_windowStyleEx = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
@@ -164,33 +158,6 @@ namespace ion
 			MSG message;
 			bool quit = false;
 
-			//Filter out input events
-			/*
-			while(PeekMessage(&message, NULL, WM_NULL, WM_KEYFIRST -1, PM_REMOVE) > 0)
-			{
-				quit |= (message.message == WM_QUIT);
-
-				TranslateMessage(&message);
-				DispatchMessage(&message);
-			}
-
-			while (PeekMessage(&message, NULL, WM_KEYLAST+1, WM_MOUSEFIRST - 1, PM_REMOVE) > 0)
-			{
-				quit |= (message.message == WM_QUIT);
-
-				TranslateMessage(&message);
-				DispatchMessage(&message);
-			}
-
-			while (PeekMessage(&message, NULL, WM_MOUSELAST + 1, WM_USER, PM_REMOVE) > 0)
-			{
-				quit |= (message.message == WM_QUIT);
-
-				TranslateMessage(&message);
-				DispatchMessage(&message);
-			}
-			*/
-
 			while (PeekMessage(&message, NULL, 0, 0, PM_REMOVE) > 0)
 			{
 				quit |= (message.message == WM_QUIT);
@@ -202,7 +169,17 @@ namespace ion
 			return !quit;
 		}
 
-		bool WindowWin32::Resize(u32 clientAreaWidth, u32 clientAreaHeight)
+		u32 WindowWin32::GetDesktopWidth() const
+		{
+			return GetSystemMetrics(SM_CXSCREEN);
+		}
+
+		u32 WindowWin32::GetDesktopHeight() const
+		{
+			return GetSystemMetrics(SM_CYSCREEN);
+		}
+
+		bool WindowWin32::Resize(u32 clientAreaWidth, u32 clientAreaHeight, bool adjustForTitle)
 		{
 			//Set new client area size
 			m_clientAreaWidth = clientAreaWidth;
@@ -214,7 +191,10 @@ namespace ion
 			windowRect.bottom = (long)clientAreaHeight;
 
 			//Adjust rect to account for window border
-			AdjustWindowRectEx(&windowRect, m_windowStyle, FALSE, m_windowStyleEx);
+			if (adjustForTitle)
+			{
+				AdjustWindowRectEx(&windowRect, m_windowStyle, FALSE, m_windowStyleEx);
+			}
 
 			m_windowWidth = windowRect.right - windowRect.left;
 			m_windowHeight = windowRect.bottom - windowRect.top;
@@ -230,8 +210,46 @@ namespace ion
 			return SetWindowPos(m_windowHandle, NULL, x, y, m_windowWidth, m_windowHeight, SWP_NOCOPYBITS) != 0;
 		}
 
-		void WindowWin32::SetFullscreen(bool fullscreen)
+		bool WindowWin32::SetFullscreen(bool fullscreen)
 		{
+			if (fullscreen)
+			{
+				//Turn off window region without redraw
+				SetWindowRgn(m_windowHandle, 0, false);
+
+				//Get current window settings
+				DEVMODE deviceMode;
+				EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &deviceMode);
+
+				//Not changing anything else 
+				deviceMode.dmFields = 0;
+
+				if (ChangeDisplaySettings(&deviceMode, CDS_FULLSCREEN) == DISP_CHANGE_SUCCESSFUL)
+				{
+					//Switch off the title bar
+					DWORD style = GetWindowLong(m_windowHandle, GWL_STYLE);
+					style &= ~WS_CAPTION;
+					SetWindowLong(m_windowHandle, GWL_STYLE, style);
+
+					//Move the window to (0,0)
+					SetWindowPos(m_windowHandle, 0, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+					InvalidateRect(m_windowHandle, 0, true);
+
+					//Set new client area without titlebar
+					m_clientAreaWidth = m_windowWidth;
+					m_clientAreaHeight = m_windowHeight;
+
+					m_fullscreen = true;
+
+					return true;
+				}
+			}
+			else
+			{
+				debug::Error("NOT IMPLEMENTED");
+			}
+
+			return false;
 		}
 
 		void WindowWin32::SetTitle(const std::string& title)

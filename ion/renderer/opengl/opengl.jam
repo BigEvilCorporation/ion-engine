@@ -4,6 +4,8 @@ ApplyIonCompiler opengl ;
 ApplyIonDefines opengl ;
 ApplyIonIncludes opengl ;
 ApplyOpenGLSDK opengl ;
+ApplySDL2SDK opengl : render ;
+ApplySDLImageSDK opengl ;
 
 local SRC =
 	RendererOpenGL.cpp

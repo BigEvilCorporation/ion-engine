@@ -138,7 +138,7 @@ namespace ion
 				}
 				
 				//Load image to OpenGL texture
-				Load(m_width, m_height, format, eRGBA_DXT5, BitsPerPixel(sdlSurface->format->BytesPerPixel * 8), true, (const u8*)sdlSurface->pixels);
+				Load(m_width, m_height, format, format, BitsPerPixel(sdlSurface->format->BytesPerPixel * 8), true, false, (const u8*)sdlSurface->pixels);
 
 				//Free SDL surface
 				SDL_FreeSurface(sdlSurface);
@@ -146,6 +146,12 @@ namespace ion
 #endif
 
 			return m_glTextureId != 0;
+		}
+
+		bool TextureOpenGL::Load(const std::string& filename)
+		{
+			SetImageFilename(filename);
+			return Load();
 		}
 
 		bool TextureOpenGL::Load(u32 width, u32 height, Format sourceFormat, Format destFormat, BitsPerPixel bitsPerPixel, bool generateMipmaps, bool generatePixelBuffer, const u8* data)

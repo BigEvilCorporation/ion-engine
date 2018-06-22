@@ -1,5 +1,7 @@
 SubDir bigevilcorp ion tools buildresource ;
 
+ion_renderer_opts = shader ;
+
 ApplyIonDefines buildresource ;
 ApplyIonIncludes buildresource ;
 ApplyIonCore buildresource ;
