@@ -59,7 +59,21 @@ namespace ion
 			return true;
 		}
 
-		bool WindowLinux::Resize(u32 clientAreaWidth, u32 clientAreaHeight)
+		u32 WindowLinux::GetDesktopWidth() const
+		{
+			SDL_DisplayMode displayMode;
+			SDL_GetDesktopDisplayMode(0, &displayMode);
+			return displayMode.w;
+		}
+
+		u32 WindowLinux::GetDesktopHeight() const
+		{
+			SDL_DisplayMode displayMode;
+			SDL_GetDesktopDisplayMode(0, &displayMode);
+			return displayMode.h;
+		}
+
+		bool WindowLinux::Resize(u32 clientAreaWidth, u32 clientAreaHeight, bool adjustForTitle)
 		{
 			//Set new client area size
 			m_clientAreaWidth = clientAreaWidth;
@@ -68,11 +82,15 @@ namespace ion
 			m_windowWidth = clientAreaWidth;
 			m_windowHeight = clientAreaHeight;
 
+
+			SDL_SetWindowSize(m_windowHandle, clientAreaWidth, clientAreaHeight);
+
 			return true;
 		}
 
-		void WindowLinux::SetFullscreen(bool fullscreen)
+		bool WindowLinux::SetFullscreen(bool fullscreen)
 		{
+			return SDL_SetWindowFullscreen(m_windowHandle, fullscreen ? SDL_WINDOW_FULLSCREEN : 0) == 0;
 		}
 
 		void WindowLinux::SetTitle(const std::string& title)

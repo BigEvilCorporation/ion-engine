@@ -31,7 +31,11 @@
 #endif
 
 #if defined ION_RENDER_SUPPORTS_SDLIMAGE
+#if defined ION_PLATFORM_WINDOWS
 #include <SDLImage/SDL_image.h>
+#elif defined ION_PLATFORM_LINUX
+#include <SDL/SDL_image.h>
+#endif
 #endif
 
 namespace ion
