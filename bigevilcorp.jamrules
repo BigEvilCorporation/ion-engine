@@ -789,6 +789,15 @@ rule ApplySDLImageSDK TARGET : OPTIONS
 
 		ApplyPNGSDK $(TARGET) ;
 	}
+
+	if ( linux64 in $(PLATFORM) )
+	{
+		local SDL_LIBS =
+			SDL2_image 
+			;
+
+		C.LinkPrebuiltLibraries $(TARGET) : $(SDL_LIBS) ;
+	}
 }
 
 rule ApplyCgSDK TARGET
