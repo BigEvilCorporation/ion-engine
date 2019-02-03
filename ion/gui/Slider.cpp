@@ -7,54 +7,72 @@
 
 #include "Slider.h"
 
+#include <ion/dependencies/imgui/imgui.h>
+
 namespace ion
 {
 	namespace gui
 	{
-		Event Slider::sOnValueChangedEvent;
-
-		Slider::Slider(Scheme& scheme, float max, float default, float step)
-			: Widget(scheme, Widget::Slider)
+		Slider::Slider(const std::string& text, float min, float max, float defaultValue, float step, std::function<void(const Slider&, float)> const& onChanged)
+			: m_onChanged(onChanged)
+			, m_text(text)
+			, m_min(min)
+			, m_max(max)
+			, m_step(step)
+			, m_value(defaultValue)
 		{
-			SetOrientation(Horizontal);
-			SetRange(max, step);
-			SetValue(default);
-			mCEWidget->subscribeEvent(CEGUI::Slider::EventValueChanged, CEGUI::Event::Subscriber(&Slider::OnValueChanged, this));
+
 		}
+
+		//Slider::Slider(const std::string& text, float min, int max, int defaultValue, int step)
+		//	: m_text(text)
+		//	, m_min(min)
+		//	, m_max(max)
+		//	, m_step(step)
+		//	, m_value(defaultValue)
+		//{
+
+		//}
 
 		Slider::~Slider()
 		{
 		}
 
-		void Slider::SetOrientation(Orientation orientation)
+		void Slider::SetRange(float min, float max, float step)
 		{
-			//Not yet supported by CEGUI :(
-		}
-
-		void Slider::SetRange(float max, float step)
-		{
-			((CEGUI::Slider*)mCEWidget)->setMaxValue(max);
-			((CEGUI::Slider*)mCEWidget)->setClickStep(step);
+			m_min = min;
+			m_max = max;
+			m_step = step;
 		}
 
 		void Slider::SetValue(float value)
 		{
-			((CEGUI::Slider*)mCEWidget)->setCurrentValue(value);
+			m_value = value;
 		}
 
-		float Slider::GetValue()
+		float Slider::GetValue() const
 		{
-			return ((CEGUI::Slider*)mCEWidget)->getCurrentValue();
+			return m_value;
 		}
 
-		bool Slider::OnValueChanged(const CEGUI::EventArgs& args)
+		void Slider::Update(float deltaTime)
 		{
-			Params params(((CEGUI::Slider*)mCEWidget)->getCurrentValue());
-			params.mWidget = this;
+			if (m_visible)
+			{
+				if (m_arrangement == Arrangement::Horizontal)
+				{
+					ImGui::SameLine();
+				}
 
-			sOnValueChangedEvent.Post(params);
+				float prevValue = m_value;
 
-			return true;
+				ImGui::SliderFloat(m_text.c_str(), &m_value, m_min, m_max, "%.2f", 1.0f);
+
+				if (prevValue != m_value)
+				{
+					m_onChanged(*this, m_value);
+				}
+			}
 		}
 	}
 }

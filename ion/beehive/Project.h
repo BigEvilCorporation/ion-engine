@@ -58,6 +58,14 @@ public:
 		eBMPImportNoDuplicateTileCheck	= (1 << 10),
 	};
 
+	enum class ExportFormat
+	{
+		Text,
+		Binary,
+		BinaryCompressed,
+		Beehive
+	};
+
 	Project(PlatformConfig& defaultPatformConfig);
 
 	//Load/save project
@@ -126,7 +134,7 @@ public:
 	const Palette* GetPaletteSlot(int slotIndex) const;
 	int GetNumPaletteSlots() const;
 	void SetActivePaletteSlot(PaletteId paletteId, int slotIndex);
-	void ExportPaletteSlots(const std::string& filename);
+	void ExportPaletteSlots(const std::string& filename, ExportFormat format);
 	void ImportPaletteSlots(const std::string& filename);
 	void SetBackgroundColour(u8 colourIdx);
 	void SwapPaletteEntries(u8 colourA, u8 colourB);
@@ -147,7 +155,7 @@ public:
 	const TActorMap::const_iterator ActorsBegin() const;
 	const TActorMap::const_iterator ActorsEnd() const;
 	int GetActorCount() const;
-	bool ExportActors(const std::string& filename);
+	bool ExportActors(const std::string& filename, ExportFormat format);
 	bool ImportActors(const std::string& filename);
 
 	//Animations
@@ -193,7 +201,7 @@ public:
 	GameObjectType* GetGameObjectType(GameObjectTypeId typeId);
 	const GameObjectType* GetGameObjectType(GameObjectTypeId typeId) const;
 	const TGameObjectTypeMap& GetGameObjectTypes() const;
-	bool ExportGameObjectTypes(const std::string& filename);
+	bool ExportGameObjectTypes(const std::string& filename, ExportFormat format, bool minimal);
 	bool ImportGameObjectTypes(const std::string& filename);
 
 	//Set current colour used for editing
@@ -259,25 +267,27 @@ public:
 	bool ImportBitmap(const std::string& filename, u32 importFlags, u32 paletteBits, Stamp* stamp = NULL);
 
 	//Export
-	bool ExportPalettes(const std::string& filename) const;
-	bool ExportTiles(const std::string& filename, bool binary, bool compressed) const;
-	bool ExportStampAnims(const std::string& filename, bool binary) const;
-	bool ExportTerrainTiles(const std::string& filename, bool binary) const;
-	bool ExportSpriteSheets(const std::string& directory, bool binary);
-	bool ExportSpriteAnims(const std::string& directory, bool binary) const;
+	bool ExportPalettes(const std::string& filename, ExportFormat format);
+	bool ExportTiles(const std::string& filename, ExportFormat format);
+	bool ExportStampAnims(const std::string& filename, ExportFormat format) const;
+	bool ExportTerrainTiles(const std::string& filename, ExportFormat format);
+	bool ExportSpriteSheets(const std::string& directory, ExportFormat format);
+	bool ExportSpriteAnims(const std::string& directory, ExportFormat format) const;
 	bool ExportSpritePalettes(const std::string& directory) const;
 	bool ExportMapBitmaps(const std::string& directory) const;
 	bool ExportStampBitmaps(const std::string& directory) const;
 
-	bool ExportMap(MapId mapId, const std::string& filename, bool binary) const;
-	bool ExportBlocks(const std::string& filename, bool binary, int blockWidth, int blockHeight);
-	bool ExportBlockMap(MapId mapId, const std::string& filename, bool binary, int blockWidth, int blockHeight) const;
-	bool ExportStamps(const std::string& filename, bool binary) const;
-	bool ExportStampMap(MapId mapId, const std::string& filename, bool binary) const;
-	bool ExportCollisionMap(MapId mapId, const std::string& filename, bool binary) const;
-	bool ExportTerrainBlocks(const std::string& filename, bool binary, int blockWidth, int blockHeight);
-	bool ExportTerrainBlockMap(MapId mapId, const std::string& filename, bool binary, int blockWidth, int blockHeight);
-	bool ExportGameObjects(MapId mapId, const std::string& filename) const;
+	bool ExportMap(MapId mapId, const std::string& filename, ExportFormat format) const;
+	bool ExportBlocks(const std::string& filename, ExportFormat format, int blockWidth, int blockHeight);
+	bool ExportBlockMap(MapId mapId, const std::string& filename, ExportFormat format, int blockWidth, int blockHeight) const;
+	bool ExportStamps(const std::string& filename, ExportFormat format);
+	bool ExportStampMap(MapId mapId, const std::string& filename, ExportFormat format);
+	bool ExportCollisionMap(MapId mapId, const std::string& filename, ExportFormat format);
+	bool ExportTerrainBlocks(const std::string& filename, ExportFormat format, int blockWidth, int blockHeight);
+	bool ExportTerrainBlockMap(MapId mapId, const std::string& filename, ExportFormat format, int blockWidth, int blockHeight);
+	bool ExportTerrainAngles(const std::string& filename, ExportFormat format);
+	bool ExportSceneAnimations(MapId mapId, const std::string& filename, ExportFormat format);
+	bool ExportGameObjects(MapId mapId, const std::string& filename, ExportFormat format);
 
 	//Serialise
 	void Serialise(ion::io::Archive& archive);
@@ -292,6 +302,8 @@ public:
 		std::string stampAnims;
 		std::string terrainTiles;
 		std::string terrainBlocks;
+		std::string terrainAngles;
+		std::string gameObjTypes;
 		std::string spriteSheets;
 		std::string spriteAnims;
 		std::string spritePalettes;
@@ -303,11 +315,13 @@ public:
 		bool stampAnimsExportEnabled = false;
 		bool terrainTilesExportEnabled = false;
 		bool terrainBlockExportEnabled = false;
+		bool terrainAngleExportEnabled = false;
+		bool gameObjTypesExportEnabled = false;
 		bool spriteSheetsExportEnabled = false;
 		bool spriteAnimsExportEnabled = false;
 		bool spritePalettesExportEnabled = false;
 
-		bool exportBinary = false;
+		ExportFormat exportFormat = ExportFormat::BinaryCompressed;
 		bool exportCompressed = true;
 
 		void Serialise(ion::io::Archive& archive)
@@ -319,11 +333,12 @@ public:
 			archive.Serialise(stampAnimsExportEnabled, "stampAnimsExportEnabled");
 			archive.Serialise(terrainTilesExportEnabled, "terrainTilesExportEnabled");
 			archive.Serialise(terrainBlockExportEnabled, "terrainBlockExportEnabled");
+			archive.Serialise(terrainAngleExportEnabled, "terrainAngleExportEnabled");
+			archive.Serialise(gameObjTypesExportEnabled, "gameObjTypesExportEnabled");
 			archive.Serialise(spriteSheetsExportEnabled, "spriteSheetsExportEnabled");
 			archive.Serialise(spriteAnimsExportEnabled, "spriteAnimsExportEnabled");
 			archive.Serialise(spritePalettesExportEnabled, "spritePalettesExportEnabled");
-			archive.Serialise(exportBinary, "exportBinary");
-			archive.Serialise(exportCompressed, "exportCompressed");
+			archive.Serialise((int&)exportFormat, "exportFormat");
 
 			archive.Serialise(palettes, "exportFNamePalettes");
 			archive.Serialise(tileset, "exportFNameTileset");
@@ -332,6 +347,8 @@ public:
 			archive.Serialise(stampAnims, "exportFNameStampAnims");
 			archive.Serialise(terrainTiles, "exportFNameTerrainTiles");
 			archive.Serialise(terrainBlocks, "exportFNameTerrainBlocks");
+			archive.Serialise(terrainAngles, "exportFNameTerrainAngles");
+			archive.Serialise(gameObjTypes, "exportFNameGameObjTypes");
 			archive.Serialise(spriteSheets, "exportDirSpriteSheets");
 			archive.Serialise(spriteAnims, "exportDirSpriteAnims");
 			archive.Serialise(spritePalettes, "exportDirSpritePalettes");

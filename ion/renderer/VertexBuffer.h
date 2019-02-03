@@ -30,14 +30,14 @@ namespace ion
 		public:
 			enum Pattern { eLines, eLineStrip, eTriangles, eQuads };
 			enum ElementType { ePosition, eNormal, eColour, eTexCoord, eElementCount };
-			enum DataType { eByte, eFloat, eDataTypeCount };
+			enum DataType { eByte, eShort, eInt, eFloat, eDataTypeCount };
 			enum Preset { eNone, eDefault };
 
 			struct Element
 			{
 				ElementType elementType;
 				DataType dataType;
-				int size;
+				int numComponents;
 			};
 
 			VertexBuffer(Pattern pattern, Preset preset = eDefault);
@@ -46,12 +46,13 @@ namespace ion
 
 			//Builds layout
 			void SetLayout(const std::vector<Element>& layout);
-			void AddLayoutElement(ElementType elementType, DataType dataType, int size);
+			void AddLayoutElement(ElementType elementType, DataType dataType, int numComponents);
 
 			//Builds buffer
 			void Reserve(int size);
 			void AddVertex(const Vector3& position, const Vector3& normal, const Colour& colour, const TexCoord& texCoord);
 			void SetVertex(int vertexIdx, const Vector3& position, const Vector3& normal, const Colour& colour, const TexCoord& texCoord);
+			void SetColour(int vertexIdx, const Colour& colour);
 			void AddFace(const Face& face);
 
 			//Lock/unlock
@@ -67,12 +68,17 @@ namespace ion
 			const void* GetStartAddress(ElementType elementType) const;
 			int GetElementSize(ElementType elementType) const;
 			int GetElementByteOffset(ElementType elementType) const;
+			int GetElementNumComponents(ElementType elementType) const;
+			DataType GetDataType(ElementType elementType) const;
 			Vertex GetPosition(int index) const;
 
 			//Get metrics
 			Pattern GetPattern() const { return m_pattern; }
 			int GetNumVerts() const { return m_numVertices; }
 			int GetStrideBytes() const;
+
+			//Get raw data
+			std::vector<u8>& GetData() { return m_buffer; }
 
 			//Clear vertices
 			void ClearVertices();
@@ -89,6 +95,7 @@ namespace ion
 				DataType dataType;
 				int size = 0;
 				int stride = 0;
+				int numComponents = 0;
 			};
 
 			//Layout

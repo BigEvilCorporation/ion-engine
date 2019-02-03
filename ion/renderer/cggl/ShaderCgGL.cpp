@@ -37,6 +37,8 @@ namespace ion
 
 		ShaderManagerCgGL::ShaderManagerCgGL()
 		{
+			OpenGLContextStackLock lock;
+
 			if(!sContextRefCount)
 			{
 				//Set error handler
@@ -64,6 +66,8 @@ namespace ion
 
 		ShaderManagerCgGL::~ShaderManagerCgGL()
 		{
+			OpenGLContextStackLock lock;
+
 			sContextRefCount--;
 
 			if(!sContextRefCount)
@@ -99,92 +103,74 @@ namespace ion
 		{
 			m_cgProgram = 0;
 			m_cgProgramLoaded = false;
+			m_bindCount = 0;
 		}
 
 		ShaderCgGL::~ShaderCgGL()
 		{
+			OpenGLContextStackLock lock;
+
 			if(m_cgProgram)
 			{
 				cgDestroyProgram(m_cgProgram);
 			}
 		}
 
-		bool ShaderCgGL::Load(const std::string& filename)
+		bool ShaderCgGL::Compile()
 		{
-			//Open shader file
-			io::File shaderFile(filename, io::File::eOpenRead);
-			if(shaderFile.IsOpen())
-			{
-				//Serialise
-				io::Archive archiveIn(shaderFile, io::Archive::eIn, NULL);
-				archiveIn.Serialise(*this);
+			OpenGLContextStackLock lock;
 
-				//Done with shader file
-				shaderFile.Close();
+			CGprofile cgProfile;
+			if(m_programType == eVertex)
+				cgProfile = ShaderManagerCgGL::sCgProfileVertex;
+			else if(m_programType == eFragment)
+				cgProfile = ShaderManagerCgGL::sCgProfilePixel;
 
-				//Load program file
-				std::string shaderDirectory = filename.substr(0, filename.find_first_of('/'));
-				std::string programFilename = shaderDirectory + "/programs/cg/" + m_programFilename;
-				io::File programFile(programFilename, io::File::eOpenRead);
+			//Compile program
+			m_cgProgram = cgCreateProgram(ShaderManagerCgGL::sCgContext, CG_SOURCE, m_programCode.c_str(), cgProfile, m_entryPoint.c_str(), NULL);
 
-				if(programFile.IsOpen())
-				{
-					//Load file contents
-					u64 fileSize = programFile.GetSize();
-					char* programText = new char[(int)fileSize + 1];
-					programFile.Read(programText, fileSize);
-					programText[fileSize] = 0;
-
-					//Done with file
-					programFile.Close();
-
-					CGprofile cgProfile;
-					if(m_programType == eVertex)
-						cgProfile = ShaderManagerCgGL::sCgProfileVertex;
-					else if(m_programType == eFragment)
-						cgProfile = ShaderManagerCgGL::sCgProfilePixel;
-
-					//Compile program
-					m_cgProgram = cgCreateProgram(ShaderManagerCgGL::sCgContext, CG_SOURCE, programText, cgProfile, m_entryPoint.c_str(), NULL);
-
-					//Done with file text
-					delete programText;
-
-					return true;
-				}
-			}
-
-			return false;
+			return m_cgProgram != 0;
 		}
 
 		void ShaderCgGL::Bind()
 		{
-			CGprofile cgProfile;
-			if(m_programType == eVertex)
-				cgProfile = ShaderManagerCgGL::sCgProfileVertex;
-			else if(m_programType == eFragment)
-				cgProfile = ShaderManagerCgGL::sCgProfilePixel;
-
-			if(!m_cgProgramLoaded)
+			if (m_bindCount == 0)
 			{
-				cgGLLoadProgram(m_cgProgram);
-				m_cgProgramLoaded = true;
+				CGprofile cgProfile;
+				if (m_programType == eVertex)
+					cgProfile = ShaderManagerCgGL::sCgProfileVertex;
+				else if (m_programType == eFragment)
+					cgProfile = ShaderManagerCgGL::sCgProfilePixel;
+
+				if (!m_cgProgramLoaded)
+				{
+					cgGLLoadProgram(m_cgProgram);
+					m_cgProgramLoaded = true;
+				}
+
+				cgGLEnableProfile(cgProfile);
+				cgGLBindProgram(m_cgProgram);
 			}
 
-			cgGLEnableProfile(cgProfile);
-			cgGLBindProgram(m_cgProgram);
+			m_bindCount++;
 		}
 
 		void ShaderCgGL::Unbind()
 		{
-			CGprofile cgProfile;
-			if(m_programType == eVertex)
-				cgProfile = ShaderManagerCgGL::sCgProfileVertex;
-			else if(m_programType == eFragment)
-				cgProfile = ShaderManagerCgGL::sCgProfilePixel;
+			m_bindCount--;
+			ion::debug::Assert(m_bindCount >= 0, "ShaderCgGL::Unbind() - Negative bind count");
 
-			cgGLUnbindProgram(cgProfile);
-			cgGLDisableProfile(cgProfile);
+			if (m_bindCount == 0)
+			{
+				CGprofile cgProfile;
+				if (m_programType == eVertex)
+					cgProfile = ShaderManagerCgGL::sCgProfileVertex;
+				else if (m_programType == eFragment)
+					cgProfile = ShaderManagerCgGL::sCgProfilePixel;
+
+				cgGLUnbindProgram(cgProfile);
+				cgGLDisableProfile(cgProfile);
+			}
 		}
 
 		Shader::ShaderParamDelegate* ShaderCgGL::CreateShaderParamDelegate(const std::string& paramName)
@@ -238,6 +224,16 @@ namespace ion
 		void ShaderCgGL::ShaderParamDelegateCg::Set(const Texture& value)
 		{
 			cgGLSetTextureParameter(m_cgParam, ((TextureOpenGL&)value).GetTextureId());
+		}
+
+		void ShaderCgGL::ShaderParamDelegateCg::Set(const std::vector<float>& values)
+		{
+			cgGLSetParameterArray1f(m_cgParam, 0, values.size(), values.data());
+		}
+
+		void ShaderCgGL::ShaderParamDelegateCg::Set(const std::vector<Colour>& values)
+		{
+			cgGLSetParameterArray4f(m_cgParam, 0, values.size(), (float*)values.data());
 		}
 	}
 }

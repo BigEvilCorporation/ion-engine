@@ -29,11 +29,15 @@ namespace ion
 		const int S32_MAX = 2147483647;
 
 		int Round(float x);
+		int Wrap(int value, int divisor);
+		int NextPowerOfTwo(int x);
+
 		float RoundToNearest(float value, int nearest);
 		float RoundUpToNearest(float value, int nearest);
 		float RoundDownToNearest(float value, int nearest);
-		int NextPowerOfTwo(int x);
+		
 		float Sqrt(float value);
+		float Pow(float value, float power);
 		float Floor(float value);
 		float Ceil(float value);
 		float Clamp(float value, float min, float max);
@@ -45,6 +49,8 @@ namespace ion
 		template <typename T> T Min(const T& a, const T& b);
 		template <typename T> T Max(const T& a, const T& b);
 
+		template <typename T> T Square(const T& value);
+
 		float Cos(float value);
 		float Sin(float value);
 		float Tan(float value);
@@ -52,6 +58,8 @@ namespace ion
 		float Asin(float value);
 		float Atan(float value);
 		float Atan2(float y, float x);
+
+		bool IsZero(float value);
 
 		int RandInt();
 		float RandFloat();
@@ -70,6 +78,11 @@ namespace ion
 		template <typename T> T Max(const T& a, const T& b)
 		{
 			return a > b ? a : b;
+		}
+
+		template <typename T> T Square(const T& value)
+		{
+			return value * value;
 		}
 	}
 }

@@ -14,6 +14,7 @@
 
 #pragma once
 
+#include <core/Platform.h>
 #include <vector>
 #include <string>
 
@@ -40,25 +41,38 @@ namespace ion
 
 			FileDevice(std::string label, std::string mountPoint, DeviceType deviceType, AccessType accessType);
 
+			bool GetFileExists(const std::string& filename) const;
+			bool GetDirectoryExists(const std::string& directory) const;
+
 			DeviceType GetDeviceType() const;
 			AccessType GetAccessType() const;
 			const std::string& GetLabel() const;
 			const std::string& GetMountPoint() const;
+			char GetPathSeparator() const;
 
 			void SetDirectory(std::string directory);
 			const std::string& GetDirectory() const;
-
+			void CreateDirectory(const std::string path);
 			void ReadDirectory(std::string directory, std::vector<DirectoryItem>& directoryListing);
 
-		private:
-			std::string NormalisePath(std::string path);
+			bool Copyfile(const std::string& source, const std::string destination);
+			bool DeleteFile(const std::string& path);
 
+			std::string NormalisePath(std::string path) const;
+			void TokenisePath(std::string path, std::vector<std::string>& tokens) const;
+
+			static FileDevice* GetDefault();
+			static void SetDefault(FileDevice* device);
+
+		private:
 			const std::string m_label;
 			const std::string m_mountPoint;
 			const DeviceType m_deviceType;
 			const AccessType m_accessType;
 
 			std::string m_currentDirectory;
+
+			static FileDevice* s_defaultDevice;
 		};
 	}
 }

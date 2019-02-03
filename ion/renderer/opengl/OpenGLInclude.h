@@ -26,8 +26,8 @@
 #include <OpenGL/gl.h>
 #include <OpenGL/glu.h>
 #include <OpenGL/glext.h>
-#include <SDL.h>
-#include <SDL_OpenGL.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_OpenGL.h>
 #elif defined ION_PLATFORM_LINUX
 #include <GL/gl.h>
 #include <GL/glu.h>

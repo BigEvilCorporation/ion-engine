@@ -19,6 +19,7 @@
 
 //Includes for ion types handled directly by Archive
 #include "core/Types.h"
+#include "core/containers/FixedArray.h"
 #include "maths/Maths.h"
 
 //Includes STL types handled directly by Archive
@@ -41,7 +42,8 @@ namespace ion
 		class Archive
 		{
 		public:
-			enum Direction { eIn, eOut };
+			enum class Direction { In, Out };
+			enum class Content { Full, Minimal };
 
 			struct Tag
 			{
@@ -57,6 +59,9 @@ namespace ion
 			};
 
 			Archive(Stream& stream, Direction direction, ResourceManager* resourceManager = NULL, u32 version = 0);
+
+			void SetContentType(Content content);
+			Content GetContentType() const;
 
 			//Default named block serialise
 			template <typename T> void Serialise(T& object, const Tag& tag);
@@ -117,6 +122,9 @@ namespace ion
 
 			template <typename T> void SerialisePODVector(std::vector<T>& data);
 
+			//Serialise ion containers
+			template <typename T, int SIZE> void Serialise(FixedArray<T, SIZE>& objects);
+
 			//Serialise STL string
 			void Serialise(std::string& string);
 
@@ -127,6 +135,8 @@ namespace ion
 			template <typename T> void Serialise(std::list<T>& objects);
 			template <typename KEY, typename T> void Serialise(std::map<KEY, T>& objects);
 
+		private:
+
 			//i/o stream
 			Stream& m_stream;
 
@@ -135,6 +145,9 @@ namespace ion
 
 			//Serialise direction
 			Direction m_direction;
+
+			//Content type
+			Content m_contentType;
 
 			//Resource manager
 			ResourceManager* m_resourceManager;
@@ -265,7 +278,7 @@ namespace ion
 			bool nullPtr = (object == NULL);
 			Serialise(nullPtr, "nullPtr");
 
-			if(GetDirection() == eIn)
+			if(GetDirection() == Direction::In)
 			{
 				if(nullPtr)
 				{
@@ -317,7 +330,7 @@ namespace ion
 
 			if(validResource)
 			{
-				if(GetDirection() == Archive::eIn)
+				if(GetDirection() == Archive::Direction::In)
 				{
 					debug::Assert(m_resourceManager != NULL, "No ResourceManager, cannot serialise in Resources with this archive");
 
@@ -350,9 +363,40 @@ namespace ion
 		//	Serialise(std::get<2>(tuple), "t3");
 		//}
 
+		template <typename T, int SIZE> void Archive::Serialise(FixedArray<T, SIZE>& objects)
+		{
+			if (GetDirection() == Direction::In)
+			{
+				//Serialise size
+				int numObjects = 0;
+				Serialise(numObjects, "count");
+
+				//Sanity check
+				debug::Assert(numObjects == SIZE, "Archive::Serialise(FixedArray<T, SIZE>&) - Array size changed");
+
+				//Serialise all objects
+				for (int i = 0; i < numObjects; i++)
+				{
+					Serialise(objects[i], "object");
+				}
+			}
+			else
+			{
+				//Serialise out num objects
+				int numObjects = SIZE;
+				Serialise(numObjects, "count");
+
+				//Serialise all objects out
+				for (int i = 0; i < numObjects; i++)
+				{
+					Serialise(objects[i], "object");
+				}
+			}
+		}
+
 		template <typename T> void Archive::Serialise(std::vector<T>& objects)
 		{
-			if(GetDirection() == eIn)
+			if(GetDirection() == Direction::In)
 			{
 				//Serialise in num objects
 				int numObjects = 0;
@@ -384,7 +428,7 @@ namespace ion
 
 		template <typename T> void Archive::SerialisePODVector(std::vector<T>& data)
 		{
-			if(GetDirection() == eIn)
+			if(GetDirection() == Direction::In)
 			{
 				//Serialise in num objects
 				int numObjects = 0;
@@ -392,14 +436,13 @@ namespace ion
 
 				//Clear and reserve vector
 				data.clear();
-				data.resize(numObjects);
 
 				//Serialise data
-				Serialise(&data[0], sizeof(T) * numObjects);
-				//for(int i = 0; i < numObjects; i++)
-				//{
-				//	Serialise(data[i], "object");
-				//}
+				if (numObjects > 0)
+				{
+					data.resize(numObjects);
+					Serialise(&data[0], sizeof(T) * numObjects);
+				}
 			}
 			else
 			{
@@ -408,17 +451,23 @@ namespace ion
 				Serialise(numObjects, "count");
 
 				//Serialise data
-				Serialise(&data[0], sizeof(T) * numObjects);
+				if (numObjects > 0)
+				{
+					Serialise(&data[0], sizeof(T) * numObjects);
+				}
 			}
 		}
 
 		template <typename T> void Archive::Serialise(std::list<T>& objects)
 		{
-			if(GetDirection() == eIn)
+			if(GetDirection() == Direction::In)
 			{
 				//Serialise in num objects
 				int numObjects = 0;
 				Serialise(numObjects, "count");
+
+				//Clear list
+				objects.clear();
 
 				//Serialise all objects and add to list
 				for(int i = 0; i < numObjects; i++)
@@ -444,7 +493,7 @@ namespace ion
 
 		template <typename KEY, typename T> void Archive::Serialise(std::map<KEY, T>& objects)
 		{
-			if(GetDirection() == eIn)
+			if(GetDirection() == Direction::In)
 			{
 				//Serialise in num objects
 				int numObjects = 0;
@@ -460,12 +509,11 @@ namespace ion
 					KEY key;
 					Serialise(key, "key");
 
-					//Serialise object
-					T object;
-					Serialise(object, "object");
-
 					//Add to map
-					objects.insert(std::pair<KEY, T>(key, object));
+					auto it = objects.insert(std::make_pair(key, T()));
+
+					//Serialise object
+					Serialise(it.first->second, "object");
 				}
 			}
 			else

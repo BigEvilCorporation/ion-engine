@@ -8,7 +8,9 @@
 */
 
 #include "io/File.h"
+#include "io/FileDevice.h"
 #include "core/debug/Debug.h"
+#include "core/Platform.h"
 #include "core/memory/Memory.h"
 #include <algorithm>
 
@@ -34,6 +36,7 @@ namespace ion
 			m_readBufferStart = 0;
 			m_readBufferEnd = 0;
 			m_open = false;
+			m_readBuffer = nullptr;
 		}
 
 		File::File(const std::string& filename, File::OpenMode openMode)
@@ -44,6 +47,7 @@ namespace ion
 			m_readBufferStart = 0;
 			m_readBufferEnd = 0;
 			m_open = false;
+			m_readBuffer = nullptr;
 
 			Open(filename, openMode);
 		}
@@ -56,14 +60,29 @@ namespace ion
 
 		bool File::Open(const std::string& filename, File::OpenMode openMode)
 		{
+			std::string fullPath = filename;
+
+			//If we have a default file device, prepend mount point
+			if (FileDevice* device = FileDevice::GetDefault())
+			{
+				fullPath = device->GetMountPoint() + device->GetPathSeparator() + filename;
+			}
+
 			std::ios::openmode mode = std::ios::binary;
 
-			if(openMode == eOpenRead)
+			if (openMode == eOpenRead)
+			{
 				mode |= std::ios::in;
-			else if(openMode == eOpenWrite)
-				mode |= std::ios::out;
 
-			m_stream.open(filename.c_str(), mode);
+				//Create buffer
+				m_readBuffer = new u8[s_bufferSize];
+			}
+			else if (openMode == eOpenWrite)
+			{
+				mode |= std::ios::out;
+			}
+
+			m_stream.open(fullPath.c_str(), mode);
 			m_open = m_stream.is_open();
 			m_openMode = openMode;
 			m_filename = filename;
@@ -85,6 +104,12 @@ namespace ion
 			{
 				m_stream.close();
 				m_open = false;
+
+				if (m_readBuffer)
+				{
+					delete m_readBuffer;
+					m_readBuffer = nullptr;
+				}
 			}
 		}
 
@@ -119,9 +144,8 @@ namespace ion
 				{
 					m_stream.seekg(position, direction);
 
-#if !defined _RELEASE
-					s64 currPos = (s64)m_stream.tellg();
-					debug::Assert(m_currentPosition == currPos, "File::Seek() - Seek failed");
+#if defined DEBUG
+					debug::Assert(m_currentPosition == m_stream.tellg(), "File::Seek() - Seek failed");
 #endif
 				}
 			}
@@ -141,7 +165,9 @@ namespace ion
 				{
 					//Read size too big for buffer, read directly
 					m_stream.seekg(m_currentPosition, std::ios::beg);
+#if defined DEBUG
 					debug::Assert(m_currentPosition == m_stream.tellg(), "File::Read() - Seek error");
+#endif
 					m_stream.read((char*)data, size);
 
 					//If EOF, reset error state
@@ -228,8 +254,6 @@ namespace ion
 			m_stream.seekg(position, std::ios::beg);
 
 #if defined DEBUG
-			//Sanity check
-			int pos = m_stream.tellg();
 			debug::Assert(m_currentPosition == m_stream.tellg(), "File::FillBuffer() - Seek error");
 #endif
 

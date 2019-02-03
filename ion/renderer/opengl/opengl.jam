@@ -4,10 +4,10 @@ ApplyIonCompiler opengl ;
 ApplyIonDefines opengl ;
 ApplyIonIncludes opengl ;
 ApplyOpenGLSDK opengl ;
-ApplySDL2SDK opengl : render ;
-ApplySDLImageSDK opengl ;
 
 local SRC =
+	FrameBufferOpenGL.cpp
+	FrameBufferOpenGL.h
 	RendererOpenGL.cpp
 	RendererOpenGL.h
 	TextureOpenGL.cpp
@@ -23,6 +23,9 @@ if ( win32 in $(PLATFORM) )
 	../win32/WindowWin32.cpp
 	../win32/WindowWin32.h
 	;
+
+	ApplySDL2SDK opengl : render ;
+	ApplySDL2ImageSDK opengl ;
 }
 
 if ( win64 in $(PLATFORM) )
@@ -31,6 +34,9 @@ if ( win64 in $(PLATFORM) )
 	../win32/WindowWin32.cpp
 	../win32/WindowWin32.h
 	;
+
+	ApplySDL2SDK opengl : render ;
+	ApplySDL2ImageSDK opengl ;
 }
 
 if ( macosx64 in $(PLATFORM) )
@@ -39,6 +45,9 @@ if ( macosx64 in $(PLATFORM) )
     ../macosx/WindowMacOSX.cpp
     ../macosx/WindowMacOSX.h
     ;
+
+	ApplySDL2SDK opengl : render ;
+	ApplySDL2ImageSDK opengl ;
 }
 
 if ( linux64 in $(PLATFORM) )
@@ -47,6 +56,9 @@ if ( linux64 in $(PLATFORM) )
     ../linux/WindowLinux.cpp
     ../linux/WindowLinux.h
     ;
+
+	ApplySDL2SDK opengl : render ;
+	ApplySDL2ImageSDK opengl ;
 }
 
 if ( raspberrypi in $(PLATFORM) )
@@ -55,6 +67,9 @@ if ( raspberrypi in $(PLATFORM) )
     ../raspberrypi/WindowRaspberryPi.cpp
     ../raspberrypi/WindowRaspberryPi.h
     ;
+
+	ApplySDL2SDK opengl : render ;
+	ApplySDL2ImageSDK opengl ;
 }
 
 if ( dreamcast in $(PLATFORM) )
@@ -63,6 +78,8 @@ if ( dreamcast in $(PLATFORM) )
 	../dreamcast/WindowDreamcast.cpp
 	../dreamcast/WindowDreamcast.h
 	;
+
+	ApplySDLSDK opengl : render ;
 }
 
 AutoSourceGroup opengl : $(SRC) ;

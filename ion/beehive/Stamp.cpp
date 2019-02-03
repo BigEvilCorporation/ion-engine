@@ -201,7 +201,7 @@ int Stamp::GetSortedUniqueTileBatch(std::vector<TileId>& tileBatch) const
 	}
 
 	//Sort
-	std::sort(tileBatch.begin(), tileBatch.end(), [](TileId& a, TileId& b) { return a < b; });
+	std::sort(tileBatch.begin(), tileBatch.end(), [](const TileId& a, const TileId& b) { return a < b; });
 
 	return tileBatch.size();
 }

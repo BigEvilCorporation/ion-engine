@@ -20,7 +20,7 @@ namespace ion
 	{
 		Animation::Animation()
 		{
-			m_length = 1.0f;
+			m_length = 0.0f;
 			m_currentFrame = 0.0f;
 			m_previousFrame = 0.0f;
 			m_playbackSpeed = 1.0f;
@@ -60,7 +60,7 @@ namespace ion
 						else
 						{
 							//Clamp to end
-							m_currentFrame = m_length;
+							m_currentFrame = m_length - 1.0f;
 
 							//Finished
 							SetState(eStopped);

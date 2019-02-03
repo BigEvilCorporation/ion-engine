@@ -25,8 +25,10 @@ namespace ion
 		{
 			#if defined ION_PLATFORM_WINDOWS
 			::Sleep(milliseconds);
-            #elif defined ION_PLATFORM_LINUX
+            #elif defined ION_PLATFORM_LINUX || defined ION_PLATFORM_MACOSX
             usleep(milliseconds * 1000);
+			#elif defined ION_PLATFORM_DREAMCAST
+			thd_sleep(milliseconds);
 			#endif
 		}
 	}

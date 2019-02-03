@@ -40,7 +40,7 @@ void SpriteAnimation::Serialise(ion::io::Archive& archive)
 	archive.Serialise(m_trackSFX, "trackSFX");
 	archive.Serialise(m_trackPosition, "trackPosition");
 
-	if(archive.GetDirection() == ion::io::Archive::eIn)
+	if(archive.GetDirection() == ion::io::Archive::Direction::In)
 	{
 		//Legacy
 		int speed = 1;

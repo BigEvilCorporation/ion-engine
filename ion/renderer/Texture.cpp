@@ -18,6 +18,8 @@ namespace ion
 {
 	namespace render
 	{
+		u32 Texture::s_textureMemoryUsed = 0;
+
 		Texture::Texture()
 		{
 			m_width = 0;
@@ -55,11 +57,16 @@ namespace ion
 			return m_height;
 		}
 
+		Texture::BitsPerPixel Texture::GetBitsPerPixel() const
+		{
+			return m_bitsPerPixel;
+		}
+
 		void Texture::Serialise(io::Archive& archive)
 		{
 			archive.Serialise(m_imageFilename);
 
-			if(archive.GetDirection() == io::Archive::eIn)
+			if(archive.GetDirection() == io::Archive::Direction::In)
 			{
 				Load();
 			}

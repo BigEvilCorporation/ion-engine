@@ -20,6 +20,7 @@ namespace ion
 		float r, g, b, a;
 
 		Colour();
+		Colour(u32 rgba);
 		Colour(float red, float green, float blue);
 		Colour(float red, float green, float blue, float alpha);
 		Colour(u8 red, u8 green, u8 blue);
@@ -30,6 +31,12 @@ namespace ion
 		float operator [] (int index) const;
 		const float* Data() const { return &r; }
 		float* Data() { return &r; }
+
+		u32 AsRGBA() const;
+		u32 AsARGB() const;
+		u32 AsABGR() const;
+		u32 AsAGRB() const;
+		u32 AsAGBR() const;
 
 		//TODO: Convertions - RGBA, hue/sat, etc...
 

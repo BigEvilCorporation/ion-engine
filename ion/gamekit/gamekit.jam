@@ -15,6 +15,7 @@ local SRC =
 	CameraController.h
 	CameraThirdPerson.cpp
 	CameraThirdPerson.h
+	FPSCounter.h
 	StateManager.cpp
 	StateManager.h
 	;

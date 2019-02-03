@@ -310,6 +310,9 @@ namespace ion
 
 				if(m_keyframes.size() > 1)
 				{
+					//Modulus
+					time = time - (float)m_keyframes.size() * ion::maths::Floor(time / (float)m_keyframes.size());
+
 					if(time >= GetLength())
 					{
 						idealKeyframe = &m_keyframes.back();
@@ -322,7 +325,7 @@ namespace ion
 
 						for(unsigned int i = 1; i < m_keyframes.size() && !idealKeyframe; i++)
 						{
-							if(time >= prevKeyframe->GetTime() && time <= m_keyframes[i].GetTime())
+							if(time >= prevKeyframe->GetTime() && time < m_keyframes[i].GetTime())
 							{
 								idealKeyframe = prevKeyframe;
 							}
@@ -346,6 +349,9 @@ namespace ion
 
 				if(m_keyframes.size() > 1)
 				{
+					//Modulus
+					time = time - (float)m_keyframes.size() * ion::maths::Floor(time / (float)m_keyframes.size());
+
 					if(time >= GetLength())
 					{
 						idealKeyframe = &m_keyframes.back();

@@ -12,6 +12,7 @@
 #include <core/debug/Debug.h>
 #include <core/memory/Memory.h>
 #include <core/cryptography/Hash.h>
+#include <maths/Vector.h>
 
 #include <string>
 #include <iomanip>
@@ -39,6 +40,54 @@ TerrainTile::TerrainTile(u8 width, u8 height)
 bool TerrainTile::operator == (const TerrainTile& rhs) const
 {
 	return m_heightmap == rhs.m_heightmap;
+}
+
+float TerrainTile::CalculateAngle() const
+{
+	ion::Vector2 point1;
+	ion::Vector2 point2;
+
+	int leftY = m_heightmap[0];
+	int rightY = m_heightmap[m_width - 1];
+
+	//Find left point - X coord at which height first changes, scanning left-to-right
+	for (int x = 1; x < m_width; x++)
+	{
+		if (m_heightmap[x] != leftY)
+		{
+			point1.x = (float)x - 1;
+			point1.y = ion::maths::Min((float)m_heightmap[x], (float)leftY);
+			break;
+		}
+	}
+
+	//Find right point - X coord at which height first changes, scanning right-to-left
+	for (int x = m_width - 1; x >= 0; x--)
+	{
+		if (m_heightmap[x] != rightY)
+		{
+			point2.x = (float)x;
+			point2.y = ion::maths::Max((float)m_heightmap[x], (float)rightY);
+			break;
+		}
+	}
+
+	//Calculate angle
+	float angle = 0;
+
+	if (point1.y >= 0.0f && point2.y >= 0.0f)
+	{
+		//If at same X coord, invert
+		if (point1.x == point2.x)
+		{
+			point2.y = -point2.y;
+		}
+
+		ion::Vector2 vector = point2 - point1;
+		angle = ion::Vector2(1.0f, 0.0f).Angle(vector);
+	}
+
+	return angle;
 }
 
 void TerrainTile::CopyHeights(const TerrainTile& tile)

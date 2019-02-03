@@ -9,288 +9,220 @@
 
 #include <core/debug/Debug.h>
 
+#if defined ION_INPUT_XINPUT
+#include "xinput/GamepadXInput.h"
+#endif
+
+#if defined ION_INPUT_SDL
+#include "sdl/GamepadSDL.h"
+#endif
+
+#if defined ION_INPUT_MAPLE
+#include "dreamcast/GamepadMaple.h"
+#endif
+
+#if defined ION_INPUT_STEAM
+#include "steam/GamepadSteam.h"
+#endif
+
 namespace ion
 {
 	namespace input
 	{
-		bool Gamepad::sRegisteredControllers[sMaxControllers] = { false };
+		bool Gamepad::s_registeredControllers[s_maxControllers] = { false };
 
 		Gamepad::Gamepad()
 		{
-			mControllerIndex = FindAvailableController();
-			mConnected = false;
-			mDeadZone = 0.05f;
-			mOuterZone = 0.9f;
-
-#if defined ION_PLATFORM_WINDOWS
-			memory::MemSet(&mInputState, 0, sizeof(XINPUT_STATE));
-#elif defined ION_PLATFORM_DREAMCAST
-			memory::MemSet(&m_mapleState, 0, sizeof(cont_state_t));
-#endif
+			m_implementation = nullptr;
+			m_deadZone = 0.2f;
+			m_outerZone = 0.9f;
+			
+			FindAndRegisterController();
 		}
 
 		Gamepad::~Gamepad()
 		{
-			if(mControllerIndex != sInvalidIndex)
+			UnregisterController();
+		}
+
+		void Gamepad::FindAndRegisterController()
+		{
+			//Find a free, connected controller
+			m_controllerIndex = s_invalidIndex;
+
+			for(int i = 0; i < s_maxControllers && !m_implementation; i++)
 			{
-				sRegisteredControllers[mControllerIndex] = false;
+				if(!s_registeredControllers[i])
+				{
+#if defined ION_INPUT_STEAM
+					if (!m_implementation)
+					{
+						m_implementation = GamepadSteam::FindAvailableController(i);
+					}
+#endif
+
+#if defined ION_INPUT_XINPUT
+					if (!m_implementation)
+					{
+						m_implementation = GamepadXInput::FindAvailableController(i);
+					}
+#endif
+
+#if defined ION_INPUT_SDL
+					if (!m_implementation)
+					{
+						m_implementation = GamepadSDL::FindAvailableController(i);
+					}
+#endif
+
+#if defined ION_INPUT_MAPLE
+					if (!m_implementation)
+					{
+						m_implementation = GamepadMaple::FindAvailableController(i);
+					}
+#endif
+
+					if (m_implementation)
+					{
+						m_controllerIndex = i;
+						s_registeredControllers[i] = true;
+					}
+				}
 			}
 		}
 
-		int Gamepad::FindAvailableController()
+		void Gamepad::UnregisterController()
 		{
-			//Find a free, connected controller
-			int connectedControllerId = sInvalidIndex;
-
-			for(int i = 0; i < sMaxControllers; i++)
+			if (m_controllerIndex != s_invalidIndex)
 			{
-				if(!sRegisteredControllers[i])
-				{
-#if defined ION_PLATFORM_WINDOWS
-					XINPUT_STATE state;
-					int errorState = XInputGetState(i, &state);
-					if(!errorState)
-					{
-						connectedControllerId = i;
-						sRegisteredControllers[i] = true;
-						break;
-					}
-#elif defined ION_PLATFORM_MACOSX
-                    return 0;
-#elif defined ION_PLATFORM_DREAMCAST
-					if(i < maple_enum_count())
-					{
-						if(maple_device_t* device = maple_enum_type(i, MAPLE_FUNC_CONTROLLER))
-						{
-							if(cont_state_t* state = (cont_state_t*)maple_dev_status(device))
-							{
-								connectedControllerId = i;
-								sRegisteredControllers[i] = true;
-								break;
-							}
-						}
-					}
-#endif
-				}
+				delete m_implementation;
+				m_implementation = nullptr;
+				s_registeredControllers[m_controllerIndex] = false;
+				m_controllerIndex = s_invalidIndex;
 			}
-
-			return connectedControllerId;
 		}
 
 		void Gamepad::Update()
 		{
-			if(mControllerIndex != sInvalidIndex)
+			if(m_implementation)
 			{
-#if defined ION_PLATFORM_WINDOWS
-				//Registered, update state
-				int errorState = XInputGetState(mControllerIndex, &mInputState);
+				//Poll input
+				m_implementation->Poll();
 
-				if(!errorState)
+				//If disconnected, discard implementation
+				if (!m_implementation->IsConnected())
 				{
-					//No error, pad is connected
-					mConnected = true;
+					UnregisterController();
 				}
-				else
-				{
-					//Error, pad disconnected
-					mConnected = false;
-
-					//Make sure values aren't cached
-					memory::MemSet(&mInputState, 0, sizeof(XINPUT_STATE));
-				}
-#elif defined ION_PLATFORM_DREAMCAST
-				if(maple_device_t* device = maple_enum_type(mControllerIndex, MAPLE_FUNC_CONTROLLER))
-				{
-					if(cont_state_t* state = (cont_state_t*)maple_dev_status(device))
-					{
-						m_mapleState = *state;
-					}
-				}
-				else
-				{
-					//Error, pad disconnected
-					mConnected = false;
-
-					//Make sure values aren't cached
-					memory::MemSet(&m_mapleState, 0, sizeof(cont_state_t));
-				}
-#endif
+			}
+			else
+			{
+				//Search for connected controller
+				FindAndRegisterController();
 			}
 		}
 
 		bool Gamepad::IsConnected() const
 		{
-			return mConnected;
-		}
-
-		bool Gamepad::FindConnectedGamepad()
-		{
-			mControllerIndex = FindAvailableController();
-			return mControllerIndex != sInvalidIndex;
+			if (m_implementation)
+			{
+				return m_implementation->IsConnected();
+			}
+			else
+			{
+				return false;
+			}
 		}
 
 		ion::Vector2 Gamepad::GetLeftStick() const
 		{
-#if defined ION_PLATFORM_DREAMCAST
-			float lx = (float)m_mapleState.joyx;
-			float ly = (float)m_mapleState.joyy;
+			ion::Vector2 value;
 
-			if(lx != 0.0f)
-				lx /= 127;
+			if (m_implementation)
+			{
+				value = m_implementation->GetLeftStick();
+			}
 
-			if(ly != 0.0f)
-				ly /= 127;
-#elif defined ION_PLATFORM_MACOSX
-            float lx = 0.0f;
-            float ly = 0.0f;
-#elif defined ION_PLATFORM_LINUX
-            float lx = 0.0f;
-            float ly = 0.0f;
-#elif defined ION_PLATFORM_RASPBERRYPI
-			float lx = 0.0f;
-			float ly = 0.0f;
-#elif defined ION_PLATFORM_WINDOWS
-			float lx = (float)mInputState.Gamepad.sThumbLX;
-			float ly = (float)mInputState.Gamepad.sThumbLY;
+			if(value.x > -m_deadZone && value.x < m_deadZone)
+				value.x = 0.0f;
 
-			if(lx != 0.0f)
-				lx /= 32768;
+			if(value.y > -m_deadZone && value.y < m_deadZone)
+				value.y = 0.0f;
 
-			if(ly != 0.0f)
-				ly /= 32768;
-#endif
-
-			if(lx > -mDeadZone && lx < mDeadZone)
-				lx = 0.0f;
-
-			if(ly > -mDeadZone && ly < mDeadZone)
-				ly = 0.0f;
-
-			return ion::Vector2(lx, ly);
+			return value;
 		}
 
 		ion::Vector2 Gamepad::GetRightStick() const
 		{
-#if defined ION_PLATFORM_DREAMCAST
-			float rx = (float)m_mapleState.joy2x;
-			float ry = (float)m_mapleState.joy2y;
+			ion::Vector2 value;
 
-			if(rx != 0.0f)
-				rx /= 127;
+			if (m_implementation)
+			{
+				value = m_implementation->GetRightStick();
+			}
 
-			if(ry != 0.0f)
-				ry /= 127;
-#elif defined ION_PLATFORM_MACOSX
-            float rx = 0.0f;
-            float ry = 0.0f;
-#elif defined ION_PLATFORM_LINUX
-            float rx = 0.0f;
-            float ry = 0.0f;
-#elif defined ION_PLATFORM_RASPBERRYPI
-			float rx = 0.0f;
-			float ry = 0.0f;
-#elif defined ION_PLATFORM_WINDOWS
-			float rx = (float)mInputState.Gamepad.sThumbRX;
-			float ry = (float)mInputState.Gamepad.sThumbRY;
+			if(value.x > -m_deadZone && value.x < m_deadZone)
+				value.x = 0.0f;
 
-			if(rx != 0.0f)
-				rx /= 32768;
+			if(value.y > -m_deadZone && value.y < m_deadZone)
+				value.y = 0.0f;
 
-			if(ry != 0.0f)
-				ry /= 32768;
-#endif
-
-			if(rx > -mDeadZone && rx < mDeadZone)
-				rx = 0.0f;
-
-			if(ry > -mDeadZone && ry < mDeadZone)
-				ry = 0.0f;
-
-			return ion::Vector2(rx, ry);
+			return value;
 		}
 
-		bool Gamepad::ButtonDown(Buttons button) const
+		bool Gamepad::CheckButton(GamepadButtons button) const
 		{
-#if defined ION_PLATFORM_DREAMCAST
-			int mapleButton = ToPlatformButton(button);
-			return (m_mapleState.buttons & mapleButton) != 0;
-#elif defined ION_PLATFORM_MACOSX
-            return false;
-#elif defined ION_PLATFORM_LINUX
-            return false;
-#elif defined ION_PLATFORM_RASPBERRYPI
+			if (m_implementation)
+			{
+				return m_implementation->CheckButton(button);
+			}
+
 			return false;
-#else
-			int xInputButton = ToPlatformButton(button);
-			return (mInputState.Gamepad.wButtons & xInputButton) != 0;
-#endif
 		}
 
-		int Gamepad::ToPlatformButton(Buttons button)
+		bool Gamepad::CheckPrevButton(GamepadButtons button) const
 		{
-			int platformButton = 0;
-
-#if defined ION_PLATFORM_WINDOWS
-			switch(button)
+			if (m_implementation)
 			{
-				case DPAD_UP:			platformButton = XINPUT_GAMEPAD_DPAD_UP; break;
-				case DPAD_DOWN:			platformButton = XINPUT_GAMEPAD_DPAD_DOWN; break;
-				case DPAD_LEFT:			platformButton = XINPUT_GAMEPAD_DPAD_LEFT; break;
-				case DPAD_RIGHT:		platformButton = XINPUT_GAMEPAD_DPAD_RIGHT; break;
-				case BUTTON_A:			platformButton = XINPUT_GAMEPAD_A; break;
-				case BUTTON_B:			platformButton = XINPUT_GAMEPAD_B; break;
-				case BUTTON_X:			platformButton = XINPUT_GAMEPAD_X; break;
-				case BUTTON_Y:			platformButton = XINPUT_GAMEPAD_Y; break;
-				case START:				platformButton = XINPUT_GAMEPAD_START; break;
-				case SELECT:			platformButton = XINPUT_GAMEPAD_BACK; break;
-				case LEFT_SHOULDER:		platformButton = XINPUT_GAMEPAD_LEFT_SHOULDER; break;
-				case RIGHT_SHOULDER:	platformButton = XINPUT_GAMEPAD_RIGHT_SHOULDER; break;
-				case LEFT_STICK_CLICK:	platformButton = XINPUT_GAMEPAD_LEFT_THUMB; break;
-				case RIGHT_STICK_CLICK:	platformButton = XINPUT_GAMEPAD_RIGHT_THUMB; break;
-				default: break;
+				return m_implementation->CheckPrevButton(button);
 			}
-#elif defined ION_PLATFORM_DREAMCAST
-			switch(button)
-			{
-				case DPAD_UP:			platformButton = CONT_DPAD_UP; break;
-				case DPAD_DOWN:			platformButton = CONT_DPAD_DOWN; break;
-				case DPAD_LEFT:			platformButton = CONT_DPAD_LEFT; break;
-				case DPAD_RIGHT:		platformButton = CONT_DPAD_RIGHT; break;
-				case BUTTON_A:			platformButton = CONT_A; break;
-				case BUTTON_B:			platformButton = CONT_B; break;
-				case BUTTON_X:			platformButton = CONT_X; break;
-				case BUTTON_Y:			platformButton = CONT_Y; break;
-				case START:				platformButton = CONT_START; break;
-				case SELECT:			platformButton = 0; break;
-				case LEFT_SHOULDER:		platformButton = CONT_C; break;
-				case RIGHT_SHOULDER:	platformButton = CONT_D; break;
-				case LEFT_STICK_CLICK:	platformButton = 0; break;
-				case RIGHT_STICK_CLICK:	platformButton = 0; break;
-				default: break;
-			}
-#endif
 
-			return platformButton;
+			return false;
+		}
+
+		bool Gamepad::ButtonDown(GamepadButtons button) const
+		{
+			return CheckButton(button);
+		}
+
+		bool Gamepad::ButtonPressedThisFrame(GamepadButtons button) const
+		{
+			return CheckButton(button) && !CheckPrevButton(button);
+		}
+
+		bool Gamepad::ButtonReleasedThisFrame(GamepadButtons button) const
+		{
+			return !CheckButton(button) && CheckPrevButton(button);
 		}
 
 		void Gamepad::SetDeadZone(float deadZone)
 		{
-			mDeadZone = deadZone;
+			m_deadZone = deadZone;
 		}
 
 		float Gamepad::GetDeadZone() const
 		{
-			return mDeadZone;
+			return m_deadZone;
 		}
 
 		void Gamepad::SetOuterZone(float outerZone)
 		{
-			mOuterZone = outerZone;
+			m_outerZone = outerZone;
 		}
 
 		float Gamepad::GetOuterZone() const
 		{
-			return mOuterZone;
+			return m_outerZone;
 		}
 	}
 }

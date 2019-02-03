@@ -20,7 +20,23 @@ namespace ion
 {
 	namespace time
 	{
+		struct TimeStamp
+		{
+			TimeStamp();
+
+			u32 GetSecond();
+			u32 GetMinute();
+			u32 GetHour();
+			u32 GetDay();
+			u32 GetMonth();
+			u32 GetYear();
+
+			s64 time;
+		};
+
 		u64 GetSystemTicks();
 		double TicksToSeconds(u64 ticks);
+
+		TimeStamp GetLocalTime();
 	}
 }

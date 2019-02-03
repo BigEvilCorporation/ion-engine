@@ -12,6 +12,7 @@
 #include <ion/core/string/String.h>
 #include <ion/io/Archive.h>
 #include <ion/gamekit/Bezier.h>
+#include <ion/maths/Fixed.h>
 
 #include <set>
 #include <vector>
@@ -21,10 +22,10 @@
 #include "Project.h"
 #include "BMPReader.h"
 
-#define HEX1(val) std::hex << std::setfill('0') << std::setw(1) << std::uppercase << (int)val
-#define HEX2(val) std::hex << std::setfill('0') << std::setw(2) << std::uppercase << (int)val
-#define HEX4(val) std::hex << std::setfill('0') << std::setw(4) << std::uppercase << (int)val
-#define HEX8(val) std::hex << std::setfill('0') << std::setw(8) << std::uppercase << (int)val
+#define HEX1(val) std::hex << std::setfill('0') << std::setw(1) << std::uppercase << (int)val << std::dec
+#define HEX2(val) std::hex << std::setfill('0') << std::setw(2) << std::uppercase << (int)val << std::dec
+#define HEX4(val) std::hex << std::setfill('0') << std::setw(4) << std::uppercase << (int)val << std::dec
+#define HEX8(val) std::hex << std::setfill('0') << std::setw(8) << std::uppercase << (int)val << std::dec
 
 Project::Project(PlatformConfig& defaultPatformConfig)
 	: m_platformConfig(defaultPatformConfig)
@@ -93,7 +94,7 @@ bool Project::Load(const std::string& filename)
 	ion::io::File file(filename, ion::io::File::eOpenRead);
 	if(file.IsOpen())
 	{
-		ion::io::Archive archive(file, ion::io::Archive::eIn);
+		ion::io::Archive archive(file, ion::io::Archive::Direction::In);
 		Serialise(archive);
 
 		InvalidateMap(true);
@@ -141,15 +142,15 @@ bool Project::Save(const std::string& filename)
 	ion::io::File file(filename, ion::io::File::eOpenWrite);
 	if(file.IsOpen())
 	{
-		ion::io::Archive archive(file, ion::io::Archive::eOut);
+		ion::io::Archive archive(file, ion::io::Archive::Direction::Out);
 		Serialise(archive);
 		m_filename = filename;
 
 		//Save external resources
 		if(!m_settings.gameObjectsExternalFile.empty())
 		{
-			//Import game objects file
-			if(!ExportGameObjectTypes(m_settings.gameObjectsExternalFile))
+			//Export game objects file
+			if(!ExportGameObjectTypes(m_settings.gameObjectsExternalFile, ExportFormat::Beehive, false))
 			{
 				ion::debug::Popup("Could not export external game object types, check settings.\nData may be lost if project is closed.", "Error");
 			}
@@ -157,8 +158,8 @@ bool Project::Save(const std::string& filename)
 
 		if(!m_settings.spriteActorsExternalFile.empty())
 		{
-			//Import sprites file
-			if(!ExportActors(m_settings.spriteActorsExternalFile))
+			//Export sprites file
+			if(!ExportActors(m_settings.spriteActorsExternalFile, ExportFormat::Beehive))
 			{
 				ion::debug::Popup("Could not export external sprite actors, check settings.\nData may be lost if project is closed.", "Error");
 			}
@@ -172,7 +173,7 @@ bool Project::Save(const std::string& filename)
 
 void Project::Serialise(ion::io::Archive& archive)
 {
-	if(archive.GetDirection() == ion::io::Archive::eIn)
+	if(archive.GetDirection() == ion::io::Archive::Direction::In)
 	{
 		m_maps.clear();
 		m_collisionMaps.clear();
@@ -205,18 +206,27 @@ void Project::Serialise(ion::io::Archive& archive)
 	}
 
 	if(m_settings.spriteActorsExternalFile.empty())
-	{
+	{ 
 		archive.Serialise(m_actors, "actors");
 	}
 
-	if(archive.GetDirection() == ion::io::Archive::eIn && m_maps.size() == 0)
+	if(archive.GetDirection() == ion::io::Archive::Direction::In && m_maps.size() == 0)
 	{
 		//Legacy, single map
 		m_editingMapId = CreateMap();
 		archive.Serialise(m_maps[m_editingMapId], "map");
 	}
 
-	if(archive.GetDirection() == ion::io::Archive::eIn && m_collisionMaps.size() != m_maps.size())
+	if (archive.GetDirection() == ion::io::Archive::Direction::In && m_maps.size() > 0)
+	{
+		//Set project config
+		for (TMapMap::iterator it = m_maps.begin(), end = m_maps.end(); it != end; ++it)
+		{
+			it->second.SetPlatformConfig(m_platformConfig);
+		}
+	}
+
+	if(archive.GetDirection() == ion::io::Archive::Direction::In && m_collisionMaps.size() != m_maps.size())
 	{
 		//Legacy, single collision map
 		if(m_collisionMaps.size() == 0)
@@ -452,12 +462,12 @@ void Project::SetActivePaletteSlot(PaletteId paletteId, int slotIndex)
 	*dest = *source;
 }
 
-void Project::ExportPaletteSlots(const std::string& filename)
+void Project::ExportPaletteSlots(const std::string& filename, ExportFormat format)
 {
 	ion::io::File file(filename, ion::io::File::eOpenWrite);
 	if(file.IsOpen())
 	{
-		ion::io::Archive archive(file, ion::io::Archive::eOut);
+		ion::io::Archive archive(file, ion::io::Archive::Direction::Out);
 		archive.Serialise(m_paletteSlots, "paletteSlots");
 	}
 }
@@ -467,7 +477,7 @@ void Project::ImportPaletteSlots(const std::string& filename)
 	ion::io::File file(filename, ion::io::File::eOpenRead);
 	if(file.IsOpen())
 	{
-		ion::io::Archive archive(file, ion::io::Archive::eIn);
+		ion::io::Archive archive(file, ion::io::Archive::Direction::In);
 		archive.Serialise(m_paletteSlots, "paletteSlots");
 	}
 }
@@ -969,12 +979,12 @@ int Project::GetActorCount() const
 	return m_actors.size();
 }
 
-bool Project::ExportActors(const std::string& filename)
+bool Project::ExportActors(const std::string& filename, ExportFormat format)
 {
 	ion::io::File file(filename, ion::io::File::eOpenWrite);
 	if(file.IsOpen())
 	{
-		ion::io::Archive archive(file, ion::io::Archive::eOut);
+		ion::io::Archive archive(file, ion::io::Archive::Direction::Out);
 		archive.Serialise(m_actors, "actors");
 		return true;
 	}
@@ -987,7 +997,7 @@ bool Project::ImportActors(const std::string& filename)
 	ion::io::File file(filename, ion::io::File::eOpenRead);
 	if(file.IsOpen())
 	{
-		ion::io::Archive archive(file, ion::io::Archive::eIn);
+		ion::io::Archive archive(file, ion::io::Archive::Direction::In);
 		archive.Serialise(m_actors, "actors");
 		return true;
 	}
@@ -1223,7 +1233,7 @@ void Project::SortStampTilesSequentially(Stamp* stamp)
 	}
 
 	//Sort
-	std::sort(tiles.begin(), tiles.end(), [](TileId& a, TileId& b) { return a < b; });
+	std::sort(tiles.begin(), tiles.end(), [](const TileId& a, const TileId& b) { return a < b; });
 
 	//Make tiles sequential
 	int index = tiles.front();
@@ -1996,12 +2006,18 @@ const TGameObjectTypeMap& Project::GetGameObjectTypes() const
 	return m_gameObjectTypes;
 }
 
-bool Project::ExportGameObjectTypes(const std::string& filename)
+bool Project::ExportGameObjectTypes(const std::string& filename, ExportFormat format, bool minimal)
 {
 	ion::io::File file(filename, ion::io::File::eOpenWrite);
 	if(file.IsOpen())
 	{
-		ion::io::Archive archive(file, ion::io::Archive::eOut);
+		ion::io::Archive archive(file, ion::io::Archive::Direction::Out);
+
+		if (minimal)
+		{
+			archive.SetContentType(ion::io::Archive::Content::Minimal);
+		}
+
 		archive.Serialise(m_gameObjectTypes, "gameObjectTypes");
 		archive.Serialise(m_nextFreeGameObjectTypeId, "nextFreeGameObjTypeId");
 		return true;
@@ -2015,7 +2031,7 @@ bool Project::ImportGameObjectTypes(const std::string& filename)
 	ion::io::File file(filename, ion::io::File::eOpenRead);
 	if(file.IsOpen())
 	{
-		ion::io::Archive archive(file, ion::io::Archive::eIn);
+		ion::io::Archive archive(file, ion::io::Archive::Direction::In);
 		archive.Serialise(m_gameObjectTypes, "gameObjectTypes");
 		archive.Serialise(m_nextFreeGameObjectTypeId, "nextFreeGameObjTypeId");
 		return true;
@@ -2559,22 +2575,32 @@ void Project::WriteFileHeader(std::stringstream& stream) const
 	stream << std::endl;
 }
 
-bool Project::ExportPalettes(const std::string& filename) const
+bool Project::ExportPalettes(const std::string& filename, ExportFormat format)
 {
 	ion::io::File file(filename, ion::io::File::eOpenWrite);
 	if(file.IsOpen())
 	{
-		std::stringstream stream;
-		WriteFileHeader(stream);
-		stream << "palette_" << m_name << ":" << std::endl;
-
-		for(int i = 0; i < s_maxPalettes; i++)
+		if (format == ExportFormat::Beehive)
 		{
-			m_palettes[i].Export(stream);
-			stream << std::endl;
+			ion::io::Archive archive(file, ion::io::Archive::Direction::Out);
+			archive.SetContentType(ion::io::Archive::Content::Minimal);
+			archive.Serialise(m_paletteSlots, "palettes");
+			return true;
 		}
+		else
+		{
+			std::stringstream stream;
+			WriteFileHeader(stream);
+			stream << "palette_" << m_name << ":" << std::endl;
 
-		file.Write(stream.str().c_str(), stream.str().size());
+			for (int i = 0; i < s_maxPalettes; i++)
+			{
+				m_palettes[i].Export(stream);
+				stream << std::endl;
+			}
+
+			file.Write(stream.str().c_str(), stream.str().size());
+		}
 
 		return true;
 	}
@@ -2582,9 +2608,9 @@ bool Project::ExportPalettes(const std::string& filename) const
 	return false;
 }
 
-bool Project::ExportTiles(const std::string& filename, bool binary, bool compressed) const
+bool Project::ExportTiles(const std::string& filename, ExportFormat format)
 {
-	if(binary)
+	if(format == ExportFormat::Binary || format == ExportFormat::BinaryCompressed)
 	{
 		std::string binaryFilename = filename.substr(0, filename.find_first_of('.'));
 		binaryFilename += ".bin";
@@ -2593,7 +2619,7 @@ bool Project::ExportTiles(const std::string& filename, bool binary, bool compres
 		ion::io::File binaryFile(binaryFilename, ion::io::File::eOpenWrite);
 		if(binaryFile.IsOpen())
 		{
-			m_tileset.Export(m_platformConfig, binaryFile, compressed);
+			m_tileset.Export(m_platformConfig, binaryFile, format == ExportFormat::BinaryCompressed);
 		}
 		else
 		{
@@ -2604,33 +2630,47 @@ bool Project::ExportTiles(const std::string& filename, bool binary, bool compres
 	ion::io::File file(filename, ion::io::File::eOpenWrite);
 	if(file.IsOpen())
 	{
-		std::stringstream stream;
-		WriteFileHeader(stream);
-
-		u32 binarySize = m_tileset.GetBinarySize(m_platformConfig);
-
-		if(binary)
+		if (format == ExportFormat::Beehive)
 		{
-			//Export (uncompressed) size of binary file
-			stream << "tiles_" << m_name << "_size_b\tequ 0x" << std::hex << std::setfill('0') << std::uppercase << std::setw(8) << binarySize << std::dec << "\t; Size in bytes" << std::endl;
+			ion::io::Archive archive(file, ion::io::Archive::Direction::Out);
+			archive.SetContentType(ion::io::Archive::Content::Minimal);
+			m_tileset.Serialise(archive);
+			return true;
 		}
 		else
 		{
-			//Export label, data and size as inline text
-			stream << "tiles_" << m_name << ":" << std::endl;
+			std::stringstream stream;
+			WriteFileHeader(stream);
 
-			m_tileset.Export(m_platformConfig, stream);
+			u32 binarySize = m_tileset.GetBinarySize(m_platformConfig);
 
-			stream << std::endl;
-			stream << "tiles_" << m_name << "_end" << std::endl;
-			stream << "tiles_" << m_name << "_size_b\tequ (tiles_" << m_name << "_end-tiles_" << m_name << ")\t; Size in bytes" << std::endl;
+			if (format == ExportFormat::Binary || format == ExportFormat::BinaryCompressed)
+			{
+				//Export (uncompressed) size of binary file
+				stream << "tiles_" << m_name << "_size_b\tequ 0x" << std::hex << std::setfill('0') << std::uppercase << std::setw(8) << binarySize << std::dec << "\t; Size in bytes" << std::endl;
+			}
+			else if (format == ExportFormat::Text)
+			{
+				//Export label, data and size as inline text
+				stream << "tiles_" << m_name << ":" << std::endl;
+
+				m_tileset.Export(m_platformConfig, stream);
+
+				stream << std::endl;
+				stream << "tiles_" << m_name << "_end" << std::endl;
+				stream << "tiles_" << m_name << "_size_b\tequ (tiles_" << m_name << "_end-tiles_" << m_name << ")\t; Size in bytes" << std::endl;
+			}
+			else
+			{
+				ion::debug::Log("Unsupported export format");
+			}
+
+			stream << "tiles_" << m_name << "_size_w\tequ (tiles_" << m_name << "_size_b/2)\t; Size in words" << std::endl;
+			stream << "tiles_" << m_name << "_size_l\tequ (tiles_" << m_name << "_size_b/4)\t; Size in longwords" << std::endl;
+			stream << "tiles_" << m_name << "_size_t\tequ " << m_tileset.GetCount() << "\t; Size in tiles" << std::endl;
+
+			file.Write(stream.str().c_str(), stream.str().size());
 		}
-		
-		stream << "tiles_" << m_name << "_size_w\tequ (tiles_" << m_name << "_size_b/2)\t; Size in words" << std::endl;
-		stream << "tiles_" << m_name << "_size_l\tequ (tiles_" << m_name << "_size_b/4)\t; Size in longwords" << std::endl;
-		stream << "tiles_" << m_name << "_size_t\tequ " << m_tileset.GetCount() << "\t; Size in tiles" << std::endl;
-
-		file.Write(stream.str().c_str(), stream.str().size());
 
 		return true;
 	}
@@ -2638,130 +2678,194 @@ bool Project::ExportTiles(const std::string& filename, bool binary, bool compres
 	return false;
 }
 
-bool Project::ExportTerrainTiles(const std::string& filename, bool binary) const
+bool Project::ExportTerrainTiles(const std::string& filename, ExportFormat format)
 {
-	u32 binarySize = 0;
-
-	if(binary)
+	if (format == ExportFormat::Beehive)
 	{
-		std::string binaryFilename = filename.substr(0, filename.find_first_of('.'));
-		binaryFilename += ".bin";
-
-		//Export binary data
-		ion::io::File binaryFile(binaryFilename, ion::io::File::eOpenWrite);
-		if(binaryFile.IsOpen())
+		ion::io::File file(filename, ion::io::File::eOpenWrite);
+		if (file.IsOpen())
 		{
-			m_terrainTileset.Export(binaryFile);
-			binarySize = binaryFile.GetSize();
+			ion::io::Archive archive(file, ion::io::Archive::Direction::Out);
+			archive.SetContentType(ion::io::Archive::Content::Minimal);
+			m_terrainTileset.Serialise(archive);
+			return true;
 		}
-		else
+	}
+	else
+	{
+		u32 binarySize = 0;
+
+		if (format == ExportFormat::Binary || format == ExportFormat::BinaryCompressed)
 		{
-			return false;
+			std::string binaryFilename = filename.substr(0, filename.find_first_of('.'));
+			binaryFilename += ".bin";
+
+			//Export binary data
+			ion::io::File binaryFile(binaryFilename, ion::io::File::eOpenWrite);
+			if (binaryFile.IsOpen())
+			{
+				m_terrainTileset.Export(binaryFile);
+				binarySize = binaryFile.GetSize();
+			}
+			else
+			{
+				return false;
+			}
+		}
+
+		ion::io::File file(filename, ion::io::File::eOpenWrite);
+		if (file.IsOpen())
+		{
+			std::stringstream stream;
+			WriteFileHeader(stream);
+
+			if (format == ExportFormat::Binary || format == ExportFormat::BinaryCompressed)
+			{
+				//Export size of binary file
+				stream << "TerrainTiles_" << m_name << "_size_b\tequ 0x" << std::hex << std::setfill('0') << std::uppercase << std::setw(8) << binarySize << std::dec << "\t; Size in bytes" << std::endl;
+			}
+			else if (format == ExportFormat::Text)
+			{
+				//Export label, data and size as inline text
+				stream << "TerrainTiles_" << m_name << ":" << std::endl;
+
+				m_terrainTileset.Export(stream);
+
+				stream << std::endl;
+				stream << "TerrainTiles_" << m_name << "_end" << std::endl;
+				stream << "TerrainTiles_" << m_name << "_size_b\tequ (TerrainTiles_" << m_name << "_end-TerrainTiles_" << m_name << ")\t; Size in bytes" << std::endl;
+			}
+			else
+			{
+				ion::debug::Log("Unsupported export format");
+			}
+
+			stream << "TerrainTiles_" << m_name << "_size_w\tequ (TerrainTiles_" << m_name << "_size_b/2)\t; Size in words" << std::endl;
+			stream << "TerrainTiles_" << m_name << "_size_l\tequ (TerrainTiles_" << m_name << "_size_b/4)\t; Size in longwords" << std::endl;
+			stream << "TerrainTiles_" << m_name << "_size_t\tequ " << m_terrainTileset.GetCount() << "\t; Size in tiles" << std::endl;
+
+			file.Write(stream.str().c_str(), stream.str().size());
+
+			return true;
 		}
 	}
 
-	ion::io::File file(filename, ion::io::File::eOpenWrite);
-	if(file.IsOpen())
+	return false;
+}
+
+bool Project::ExportTerrainAngles(const std::string& filename, ExportFormat format)
+{
+	std::string binaryFilename = filename.substr(0, filename.find_first_of('.'));
+	binaryFilename += ".bin";
+
+	//Export binary data
+	ion::io::File binaryFile(binaryFilename, ion::io::File::eOpenWrite);
+	if (binaryFile.IsOpen())
 	{
-		std::stringstream stream;
-		WriteFileHeader(stream);
-
-		if(binary)
-		{
-			//Export size of binary file
-			stream << "TerrainTiles_" << m_name << "_size_b\tequ 0x" << std::hex << std::setfill('0') << std::uppercase << std::setw(8) << binarySize << std::dec << "\t; Size in bytes" << std::endl;
-		}
-		else
-		{
-			//Export label, data and size as inline text
-			stream << "TerrainTiles_" << m_name << ":" << std::endl;
-
-			m_terrainTileset.Export(stream);
-
-			stream << std::endl;
-			stream << "TerrainTiles_" << m_name << "_end" << std::endl;
-			stream << "TerrainTiles_" << m_name << "_size_b\tequ (TerrainTiles_" << m_name << "_end-TerrainTiles_" << m_name << ")\t; Size in bytes" << std::endl;
-		}
-
-		stream << "TerrainTiles_" << m_name << "_size_w\tequ (TerrainTiles_" << m_name << "_size_b/2)\t; Size in words" << std::endl;
-		stream << "TerrainTiles_" << m_name << "_size_l\tequ (TerrainTiles_" << m_name << "_size_b/4)\t; Size in longwords" << std::endl;
-		stream << "TerrainTiles_" << m_name << "_size_t\tequ " << m_terrainTileset.GetCount() << "\t; Size in tiles" << std::endl;
-
-		file.Write(stream.str().c_str(), stream.str().size());
-
+		m_terrainTileset.ExportAngles(binaryFile);
 		return true;
 	}
 
 	return false;
 }
 
-bool Project::ExportMap(MapId mapId, const std::string& filename, bool binary) const
+bool Project::ExportMap(MapId mapId, const std::string& filename, ExportFormat format) const
 {
 	const Map& map = m_maps.find(mapId)->second;
-	int mapWidth = map.GetWidth();
-	int mapHeight = map.GetHeight();
-	const std::string& mapName = map.GetName();
 
-	u32 binarySize = 0;
-
-	if(binary)
+	if (format == ExportFormat::Beehive)
 	{
-		std::string binaryFilename = filename.substr(0, filename.find_first_of('.'));
-		binaryFilename += ".bin";
+		ion::io::File file(filename, ion::io::File::eOpenWrite);
+		if (file.IsOpen())
+		{
+			//Bake map/stamps to tiles
+			std::vector<Map::TileDesc> tiles;
+			ion::Vector2i mapSize;
 
-		//Export binary data
-		ion::io::File binaryFile(binaryFilename, ion::io::File::eOpenWrite);
-		if(binaryFile.IsOpen())
-		{
-			map.Export(*this, binaryFile);
-			binarySize = binaryFile.GetSize();
-		}
-		else
-		{
-			return false;
+			map.Export(*this, tiles);
+
+			mapSize.x = map.GetWidth();
+			mapSize.y = map.GetHeight();
+
+			ion::io::Archive archive(file, ion::io::Archive::Direction::Out);
+			archive.SetContentType(ion::io::Archive::Content::Minimal);
+			archive.Serialise(mapSize, "size");
+			archive.Serialise(tiles, "tileMap");
+
+			return true;
 		}
 	}
-
-	ion::io::File file(filename, ion::io::File::eOpenWrite);
-	if(file.IsOpen())
+	else
 	{
-		std::stringstream stream;
-		WriteFileHeader(stream);
-		
-		if(binary)
+		int mapWidth = map.GetWidth();
+		int mapHeight = map.GetHeight();
+		const std::string& mapName = map.GetName();
+
+		u32 binarySize = 0;
+
+		if (format == ExportFormat::Binary || format == ExportFormat::BinaryCompressed)
 		{
-			//Export size of binary file
-			stream << "map_" << mapName << "_size_b\tequ 0x" << std::hex << std::setfill('0') << std::uppercase << std::setw(8) << binarySize << std::dec << "\t; Size in bytes" << std::endl;
+			std::string binaryFilename = filename.substr(0, filename.find_first_of('.'));
+			binaryFilename += ".bin";
+
+			//Export binary data
+			ion::io::File binaryFile(binaryFilename, ion::io::File::eOpenWrite);
+			if (binaryFile.IsOpen())
+			{
+				map.Export(*this, binaryFile);
+				binarySize = binaryFile.GetSize();
+			}
+			else
+			{
+				return false;
+			}
 		}
-		else
+
+		ion::io::File file(filename, ion::io::File::eOpenWrite);
+		if (file.IsOpen())
 		{
-			//Export label, data and size as inline text
-			stream << "map_" << mapName << ":" << std::endl;
+			std::stringstream stream;
+			WriteFileHeader(stream);
 
-			map.Export(*this, stream);
+			if (format == ExportFormat::Binary || format == ExportFormat::BinaryCompressed)
+			{
+				//Export size of binary file
+				stream << "map_" << mapName << "_size_b\tequ 0x" << std::hex << std::setfill('0') << std::uppercase << std::setw(8) << binarySize << std::dec << "\t; Size in bytes" << std::endl;
+			}
+			else if (format == ExportFormat::Text)
+			{
+				//Export label, data and size as inline text
+				stream << "map_" << mapName << ":" << std::endl;
 
-			stream << std::endl;
-			stream << "map_" << mapName << "_end:" << std::endl;
-			stream << "map_" << mapName << "_size_b\tequ (map_" << mapName << "_end-map_" << mapName << ")\t; Size in bytes" << std::endl;
+				map.Export(*this, stream);
+
+				stream << std::endl;
+				stream << "map_" << mapName << "_end:" << std::endl;
+				stream << "map_" << mapName << "_size_b\tequ (map_" << mapName << "_end-map_" << mapName << ")\t; Size in bytes" << std::endl;
+			}
+			else
+			{
+				ion::debug::Log("Unsupported export format");
+			}
+
+			stream << "map_" << mapName << "_size_w\tequ (map_" << mapName << "_size_b/2)\t; Size in words" << std::endl;
+			stream << "map_" << mapName << "_size_l\tequ (map_" << mapName << "_size_b/4)\t; Size in longwords" << std::endl;
+
+			stream << std::hex << std::setfill('0') << std::uppercase;
+			stream << "map_" << mapName << "_width\tequ " << "0x" << std::setw(2) << mapWidth << std::endl;
+			stream << "map_" << mapName << "_height\tequ " << "0x" << std::setw(2) << mapHeight << std::endl;
+			stream << std::dec;
+
+			file.Write(stream.str().c_str(), stream.str().size());
+
+			return true;
 		}
-
-		stream << "map_" << mapName << "_size_w\tequ (map_" << mapName << "_size_b/2)\t; Size in words" << std::endl;
-		stream << "map_" << mapName << "_size_l\tequ (map_" << mapName << "_size_b/4)\t; Size in longwords" << std::endl;
-
-		stream << std::hex << std::setfill('0') << std::uppercase;
-		stream << "map_" << mapName << "_width\tequ " << "0x" << std::setw(2) << mapWidth << std::endl;
-		stream << "map_" << mapName << "_height\tequ " << "0x" << std::setw(2) << mapHeight << std::endl;
-		stream << std::dec;
-
-		file.Write(stream.str().c_str(), stream.str().size());
-
-		return true;
 	}
 
 	return false;
 }
 
-bool Project::ExportBlocks(const std::string& filename, bool binary, int blockWidth, int blockHeight)
+bool Project::ExportBlocks(const std::string& filename, ExportFormat format, int blockWidth, int blockHeight)
 {
 	//Generate map blocks and concatenate into one list
 	std::vector<Map::Block*> blocks;
@@ -2861,7 +2965,7 @@ bool Project::ExportBlocks(const std::string& filename, bool binary, int blockWi
 
 	u32 binarySize = 0;
 
-	if(binary)
+	if(format == ExportFormat::Binary || format == ExportFormat::BinaryCompressed)
 	{
 		std::string binaryFilename = filename.substr(0, filename.find_first_of('.'));
 		if(binaryFilename.size() > 0)
@@ -2892,12 +2996,12 @@ bool Project::ExportBlocks(const std::string& filename, bool binary, int blockWi
 		std::stringstream stream;
 		WriteFileHeader(stream);
 
-		if(binary)
+		if(format == ExportFormat::Binary || format == ExportFormat::BinaryCompressed)
 		{
 			//Export size of binary file
 			stream << "map_blocks_" << m_name << "_size_b\tequ 0x" << std::hex << std::setfill('0') << std::uppercase << std::setw(8) << binarySize << std::dec << "\t; Size in bytes" << std::endl;
 		}
-		else
+		else if (format == ExportFormat::Text)
 		{
 			//Export label, data and size as inline text
 			stream << "map_blocks_" << m_name << ":" << std::endl;
@@ -2910,6 +3014,10 @@ bool Project::ExportBlocks(const std::string& filename, bool binary, int blockWi
 			stream << std::endl;
 			stream << "map_blocks_" << m_name << "_end:" << std::endl;
 			stream << "map_blocks_" << m_name << "_size_b\tequ (map_blocks_" << m_name << "_end-map_" << m_name << ")\t; Size in bytes" << std::endl;
+		}
+		else
+		{
+			ion::debug::Log("Unsupported export format");
 		}
 
 		stream << "map_blocks_" << m_name << "_size_w\tequ (map_blocks_" << m_name << "_size_b/2)\t; Size in words" << std::endl;
@@ -2924,7 +3032,7 @@ bool Project::ExportBlocks(const std::string& filename, bool binary, int blockWi
 	return false;
 }
 
-bool Project::ExportBlockMap(MapId mapId, const std::string& filename, bool binary, int blockWidth, int blockHeight) const
+bool Project::ExportBlockMap(MapId mapId, const std::string& filename, ExportFormat format, int blockWidth, int blockHeight) const
 {
 	const Map& map = m_maps.find(mapId)->second;
 	int mapWidth = map.GetBlockAlignedWidth(blockWidth);
@@ -2934,7 +3042,7 @@ bool Project::ExportBlockMap(MapId mapId, const std::string& filename, bool bina
 	u32 binarySize = 0;
 	std::vector<u32> colOffsets;
 
-	if(binary)
+	if(format == ExportFormat::Binary || format == ExportFormat::BinaryCompressed)
 	{
 		std::string binaryFilename = filename.substr(0, filename.find_first_of('.'));
 		binaryFilename += ".bin";
@@ -2958,12 +3066,12 @@ bool Project::ExportBlockMap(MapId mapId, const std::string& filename, bool bina
 		std::stringstream stream;
 		WriteFileHeader(stream);
 
-		if(binary)
+		if(format == ExportFormat::Binary || format == ExportFormat::BinaryCompressed)
 		{
 			//Export size of binary file
 			stream << "map_blockmap_" << mapName << "_size_b\tequ 0x" << std::hex << std::setfill('0') << std::uppercase << std::setw(8) << binarySize << std::dec << "\t; Size in bytes" << std::endl;
 		}
-		else
+		else if (format == ExportFormat::Text)
 		{
 			//Export label, data and size as inline text
 			stream << "map_blockmap_" << mapName << ":" << std::endl;
@@ -2973,6 +3081,10 @@ bool Project::ExportBlockMap(MapId mapId, const std::string& filename, bool bina
 			stream << std::endl;
 			stream << "map_blockmap_" << mapName << "_end:" << std::endl;
 			stream << "map_blockmap_" << mapName << "_size_b\tequ (map_blockmap_" << mapName << "_end-map_" << mapName << ")\t; Size in bytes" << std::endl;
+		}
+		else
+		{
+			ion::debug::Log("Unsupported export format");
 		}
 
 		stream << "map_blockmap_" << mapName << "_size_w\tequ (map_blockmap_" << mapName << "_size_b/2)\t; Size in words" << std::endl;
@@ -3003,7 +3115,7 @@ bool Project::ExportBlockMap(MapId mapId, const std::string& filename, bool bina
 	return false;
 }
 
-bool Project::ExportTerrainBlocks(const std::string& filename, bool binary, int blockWidth, int blockHeight)
+bool Project::ExportTerrainBlocks(const std::string& filename, ExportFormat format, int blockWidth, int blockHeight)
 {
 	//Generate map blocks and concatenate into one list
 	std::vector<CollisionMap::Block*> blocks;
@@ -3044,7 +3156,7 @@ bool Project::ExportTerrainBlocks(const std::string& filename, bool binary, int 
 
 	u32 binarySize = 0;
 
-	if(binary)
+	if(format == ExportFormat::Binary || format == ExportFormat::BinaryCompressed)
 	{
 		std::string binaryFilename = filename.substr(0, filename.find_first_of('.'));
 		binaryFilename += ".bin";
@@ -3072,12 +3184,12 @@ bool Project::ExportTerrainBlocks(const std::string& filename, bool binary, int 
 		std::stringstream stream;
 		WriteFileHeader(stream);
 
-		if(binary)
+		if(format == ExportFormat::Binary || format == ExportFormat::BinaryCompressed)
 		{
 			//Export size of binary file
 			stream << "terrainmap_blocks_" << m_name << "_size_b\tequ 0x" << std::hex << std::setfill('0') << std::uppercase << std::setw(8) << binarySize << std::dec << "\t; Size in bytes" << std::endl;
 		}
-		else
+		else if (format == ExportFormat::Text)
 		{
 			//Export label, data and size as inline text
 			stream << "terrainmap_blocks_" << m_name << ":" << std::endl;
@@ -3090,6 +3202,10 @@ bool Project::ExportTerrainBlocks(const std::string& filename, bool binary, int 
 			stream << std::endl;
 			stream << "terrainmap_blocks_" << m_name << "_end:" << std::endl;
 			stream << "terrainmap_blocks_" << m_name << "_size_b\tequ (terrainmap_blocks_" << m_name << "_end-terrainmap_" << m_name << ")\t; Size in bytes" << std::endl;
+		}
+		else
+		{
+			ion::debug::Log("Unsupported export format");
 		}
 
 		stream << "terrainmap_blocks_" << m_name << "_size_w\tequ (terrainmap_blocks_" << m_name << "_size_b/2)\t; Size in words" << std::endl;
@@ -3104,7 +3220,7 @@ bool Project::ExportTerrainBlocks(const std::string& filename, bool binary, int 
 	return false;
 }
 
-bool Project::ExportTerrainBlockMap(MapId mapId, const std::string& filename, bool binary, int blockWidth, int blockHeight)
+bool Project::ExportTerrainBlockMap(MapId mapId, const std::string& filename, ExportFormat format, int blockWidth, int blockHeight)
 {
 	const Map& map = m_maps.find(mapId)->second;
 	CollisionMap& collisionMap = m_collisionMaps.find(mapId)->second;
@@ -3125,7 +3241,7 @@ bool Project::ExportTerrainBlockMap(MapId mapId, const std::string& filename, bo
 		u32 binarySize = 0;
 		std::vector<u16> rowOffsets;
 
-		if(binary)
+		if(format == ExportFormat::Binary || format == ExportFormat::BinaryCompressed)
 		{
 			std::string binaryFilename = filename.substr(0, filename.find_first_of('.'));
 			binaryFilename += ".bin";
@@ -3149,12 +3265,12 @@ bool Project::ExportTerrainBlockMap(MapId mapId, const std::string& filename, bo
 			std::stringstream stream;
 			WriteFileHeader(stream);
 
-			if(binary)
+			if(format == ExportFormat::Binary || format == ExportFormat::BinaryCompressed)
 			{
 				//Export size of binary file
 				stream << "terrainmap_blockmap_" << mapName << "_size_b\tequ 0x" << std::hex << std::setfill('0') << std::uppercase << std::setw(8) << binarySize << std::dec << "\t; Size in bytes" << std::endl;
 			}
-			else
+			else if (format == ExportFormat::Text)
 			{
 				//Export label, data and size as inline text
 				stream << "terrainmap_blockmap_" << mapName << ":" << std::endl;
@@ -3164,6 +3280,10 @@ bool Project::ExportTerrainBlockMap(MapId mapId, const std::string& filename, bo
 				stream << std::endl;
 				stream << "terrainmap_blockmap_" << mapName << "_end:" << std::endl;
 				stream << "terrainmap_blockmap_" << mapName << "_size_b\tequ (terrainmap_blockmap_" << mapName << "_end-terrainmap_" << mapName << ")\t; Size in bytes" << std::endl;
+			}
+			else
+			{
+				ion::debug::Log("Unsupported export format");
 			}
 
 			stream << "terrainmap_blockmap_" << mapName << "_size_w\tequ (terrainmap_blockmap_" << mapName << "_size_b/2)\t; Size in words" << std::endl;
@@ -3236,247 +3356,304 @@ bool Project::ExportTerrainBlockMap(MapId mapId, const std::string& filename, bo
 	return false;
 }
 
-bool Project::ExportStamps(const std::string& filename, bool binary) const
+bool Project::ExportStamps(const std::string& filename, ExportFormat format)
 {
-	u32 binarySize = 0;
+	if (format == ExportFormat::Beehive)
+	{
+		ion::io::File file(filename, ion::io::File::eOpenWrite);
+		if (file.IsOpen())
+		{
+			ion::io::Archive archive(file, ion::io::Archive::Direction::Out);
+			archive.SetContentType(ion::io::Archive::Content::Minimal);
+			archive.Serialise(m_stamps, "stamps");
+			return true;
+		}
+	}
+	else
+	{
+		u32 binarySize = 0;
 
 #pragma pack(push, 1)
-	struct StampTableEntry
-	{
-		StampTableEntry() {}
-		StampTableEntry(u32 offset, u8 width, u8 height)
+		struct StampTableEntry
 		{
-			m_offset = offset;
-			m_width = width;
-			m_height = height;
-		}
+			StampTableEntry() {}
+			StampTableEntry(u32 offset, u8 width, u8 height)
+			{
+				m_offset = offset;
+				m_width = width;
+				m_height = height;
+			}
 
-		u32 m_offset;
-		u16 m_width;
-		u16 m_height;
-	};
+			u32 m_offset;
+			u16 m_width;
+			u16 m_height;
+		};
 #pragma pack(pop)
 
-	std::vector<StampTableEntry> stampTable;
+		std::vector<StampTableEntry> stampTable;
 
-	if(binary)
-	{
-		std::string binaryFilename = filename.substr(0, filename.find_first_of('.'));
-		binaryFilename += ".bin";
-
-		//Export binary data
-		ion::io::File binaryFile(binaryFilename, ion::io::File::eOpenWrite);
-		if(binaryFile.IsOpen())
+		if (format == ExportFormat::Binary || format == ExportFormat::BinaryCompressed)
 		{
-			for(TStampMap::const_iterator it = m_stamps.begin(), end = m_stamps.end(); it != end; ++it)
+			std::string binaryFilename = filename.substr(0, filename.find_first_of('.'));
+			binaryFilename += ".bin";
+
+			//Export binary data
+			ion::io::File binaryFile(binaryFilename, ion::io::File::eOpenWrite);
+			if (binaryFile.IsOpen())
 			{
-				stampTable.push_back(StampTableEntry(binaryFile.GetSize(), it->second.GetWidth(), it->second.GetHeight()));
-				it->second.Export(*this, binaryFile);
+				for (TStampMap::const_iterator it = m_stamps.begin(), end = m_stamps.end(); it != end; ++it)
+				{
+					stampTable.push_back(StampTableEntry(binaryFile.GetSize(), it->second.GetWidth(), it->second.GetHeight()));
+					it->second.Export(*this, binaryFile);
+				}
+
+				binarySize = binaryFile.GetSize();
+			}
+			else
+			{
+				return false;
+			}
+		}
+
+		ion::io::File file(filename, ion::io::File::eOpenWrite);
+		if (file.IsOpen())
+		{
+			std::stringstream stream;
+			WriteFileHeader(stream);
+
+			if (format == ExportFormat::Binary || format == ExportFormat::BinaryCompressed)
+			{
+				//Export size of binary file
+				stream << "stamps_" << m_name << "_size_b\tequ 0x" << HEX8(binarySize) << "\t; Binary size in bytes" << std::endl;
+
+				stream << std::endl;
+
+				//Export stamp table
+				stream << "stamps_" << m_name << "_table:" << std::endl;
+				stream << std::endl;
+
+				for (int i = 0; i < stampTable.size(); i++)
+				{
+					stream << "stamp_" << i << "_offset:\tdc.l 0x" << HEX8((int)stampTable[i].m_offset) << std::endl;
+					stream << "stamp_" << i << "_width:\tdc.w 0x" << HEX4((int)stampTable[i].m_width) << std::endl;
+					stream << "stamp_" << i << "_height:\tdc.w 0x" << HEX4((int)stampTable[i].m_height) << std::endl;
+					stream << std::endl;
+				}
+			}
+			else if (format == ExportFormat::Text)
+			{
+				//Export label, data and size as inline text
+				stream << "stamps_" << m_name << ":" << std::endl;
+
+				int offset = 0;
+				for (TStampMap::const_iterator it = m_stamps.begin(), end = m_stamps.end(); it != end; ++it)
+				{
+					stampTable.push_back(StampTableEntry(offset, it->second.GetWidth(), it->second.GetHeight()));
+					stream << "stamp_" << it->first << ":" << std::endl;
+					it->second.Export(*this, stream);
+					stream << std::endl;
+
+					offset += it->second.GetBinarySize();
+				}
+
+				//Export stamp table
+				stream << "stamps_" << m_name << "_table:" << std::endl;
+				stream << std::endl;
+
+				for (int i = 0; i < stampTable.size(); i++)
+				{
+					stream << "stamp_" << i << "_offset:\tdc.l 0x" << HEX8((int)stampTable[i].m_offset) << std::endl;
+					stream << "stamp_" << i << "_width:\tdc.w 0x" << HEX4((int)stampTable[i].m_width) << std::endl;
+					stream << "stamp_" << i << "_height:\tdc.w 0x" << HEX4((int)stampTable[i].m_height) << std::endl;
+					stream << std::endl;
+				}
+
+				stream << std::endl;
+				stream << "stamps_" << m_name << "_end:" << std::endl;
+				stream << "stamps_" << m_name << "_size_b\tequ (stamps_" << m_name << "_end-stamps_" << m_name << ")\t; Size in bytes" << std::endl;
 			}
 
-			binarySize = binaryFile.GetSize();
+			stream << "stamps_" << m_name << "_size_w\tequ (stamps_" << m_name << "_size_b/2)\t; Size in words" << std::endl;
+			stream << "stamps_" << m_name << "_size_l\tequ (stamps_" << m_name << "_size_b/4)\t; Size in longwords" << std::endl;
+
+			file.Write(stream.str().c_str(), stream.str().size());
+
+			return true;
 		}
 		else
 		{
-			return false;
+			ion::debug::Log("Unsupported export format");
 		}
-	}
-
-	ion::io::File file(filename, ion::io::File::eOpenWrite);
-	if(file.IsOpen())
-	{
-		std::stringstream stream;
-		WriteFileHeader(stream);
-
-		if(binary)
-		{
-			//Export size of binary file
-			stream << "stamps_" << m_name << "_size_b\tequ 0x" << HEX8(binarySize) << "\t; Binary size in bytes" << std::endl;
-
-			stream << std::endl;
-
-			//Export stamp table
-			stream << "stamps_" << m_name << "_table:" << std::endl;
-			stream << std::endl;
-
-			for(int i = 0; i < stampTable.size(); i++)
-			{
-				stream << "stamp_" << i << "_offset:\tdc.l 0x" << HEX8((int)stampTable[i].m_offset) << std::endl;
-				stream << "stamp_" << i << "_width:\tdc.w 0x" << HEX4((int)stampTable[i].m_width) << std::endl;
-				stream << "stamp_" << i << "_height:\tdc.w 0x" << HEX4((int)stampTable[i].m_height) << std::endl;
-				stream << std::endl;
-			}
-		}
-		else
-		{
-			//Export label, data and size as inline text
-			stream << "stamps_" << m_name << ":" << std::endl;
-
-			int offset = 0;
-			for(TStampMap::const_iterator it = m_stamps.begin(), end = m_stamps.end(); it != end; ++it)
-			{
-				stampTable.push_back(StampTableEntry(offset, it->second.GetWidth(), it->second.GetHeight()));
-				stream << "stamp_" << it->first << ":" << std::endl;
-				it->second.Export(*this, stream);
-				stream << std::endl;
-
-				offset += it->second.GetBinarySize();
-			}
-
-			//Export stamp table
-			stream << "stamps_" << m_name << "_table:" << std::endl;
-			stream << std::endl;
-
-			for(int i = 0; i < stampTable.size(); i++)
-			{
-				stream << "stamp_" << i << "_offset:\tdc.l 0x" << HEX8((int)stampTable[i].m_offset) << std::endl;
-				stream << "stamp_" << i << "_width:\tdc.w 0x" << HEX4((int)stampTable[i].m_width) << std::endl;
-				stream << "stamp_" << i << "_height:\tdc.w 0x" << HEX4((int)stampTable[i].m_height) << std::endl;
-				stream << std::endl;
-			}
-
-			stream << std::endl;
-			stream << "stamps_" << m_name << "_end:" << std::endl;
-			stream << "stamps_" << m_name << "_size_b\tequ (stamps_" << m_name << "_end-stamps_" << m_name << ")\t; Size in bytes" << std::endl;
-		}
-
-		stream << "stamps_" << m_name << "_size_w\tequ (stamps_" << m_name << "_size_b/2)\t; Size in words" << std::endl;
-		stream << "stamps_" << m_name << "_size_l\tequ (stamps_" << m_name << "_size_b/4)\t; Size in longwords" << std::endl;
-
-		file.Write(stream.str().c_str(), stream.str().size());
-
-		return true;
 	}
 
 	return false;
 }
 
-bool Project::ExportStampMap(MapId mapId, const std::string& filename, bool binary) const
+bool Project::ExportStampMap(MapId mapId, const std::string& filename, ExportFormat format)
 {
-	const Map& map = m_maps.find(mapId)->second;
-	int mapWidth = map.GetWidth();
-	int mapHeight = map.GetHeight();
-	const std::string& mapName = map.GetName();
+	Map& map = m_maps.find(mapId)->second;
 
-	u32 binarySize = 0;
-
-	if(binary)
+	if (format == ExportFormat::Beehive)
 	{
-		std::string binaryFilename = filename.substr(0, filename.find_first_of('.'));
-		binaryFilename += ".bin";
-
-		//Export binary data
-		ion::io::File binaryFile(binaryFilename, ion::io::File::eOpenWrite);
-		if(binaryFile.IsOpen())
+		ion::io::File file(filename, ion::io::File::eOpenWrite);
+		if (file.IsOpen())
 		{
-			map.ExportStampMap(*this, binaryFile);
-			binarySize = binaryFile.GetSize();
-		}
-		else
-		{
-			return false;
+			ion::io::Archive archive(file, ion::io::Archive::Direction::Out);
+			archive.SetContentType(ion::io::Archive::Content::Minimal);
+			ion::Vector2i mapSizeTiles(map.GetWidth(), map.GetHeight());
+			archive.Serialise(mapSizeTiles, "mapSizeTiles");
+			archive.Serialise(map.GetStamps(), "stamps");
+			return true;
 		}
 	}
-
-	ion::io::File file(filename, ion::io::File::eOpenWrite);
-	if(file.IsOpen())
+	else
 	{
-		std::stringstream stream;
-		WriteFileHeader(stream);
+		int mapWidth = map.GetWidth();
+		int mapHeight = map.GetHeight();
+		const std::string& mapName = map.GetName();
 
-		if(binary)
+		u32 binarySize = 0;
+
+		if (format == ExportFormat::Binary || format == ExportFormat::BinaryCompressed)
 		{
-			//Export size of binary file
-			stream << "stampmap_" << mapName << "_size_b\tequ 0x" << HEX8(binarySize) << "\t; Size in bytes" << std::endl;
+			std::string binaryFilename = filename.substr(0, filename.find_first_of('.'));
+			binaryFilename += ".bin";
+
+			//Export binary data
+			ion::io::File binaryFile(binaryFilename, ion::io::File::eOpenWrite);
+			if (binaryFile.IsOpen())
+			{
+				map.ExportStampMap(*this, binaryFile);
+				binarySize = binaryFile.GetSize();
+			}
+			else
+			{
+				return false;
+			}
 		}
-		else
+
+		ion::io::File file(filename, ion::io::File::eOpenWrite);
+		if (file.IsOpen())
 		{
-			//Export label, data and size as inline text
-			stream << "stampmap_" << mapName << ":" << std::endl;
+			std::stringstream stream;
+			WriteFileHeader(stream);
 
-			map.ExportStampMap(*this, stream);
+			if (format == ExportFormat::Binary || format == ExportFormat::BinaryCompressed)
+			{
+				//Export size of binary file
+				stream << "stampmap_" << mapName << "_size_b\tequ 0x" << HEX8(binarySize) << "\t; Size in bytes" << std::endl;
+			}
+			else if (format == ExportFormat::Text)
+			{
+				//Export label, data and size as inline text
+				stream << "stampmap_" << mapName << ":" << std::endl;
 
-			stream << std::endl;
-			stream << "stampmap_" << mapName << "_end:" << std::endl;
-			stream << "stampmap_" << mapName << "_size_b\tequ (stampmap_" << mapName << "_end-stampmap_" << mapName << ")\t; Size in bytes" << std::endl;
+				map.ExportStampMap(*this, stream);
+
+				stream << std::endl;
+				stream << "stampmap_" << mapName << "_end:" << std::endl;
+				stream << "stampmap_" << mapName << "_size_b\tequ (stampmap_" << mapName << "_end-stampmap_" << mapName << ")\t; Size in bytes" << std::endl;
+			}
+			else
+			{
+				ion::debug::Log("Unsupported export format");
+			}
+
+			stream << "stampmap_" << mapName << "_size_w\tequ (stampmap_" << mapName << "_size_b/2)\t; Size in words" << std::endl;
+			stream << "stampmap_" << mapName << "_size_l\tequ (stampmap_" << mapName << "_size_b/4)\t; Size in longwords" << std::endl;
+
+			stream << std::hex << std::setfill('0') << std::uppercase;
+			stream << "stampmap_" << mapName << "_width\tequ " << "0x" << HEX2(mapWidth) << std::endl;
+			stream << "stampmap_" << mapName << "_height\tequ " << "0x" << HEX2(mapHeight) << std::endl;
+			stream << std::dec;
+
+			file.Write(stream.str().c_str(), stream.str().size());
+
+			return true;
 		}
-
-		stream << "stampmap_" << mapName << "_size_w\tequ (stampmap_" << mapName << "_size_b/2)\t; Size in words" << std::endl;
-		stream << "stampmap_" << mapName << "_size_l\tequ (stampmap_" << mapName << "_size_b/4)\t; Size in longwords" << std::endl;
-
-		stream << std::hex << std::setfill('0') << std::uppercase;
-		stream << "stampmap_" << mapName << "_width\tequ " << "0x" << HEX2(mapWidth) << std::endl;
-		stream << "stampmap_" << mapName << "_height\tequ " << "0x" << HEX2(mapHeight) << std::endl;
-		stream << std::dec;
-
-		file.Write(stream.str().c_str(), stream.str().size());
-
-		return true;
 	}
 
 	return false;
 }
 
-bool Project::ExportCollisionMap(MapId mapId, const std::string& filename, bool binary) const
+bool Project::ExportCollisionMap(MapId mapId, const std::string& filename, ExportFormat format)
 {
 	u32 binarySize = 0;
 
 	const Map& map = m_maps.find(mapId)->second;
 	const std::string& mapName = map.GetName();
-	const CollisionMap& collisionMap = m_collisionMaps.find(mapId)->second;
+	CollisionMap& collisionMap = m_collisionMaps.find(mapId)->second;
 
-	if(binary)
+	if (format == ExportFormat::Beehive)
 	{
-		std::string binaryFilename = filename.substr(0, filename.find_first_of('.'));
-		binaryFilename += ".bin";
-
-		//Export binary data
-		ion::io::File binaryFile(binaryFilename, ion::io::File::eOpenWrite);
-		if(binaryFile.IsOpen())
+		ion::io::File file(filename, ion::io::File::eOpenWrite);
+		if (file.IsOpen())
 		{
-			collisionMap.Export(*this, binaryFile);
-			binarySize = binaryFile.GetSize();
-		}
-		else
-		{
-			return false;
+			ion::io::Archive archive(file, ion::io::Archive::Direction::Out);
+			archive.SetContentType(ion::io::Archive::Content::Minimal);
+			archive.Serialise(collisionMap, "collisionMap");
+			return true;
 		}
 	}
-
-	ion::io::File file(filename, ion::io::File::eOpenWrite);
-	if(file.IsOpen())
+	else
 	{
-		std::stringstream stream;
-		WriteFileHeader(stream);
-		
-		if(binary)
+		if (format == ExportFormat::Binary || format == ExportFormat::BinaryCompressed)
 		{
-			//Export size of binary file
-			stream << "collisionmap_" << mapName << "_size_b\tequ 0x" << std::hex << std::setfill('0') << std::uppercase << std::setw(8) << binarySize << std::dec << "\t; Size in bytes" << std::endl;
-		}
-		else
-		{
-			//Export label, data and size as inline text
-			stream << "collisionmap_" << mapName << ":" << std::endl;
+			std::string binaryFilename = filename.substr(0, filename.find_first_of('.'));
+			binaryFilename += ".bin";
 
-			collisionMap.Export(*this, stream);
-
-			stream << std::endl;
-			stream << "collisionmap_" << mapName << "_end:" << std::endl;
-			stream << "collisionmap_" << mapName << "_size_b\tequ (collisionmap_" << mapName << "_end-collisionmap_" << mapName << ")\t; Size in bytes" << std::endl;
+			//Export binary data
+			ion::io::File binaryFile(binaryFilename, ion::io::File::eOpenWrite);
+			if (binaryFile.IsOpen())
+			{
+				collisionMap.Export(*this, binaryFile);
+				binarySize = binaryFile.GetSize();
+			}
+			else
+			{
+				return false;
+			}
 		}
 
-		stream << "collisionmap_" << mapName << "_size_w\tequ (collisionmap_" << mapName << "_size_b/2)\t; Size in words" << std::endl;
-		stream << "collisionmap_" << mapName << "_size_l\tequ (collisionmap_" << mapName << "_size_b/4)\t; Size in longwords" << std::endl;
+		ion::io::File file(filename, ion::io::File::eOpenWrite);
+		if (file.IsOpen())
+		{
+			std::stringstream stream;
+			WriteFileHeader(stream);
 
-		stream << std::hex << std::setfill('0') << std::uppercase;
-		stream << "collisionmap_" << mapName << "_width\tequ " << "0x" << std::setw(2) << collisionMap.GetWidth() << std::endl;
-		stream << "collisionmap_" << mapName << "_height\tequ " << "0x" << std::setw(2) << collisionMap.GetHeight() << std::endl;
-		stream << std::dec;
+			if (format == ExportFormat::Binary || format == ExportFormat::BinaryCompressed)
+			{
+				//Export size of binary file
+				stream << "collisionmap_" << mapName << "_size_b\tequ 0x" << std::hex << std::setfill('0') << std::uppercase << std::setw(8) << binarySize << std::dec << "\t; Size in bytes" << std::endl;
+			}
+			else if (format == ExportFormat::Text)
+			{
+				//Export label, data and size as inline text
+				stream << "collisionmap_" << mapName << ":" << std::endl;
 
-		file.Write(stream.str().c_str(), stream.str().size());
+				collisionMap.Export(*this, stream);
 
-		return true;
+				stream << std::endl;
+				stream << "collisionmap_" << mapName << "_end:" << std::endl;
+				stream << "collisionmap_" << mapName << "_size_b\tequ (collisionmap_" << mapName << "_end-collisionmap_" << mapName << ")\t; Size in bytes" << std::endl;
+			}
+			else
+			{
+				ion::debug::Log("Unsupported export format");
+			}
+
+			stream << "collisionmap_" << mapName << "_size_w\tequ (collisionmap_" << mapName << "_size_b/2)\t; Size in words" << std::endl;
+			stream << "collisionmap_" << mapName << "_size_l\tequ (collisionmap_" << mapName << "_size_b/4)\t; Size in longwords" << std::endl;
+
+			stream << std::hex << std::setfill('0') << std::uppercase;
+			stream << "collisionmap_" << mapName << "_width\tequ " << "0x" << std::setw(2) << collisionMap.GetWidth() << std::endl;
+			stream << "collisionmap_" << mapName << "_height\tequ " << "0x" << std::setw(2) << collisionMap.GetHeight() << std::endl;
+			stream << std::dec;
+
+			file.Write(stream.str().c_str(), stream.str().size());
+
+			return true;
+		}
 	}
 
 	return false;
@@ -3502,130 +3679,173 @@ namespace
 	}
 }
 
-bool Project::ExportGameObjects(MapId mapId, const std::string& filename) const
+bool Project::ExportSceneAnimations(MapId mapId, const std::string& filename, ExportFormat format)
 {
-	const Map& map = m_maps.find(mapId)->second;
+	Map& map = m_maps.find(mapId)->second;
 	const std::string& mapName = map.GetName();
 
 	ion::io::File file(filename, ion::io::File::eOpenWrite);
-	if(file.IsOpen())
+	if (file.IsOpen())
 	{
 		std::stringstream stream;
 		WriteFileHeader(stream);
 
-		const TGameObjectPosMap& gameObjMap = map.GetGameObjects();
-
-		//Sort by init priority
-		std::vector<const GameObjectType*> sortedTypes;
-		for(TGameObjectTypeMap::const_iterator it = m_gameObjectTypes.begin(), end = m_gameObjectTypes.end(); it != end; ++it)
+		for (TAnimationMap::const_iterator it = m_animations.begin(), end = m_animations.end(); it != end; ++it)
 		{
-			sortedTypes.push_back(&it->second);
-		}
+			const Animation& animation = it->second;
 
-		std::sort(sortedTypes.begin(), sortedTypes.end(), [](const GameObjectType* elemA, const GameObjectType* elemB) { return elemA->GetInitPriority() < elemB->GetInitPriority(); });
+			const int megaDriveFramesPerSecond = 60;
+			const int keyframesPerSecond = 15;
+			const int numKeyframes = (int)animation.GetLength() * keyframesPerSecond;
+			float keyframeStep = animation.GetLength() / numKeyframes;
+			float megaDriveFramesPerKeyframe = (keyframeStep * megaDriveFramesPerSecond);
 
-		//Bake out all game object types, even if there's no game objects to go with them (still need the count and init subroutine)
-		for(int i = 0; i < sortedTypes.size(); i++)
-		{
-			const GameObjectType& gameObjectType = *sortedTypes[i];
-			const TGameObjectPosMap::const_iterator gameObjIt = gameObjMap.find(gameObjectType.GetId());
-			u32 count = (gameObjIt != gameObjMap.end()) ? gameObjIt->second.size() : 0;
+			//STRUCT_BEGIN SceneAnimation
+			//	SceneAnim_ActorList            rs.l 1
+			//	SceneAnim_KeyframeTimesList    rs.l 1
+			//	SceneAnim_KeyframeTrackListPos rs.l 1
+			//	SceneAnim_ActorCount           rs.w 1
+			//	SceneAnim_KeyframeCount        rs.w 1
+			//	SceneAnim_Looping              rs.b 1
+			//STRUCT_END
 
-			//Export game object count
-			stream << mapName << "_" << gameObjectType.GetName() << "_count equ 0x" << count << std::endl;
+			//; Scene animation - l1a1_BossTest1
+			//SceneAnim_l1a1_BossTest1 :
+			//	dc.l SceneAnim_l1a1_BossTest11_ActorList
+			//	dc.l SceneAnim_l1a1_BossTest11_KeyframeTimes
+			//	dc.l SceneAnim_l1a1_BossTest11_KeyframeTrackList_Pos
+			//	dc.w 5
+			//	dc.w 8
+			//	dc.b 1
+			//	even
 
-			//Export game object names/indices
-			if(gameObjIt != gameObjMap.end())
+			stream << "SceneAnim_" << mapName << "_" << animation.GetName() << "_ActorCount\t\tequ " << animation.GetActorCount() << std::endl;
+			stream << "SceneAnim_" << mapName << "_" << animation.GetName() << "_KeyframeCount\t\tequ " << numKeyframes << std::endl;
+			stream << "SceneAnim_" << mapName << "_" << animation.GetName() << "_Looping\t\tequ " << ((animation.GetPlaybackBehaviour() == ion::render::Animation::eLoop) ? "1" : "0") << std::endl;
+
+			stream << std::endl;
+
+			stream << "; Scene animation - " << mapName << "_" << animation.GetName() << std::endl;
+			stream << "SceneAnim_" << mapName << "_" << animation.GetName() << ":" << std::endl;
+			stream << "\tdc.l SceneAnim_" << mapName << "_" << animation.GetName() << "_ActorList" << std::endl;
+			stream << "\tdc.l SceneAnim_" << mapName << "_" << animation.GetName() << "_KeyframeTimes" << std::endl;
+			stream << "\tdc.l SceneAnim_" << mapName << "_" << animation.GetName() << "_KeyframeTrackList_Pos" << std::endl;
+			stream << "\tdc.w SceneAnim_" << mapName << "_" << animation.GetName() << "_ActorCount" << std::endl;
+			stream << "\tdc.w SceneAnim_" << mapName << "_" << animation.GetName() << "_KeyframeCount" << std::endl;
+			stream << "\tdc.b SceneAnim_" << mapName << "_" << animation.GetName() << "_Looping" << std::endl;
+			stream << "\teven" << std::endl;
+
+			stream << std::endl;
+
+			//; Actor list
+			//SceneAnim_l1a1_BossTest11_ActorList:
+			//	dc.l EntityPoolStart_Core; Pool
+			//	dc.l l1a1_Core_3_idx*Core_Struct_Size; Offset
+			//	dc.l EntityPoolStart_Joint; Pool
+			//	dc.l l1a1_Joint_4_idx*Joint_Struct_Size; Offset
+			//	dc.l EntityPoolStart_Joint; Pool
+			//	dc.l l1a1_Joint_5_idx*Joint_Struct_Size; Offset
+			//	dc.l EntityPoolStart_Joint; Pool
+			//	dc.l l1a1_Joint_6_idx*Joint_Struct_Size; Offset
+			//	dc.l EntityPoolStart_Joint; Pool
+			//	dc.l l1a1_Joint_7_idx*Joint_Struct_Size; Offset
+
+			stream << "; Actor list" << std::endl;
+			stream << "SceneAnim_" << mapName << "_" << animation.GetName() << "_ActorList:" << std::endl;
+
+			for (TAnimActorMap::const_iterator actorIt = animation.ActorsBegin(), actorEnd = animation.ActorsEnd(); actorIt != actorEnd; ++actorIt)
 			{
-				for(int i = 0; i < gameObjIt->second.size(); i++)
+				const GameObject* gameObject = map.GetGameObject(actorIt->second.GetGameObjectId());
+				const GameObjectType* gameObjectType = GetGameObjectType(gameObject->GetTypeId());
+				std::string objectName = GenerateObjectName(mapName, *gameObject, *gameObjectType);
+
+				stream << "\tdc.l EntityPoolStart_" << gameObjectType->GetName() << "\t; Pool" << std::endl;
+				stream << "\tdc.l " << objectName << "_idx*" << gameObjectType->GetName() << "_Struct_Size\t; Offset" << std::endl;
+			}
+
+			stream << std::endl;
+
+			//; Keyframe times
+			//SceneAnim_l1a1_BossTest11_KeyframeTimes :
+			//	dc.w 0x0000
+			//	dc.w 0x0004
+			//	dc.w 0x0008
+			//	dc.w 0x000C
+			//	dc.w 0x0010
+			//	dc.w 0x0014
+			//	dc.w 0x0018
+			//	dc.w 0x001C
+
+			stream << "; Keyframe times" << std::endl;
+			stream << "SceneAnim_" << mapName << "_" << animation.GetName() << "_KeyframeTimes:" << std::endl;
+
+			for (int i = 0; i < numKeyframes; i++)
+			{
+				stream << "\tdc.w 0x" << HEX4((int)(megaDriveFramesPerKeyframe * i)) << std::endl;
+			}
+
+			stream << std::endl;
+
+			//; Keyframe tracks (position)
+			//SceneAnim_l1a1_BossTest11_KeyframeTrackList_Pos:
+			//	dc.l SceneAnim_l1a1_BossTest1_KeyframeTrack_Pos_l1a1_Core_3
+			//	dc.l SceneAnim_l1a1_BossTest1_KeyframeTrack_Pos_l1a1_Joint_4
+			//	dc.l SceneAnim_l1a1_BossTest1_KeyframeTrack_Pos_l1a1_Joint_5
+			//	dc.l SceneAnim_l1a1_BossTest1_KeyframeTrack_Pos_l1a1_Joint_6
+			//	dc.l SceneAnim_l1a1_BossTest1_KeyframeTrack_Pos_l1a1_Joint_7
+
+			stream << "; Keyframe tracks (position)" << std::endl;
+			stream << "SceneAnim_" << mapName << "_" << animation.GetName() << "_KeyframeTrackList_Pos:" << std::endl;
+
+			for (TAnimActorMap::const_iterator actorIt = animation.ActorsBegin(), actorEnd = animation.ActorsEnd(); actorIt != actorEnd; ++actorIt)
+			{
+				const GameObject* gameObject = map.GetGameObject(actorIt->second.GetGameObjectId());
+				const GameObjectType* gameObjectType = GetGameObjectType(gameObject->GetTypeId());
+				std::string objectName = GenerateObjectName(mapName, *gameObject, *gameObjectType);
+
+				stream << "\tdc.l SceneAnim_" << mapName << "_" << animation.GetName() << "_KeyframeTrack_Pos_" << objectName << std::endl;
+			}
+
+			stream << std::endl;
+
+			for (TAnimActorMap::const_iterator actorIt = animation.ActorsBegin(), actorEnd = animation.ActorsEnd(); actorIt != actorEnd; ++actorIt)
+			{
+				//; Keyframe track(position, actor Core_3)
+				//SceneAnim_l1a1_BossTest1_KeyframeTrack_Pos_l1a1_Core_3:
+				//	dc.w 0x0001, 0x0000
+				//	dc.w 0x0000, 0x0001
+				//	dc.w 0x0002, 0x0000
+				//	dc.w 0x0000, 0x0002
+				//	dc.w 0x0003, 0x0000
+				//	dc.w 0x0000, 0x0003
+				//	dc.w 0x0004, 0x0000
+				//	dc.w 0x0000, 0x0004
+
+				const GameObject* gameObject = map.GetGameObject(actorIt->second.GetGameObjectId());
+				const GameObjectType* gameObjectType = GetGameObjectType(gameObject->GetTypeId());
+				std::string objectName = GenerateObjectName(mapName, *gameObject, *gameObjectType);
+
+				stream << "; Keyframe track (position, actor " << objectName << ")" << std::endl;
+				stream << "SceneAnim_" << mapName << "_" << animation.GetName() << "_KeyframeTrack_Pos_" << objectName << ":" << std::endl;
+
+				ion::Vector2i lastPosition = actorIt->second.m_trackPosition.GetValue(0.0f);
+
+				for (int i = 1; i < numKeyframes + 1; i++)
 				{
-					std::string name = GenerateObjectName(mapName, gameObjIt->second[i].m_gameObject, gameObjectType);
-					stream << name << "_idx\tequ 0x" << std::hex << i << std::endl;
+					ion::Vector2i position = actorIt->second.m_trackPosition.GetValue(keyframeStep * i);
+					ion::Vector2i delta = position - lastPosition;
+					ion::Vector2 velocity((float)delta.x / megaDriveFramesPerKeyframe, (float)delta.y / megaDriveFramesPerKeyframe);
+					lastPosition = position;
+					stream << "\tdc.l 0x" << HEX8(ion::maths::FloatToFixed1616(velocity.x)) << ", 0x" << HEX8(ion::maths::FloatToFixed1616(velocity.y)) << std::endl;
 				}
 
 				stream << std::endl;
-
-				stream << '\t' << "IFND FINAL" << std::endl;
-
-				for(int i = 0; i < gameObjIt->second.size(); i++)
-				{
-					std::string name = GenerateObjectName(mapName, gameObjIt->second[i].m_gameObject, gameObjectType);
-
-					stream << name << "_name\tdc.b \"";
-					for(int i = 0; i < name.size(); i++)
-					{
-						stream << name[i];
-					}
-
-					stream << "\",0" << std::endl;
-				}
-
-				stream << "\teven" << std::endl;
-
-				stream << '\t' << "ENDIF" << std::endl;
 			}
-
-			stream << std::endl;
 		}
 
 		stream << std::endl;
-
-		//Output debug checks
-#if defined OUTPUT_GAMEOBJ_DEBUG_CHECKS
-		for(int i = 0; i < sortedTypes.size(); i++)
-		{
-			const GameObjectType& gameObjectType = *sortedTypes[i];
-			const TGameObjectPosMap::const_iterator gameObjIt = gameObjMap.find(gameObjectType.GetId());
-			u32 count = (gameObjIt != gameObjMap.end()) ? gameObjIt->second.size() : 0;
-
-			stream << "\tIF " << mapName << "_" << gameObjectType.GetName() << "_count>" << gameObjectType.GetName() << "_MaxEntities" << std::endl;
-			stream << "\tinform 2,\"Entity array overflow(" << gameObjectType.GetName() << ") - array size: 0x\%d count : 0x\%d\"," << gameObjectType.GetName() << "_MaxEntities," << mapName << "_" << gameObjectType.GetName() << "_count" << std::endl;
-			stream << "\tENDIF" << std::endl;
-			stream << std::endl;
-		}
-#endif
-
-		stream << std::endl;
-
-		//Start init subroutine
-		stream << mapName << "_LoadGameObjects:" << std::endl;
-
-		for(int i = 0; i < sortedTypes.size(); i++)
-		{
-			const GameObjectType& gameObjectType = *sortedTypes[i];
-			const TGameObjectPosMap::const_iterator gameObjIt = gameObjMap.find(gameObjectType.GetId());
-
-			//Export all game objects of this type
-			if(gameObjIt != gameObjMap.end())
-			{
-				if(gameObjIt->second.size() > 0)
-				{
-					//Alloc memory from entity pool
-					stream << '\t' << "PUSHL  a1" << std::endl;
-					stream << '\t' << "RAMPOOL_ALLOC Pool_Entities, #(" << gameObjectType.GetName() << "_Struct_Size*" << mapName << "_" << gameObjectType.GetName() << "_count)" << std::endl;
-					stream << '\t' << "move.l a1, EntityPoolStart_" << gameObjectType.GetName() << std::endl;
-					stream << '\t' << "move.l a1, a0" << std::endl;
-					stream << '\t' << "POPL   a1" << std::endl;
-					stream << std::endl;
-
-					for(int i = 0; i < gameObjIt->second.size(); i++)
-					{
-						std::string name = GenerateObjectName(mapName, gameObjIt->second[i].m_gameObject, gameObjectType);
-						gameObjIt->second[i].m_gameObject.Export(stream, gameObjectType, name, map.GetWidth() * m_platformConfig.tileWidth);
-						stream << '\t' << "add.l #" << gameObjectType.GetName() << "_Struct_Size, a0" << std::endl;
-						stream << std::endl;
-					}
-				}
-			}
-
-			stream << std::endl;
-		}
-
-		//End subroutine
-		stream << '\t' << "rts" << std::endl;
-		stream << std::endl;
-
 		file.Write(stream.str().c_str(), stream.str().size());
+		file.Close();
 
 		return true;
 	}
@@ -3633,7 +3853,148 @@ bool Project::ExportGameObjects(MapId mapId, const std::string& filename) const
 	return false;
 }
 
-bool Project::ExportSpriteSheets(const std::string& directory, bool binary)
+bool Project::ExportGameObjects(MapId mapId, const std::string& filename, ExportFormat format)
+{
+	Map& map = m_maps.find(mapId)->second;
+	const std::string& mapName = map.GetName();
+
+	ion::io::File file(filename, ion::io::File::eOpenWrite);
+	if (file.IsOpen())
+	{
+		if (format == ExportFormat::Beehive)
+		{
+			ion::io::Archive archive(file, ion::io::Archive::Direction::Out);
+			archive.SetContentType(ion::io::Archive::Content::Minimal);
+			archive.Serialise(map.GetGameObjects(), "gameObjects");
+			return true;
+		}
+		else
+		{
+			std::stringstream stream;
+			WriteFileHeader(stream);
+
+			const TGameObjectPosMap& gameObjMap = map.GetGameObjects();
+
+			//Sort by init priority
+			std::vector<const GameObjectType*> sortedTypes;
+			for (TGameObjectTypeMap::const_iterator it = m_gameObjectTypes.begin(), end = m_gameObjectTypes.end(); it != end; ++it)
+			{
+				sortedTypes.push_back(&it->second);
+			}
+
+			std::sort(sortedTypes.begin(), sortedTypes.end(), [](const GameObjectType* elemA, const GameObjectType* elemB) { return elemA->GetInitPriority() < elemB->GetInitPriority(); });
+
+			//Bake out all game object types, even if there's no game objects to go with them (still need the count and init subroutine)
+			for (int i = 0; i < sortedTypes.size(); i++)
+			{
+				const GameObjectType& gameObjectType = *sortedTypes[i];
+				const TGameObjectPosMap::const_iterator gameObjIt = gameObjMap.find(gameObjectType.GetId());
+				u32 count = (gameObjIt != gameObjMap.end()) ? gameObjIt->second.size() : 0;
+
+				//Export game object count
+				stream << mapName << "_" << gameObjectType.GetName() << "_count equ 0x" << count << std::endl;
+
+				//Export game object names/indices
+				if (gameObjIt != gameObjMap.end())
+				{
+					for (int i = 0; i < gameObjIt->second.size(); i++)
+					{
+						std::string name = GenerateObjectName(mapName, gameObjIt->second[i].m_gameObject, gameObjectType);
+						stream << name << "_idx\tequ 0x" << std::hex << i << std::endl;
+					}
+
+					stream << std::endl;
+
+					stream << '\t' << "IFND FINAL" << std::endl;
+
+					for (int i = 0; i < gameObjIt->second.size(); i++)
+					{
+						std::string name = GenerateObjectName(mapName, gameObjIt->second[i].m_gameObject, gameObjectType);
+
+						stream << name << "_name\tdc.b \"";
+						for (int i = 0; i < name.size(); i++)
+						{
+							stream << name[i];
+						}
+
+						stream << "\",0" << std::endl;
+					}
+
+					stream << "\teven" << std::endl;
+
+					stream << '\t' << "ENDIF" << std::endl;
+				}
+
+				stream << std::endl;
+			}
+
+			stream << std::endl;
+
+			//Output debug checks
+#if defined OUTPUT_GAMEOBJ_DEBUG_CHECKS
+			for (int i = 0; i < sortedTypes.size(); i++)
+			{
+				const GameObjectType& gameObjectType = *sortedTypes[i];
+				const TGameObjectPosMap::const_iterator gameObjIt = gameObjMap.find(gameObjectType.GetId());
+				u32 count = (gameObjIt != gameObjMap.end()) ? gameObjIt->second.size() : 0;
+
+				stream << "\tIF " << mapName << "_" << gameObjectType.GetName() << "_count>" << gameObjectType.GetName() << "_MaxEntities" << std::endl;
+				stream << "\tinform 2,\"Entity array overflow(" << gameObjectType.GetName() << ") - array size: 0x\%d count : 0x\%d\"," << gameObjectType.GetName() << "_MaxEntities," << mapName << "_" << gameObjectType.GetName() << "_count" << std::endl;
+				stream << "\tENDIF" << std::endl;
+				stream << std::endl;
+			}
+#endif
+
+			stream << std::endl;
+
+			//Start init subroutine
+			stream << mapName << "_LoadGameObjects:" << std::endl;
+
+			for (int i = 0; i < sortedTypes.size(); i++)
+			{
+				const GameObjectType& gameObjectType = *sortedTypes[i];
+				const TGameObjectPosMap::const_iterator gameObjIt = gameObjMap.find(gameObjectType.GetId());
+
+				//Export all game objects of this type
+				if (gameObjIt != gameObjMap.end())
+				{
+					if (gameObjIt->second.size() > 0)
+					{
+						//Alloc memory from entity pool
+						stream << '\t' << "PUSHL  a1" << std::endl;
+						stream << '\t' << "RAMPOOL_ALLOC Pool_Entities, #(" << gameObjectType.GetName() << "_Struct_Size*" << mapName << "_" << gameObjectType.GetName() << "_count)" << std::endl;
+						stream << '\t' << "move.l a1, EntityPoolStart_" << gameObjectType.GetName() << std::endl;
+						stream << '\t' << "move.l a1, a0" << std::endl;
+						stream << '\t' << "POPL   a1" << std::endl;
+						stream << std::endl;
+
+						for (int i = 0; i < gameObjIt->second.size(); i++)
+						{
+							std::string name = GenerateObjectName(mapName, gameObjIt->second[i].m_gameObject, gameObjectType);
+							gameObjIt->second[i].m_gameObject.Export(stream, gameObjectType, name, map.GetWidth() * m_platformConfig.tileWidth);
+							stream << '\t' << "add.l #" << gameObjectType.GetName() << "_Struct_Size, a0" << std::endl;
+							stream << std::endl;
+						}
+					}
+				}
+
+				stream << std::endl;
+			}
+
+			//End subroutine
+			stream << '\t' << "rts" << std::endl;
+			stream << std::endl;
+
+			file.Write(stream.str().c_str(), stream.str().size());
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool Project::ExportSpriteSheets(const std::string& directory, ExportFormat format)
 {
 	for(TActorMap::iterator it = m_actors.begin(), end = m_actors.end(); it != end; ++it)
 	{
@@ -3655,6 +4016,24 @@ bool Project::ExportSpriteSheets(const std::string& directory, bool binary)
 		//	}
 		//}
 
+		if (format == ExportFormat::Beehive)
+		{
+			std::stringstream filename;
+			filename << directory << "\\" << it->second.GetName() << ".bee";
+
+			ion::io::File file(filename.str(), ion::io::File::eOpenWrite);
+			if (file.IsOpen())
+			{
+				ion::io::Archive archive(file, ion::io::Archive::Direction::Out);
+				archive.SetContentType(ion::io::Archive::Content::Minimal);
+				archive.Serialise(it->second, "actor");
+			}
+			else
+			{
+				return false;
+			}
+		}
+		else
 		{
 			std::stringstream filename;
 			filename << directory << "\\" << it->second.GetName() << ".ASM";
@@ -3677,7 +4056,7 @@ bool Project::ExportSpriteSheets(const std::string& directory, bool binary)
 	return true;
 }
 
-bool Project::ExportSpriteAnims(const std::string& directory, bool binary) const
+bool Project::ExportSpriteAnims(const std::string& directory, ExportFormat format) const
 {
 	for(TActorMap::const_iterator it = m_actors.begin(), end = m_actors.end(); it != end; ++it)
 	{
@@ -3708,7 +4087,7 @@ bool Project::ExportSpriteAnims(const std::string& directory, bool binary) const
 	return true;
 }
 
-bool Project::ExportStampAnims(const std::string& filename, bool binary) const
+bool Project::ExportStampAnims(const std::string& filename, ExportFormat format) const
 {
 	ion::io::File file(filename, ion::io::File::eOpenWrite);
 	if(file.IsOpen())

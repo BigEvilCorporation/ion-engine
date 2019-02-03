@@ -19,6 +19,7 @@ namespace ion
 			m_currentBuffer = NULL;
 			m_bufferPos = 0;
 			m_startTime = 0;
+			m_pauseTime = 0;
 
 			//Get stream desc
 			const StreamDesc* streamDesc = source.GetStreamDesc();
@@ -89,12 +90,14 @@ namespace ion
 
 		void VoiceSDL2::Pause()
 		{
+			m_pauseTime = time::GetSystemTicks();
 			SDL_PauseAudioDevice(m_sdlVoiceId, 1);
 			mState = Paused;
 		}
 
 		void VoiceSDL2::Resume()
 		{
+			m_startTime += (time::GetSystemTicks() - m_pauseTime);
 			SDL_PauseAudioDevice(m_sdlVoiceId, 0);
 			mState = Playing;
 		}
@@ -117,7 +120,7 @@ namespace ion
 			}
 			else
 			{
-				return 0.0f;
+				return time::TicksToSeconds(m_pauseTime - m_startTime);
 			}
 		}
 

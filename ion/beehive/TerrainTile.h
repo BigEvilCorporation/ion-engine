@@ -46,6 +46,8 @@ public:
 	void GetHeights(std::vector<s8>& heights) const;
 	void CopyHeights(const TerrainTile& tile);
 
+	float CalculateAngle() const;
+
 	void Serialise(ion::io::Archive& archive);
 	void Export(std::stringstream& stream) const;
 	void Export(ion::io::File& file) const;

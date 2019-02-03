@@ -35,6 +35,8 @@ namespace ion
 			HANDLE m_semaphoreHndl;
             #elif defined ION_PLATFORM_LINUX
             sem_t m_semaphoreHndl;
+            #elif defined ION_PLATFORM_MACOSX
+            dispatch_semaphore_t m_semaphoreHndl;
 			#endif
 		};
 	}

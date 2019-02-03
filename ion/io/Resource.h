@@ -98,9 +98,11 @@ namespace ion
 		{
 			//Prepend directory
 			std::string fullPath = m_resourceManager.GetResourceDirectory<T>();
+			std::string extension = m_resourceManager.GetResourceExtension<T>();
 
 			fullPath += "/";
 			fullPath += m_filename;
+			fullPath += extension;
 
 			//Create and open scene file stream for reading
 			File file(fullPath, File::eOpenRead);
@@ -108,7 +110,7 @@ namespace ion
 			if(file.IsOpen())
 			{
 				//Create archive for serialising in
-				Archive archiveIn(file, Archive::eIn, &m_resourceManager);
+				Archive archiveIn(file, Archive::Direction::In, &m_resourceManager);
 
 				//Register pointer type
 				T::RegisterSerialiseType(archiveIn);
@@ -121,6 +123,10 @@ namespace ion
 
 				//Loaded
 				m_isLoaded = true;
+			}
+			else
+			{
+				ion::debug::log << "ResourceT<T>::Load() - Failed to open file " << fullPath << ion::debug::end;
 			}
 
 			return m_isLoaded;

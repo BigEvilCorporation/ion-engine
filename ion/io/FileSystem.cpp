@@ -12,8 +12,13 @@
 // Description:	File device management
 ///////////////////////////////////////////////////
 
+#include "core/debug/Debug.h"
 #include "core/Platform.h"
 #include "io/FileSystem.h"
+
+#if defined ION_PLATFORM_WINDOWS
+#include <shlobj.h>
+#endif
 
 namespace ion
 {
@@ -131,6 +136,16 @@ namespace ion
 
 			//Restore default error mode
 			SetErrorMode(0);
+#elif defined ION_PLATFORM_LINUX
+#warning "Need to implement FileSystem::EnumerateDevices()"
+			FileDevice* device = new FileDevice("/", "/", FileDevice::eFixed, FileDevice::eWriteable);
+			m_fileDevices.push_back(device);
+			SetDefaultFileDevice(*device);
+#elif defined ION_PLATFORM_MACOSX
+#warning "Need to implement FileSystem::EnumerateDevices()"
+            FileDevice* device = new FileDevice("/", "/", FileDevice::eFixed, FileDevice::eWriteable);
+            m_fileDevices.push_back(device);
+            SetDefaultFileDevice(*device);
 #endif
 		}
 
@@ -152,6 +167,27 @@ namespace ion
 		FileDevice* FileSystem::GetDefaultFileDevice()
 		{
 			return m_defaultFileDevice;
+		}
+
+		std::string FileSystem::GetUserDataDirectory()
+		{
+#if defined ION_PLATFORM_WINDOWS
+			WCHAR* directory = nullptr;
+			SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, NULL, &directory);
+			std::wstring temp(directory);
+			std::string directoryA(temp.begin(), temp.end());
+			CoTaskMemFree(directory);
+			return directoryA;
+#elif defined ION_PLATFORM_LINUX
+			char *home = ::getenv("HOME");
+			if (home == NULL)
+				ion::debug::Error("GetUserDataDirectory: no home directory defined! ($HOME is missing)");
+			else if (*home == '\0')
+				ion::debug::Error("GetUserDataDirectory: no home directory defined! ($HOME is empty)");
+			return std::string(home);
+#else
+			return std::string("");
+#endif
 		}
 	}
 }

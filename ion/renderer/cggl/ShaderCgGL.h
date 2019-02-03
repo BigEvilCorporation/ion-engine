@@ -50,7 +50,8 @@ namespace ion
 			ShaderCgGL();
 			virtual ~ShaderCgGL();
 
-			virtual bool Load(const std::string& filename);
+			//Compile shader
+			virtual bool Compile();
 
 			//Bind/unbind
 			virtual void Bind();
@@ -71,6 +72,9 @@ namespace ion
 				virtual void Set(const Matrix4& value);
 				virtual void Set(const Texture& value);
 
+				virtual void Set(const std::vector<float>& values);
+				virtual void Set(const std::vector<Colour>& values);
+
 				CGparameter m_cgParam;
 			};
 
@@ -78,6 +82,8 @@ namespace ion
 
 			CGprogram m_cgProgram;
 			bool m_cgProgramLoaded;
+
+			int m_bindCount;
 		};
 	}
 }

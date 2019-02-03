@@ -11,42 +11,114 @@
 #include "core/memory/Memory.h"
 #include "maths/Vector.h"
 
-#if defined ION_PLATFORM_WINDOWS
-#include <XInput.h>
-#include <dinput.h>
-#elif defined ION_PLATFORM_MACOSX
-#include <SDL.h>
-#endif
-
 namespace ion
 {
 	namespace input
 	{
+		enum class GamepadType
+		{
+			Xbox360,
+			Generic = Xbox360,
+			DualShock3,
+			SEGAMegaDrive,
+
+			Count
+		};
+
+		enum class GamepadButtons : int
+		{
+			DPAD_UP,
+			DPAD_DOWN,
+			DPAD_LEFT,
+			DPAD_RIGHT,
+
+			BUTTON_A,
+			BUTTON_B,
+			BUTTON_X,
+			BUTTON_Y,
+
+			START,
+			SELECT,
+
+			LEFT_SHOULDER,
+			RIGHT_SHOULDER,
+
+			LEFT_STICK_CLICK,
+			RIGHT_STICK_CLICK,
+
+			COUNT
+		};
+
+		enum class GamepadSticks : int
+		{
+			LEFT,
+			RIGHT,
+
+			COUNT
+		};
+
+		static const char* GamepadButtonNames[(int)GamepadType::Count][(int)GamepadButtons::COUNT] =
+		{
+			//Xbox 360
+			{
+				"DPad Up",
+				"DPad Down",
+				"DPad Left",
+				"DPad Right",
+				"A",
+				"B",
+				"X",
+				"Y",
+				"Start",
+				"Back",
+				"Left Shoulder",
+				"Right Shoulder",
+				"Left Stick Click",
+				"Right Stick Click"
+			},
+
+			//Dual Shock 3
+			{
+				"DPad Up",
+				"DPad Down",
+				"DPad Left",
+				"DPad Right",
+				"Cross",
+				"Circle",
+				"Square",
+				"Triangle",
+				"Start",
+				"Select",
+				"L1",
+				"R1",
+				"L2",
+				"R2"
+			},
+
+			//SEGA Mega Drive
+			{
+				"DPad Up",
+				"DPad Down",
+				"DPad Left",
+				"DPad Right",
+				"A",
+				"B",
+				"C",
+				"[Unused]",
+				"Start",
+				"[Unused]",
+				"[Unused]",
+				"[Unused]",
+				"[Unused]",
+				"[Unused]"
+			},
+		};
+
+		class GamepadImpl;
+
 		class Gamepad
 		{
 		public:
-			enum Buttons
-			{
-				DPAD_UP				= 1 << 1,
-				DPAD_DOWN			= 1 << 2,
-				DPAD_LEFT			= 1 << 3,
-				DPAD_RIGHT			= 1 << 4,
-
-				BUTTON_A			= 1 << 5,
-				BUTTON_B			= 1 << 6,
-				BUTTON_X			= 1 << 7,
-				BUTTON_Y			= 1 << 8,
-
-				START				= 1 << 9,
-				SELECT				= 1 << 10,
-
-				LEFT_SHOULDER		= 1 << 11,
-				RIGHT_SHOULDER		= 1 << 12,
-				
-				LEFT_STICK_CLICK	= 1 << 13,
-				RIGHT_STICK_CLICK	= 1 << 14
-			};
-
 			Gamepad();
 			~Gamepad();
 
@@ -56,13 +128,12 @@ namespace ion
 			//Test if connected
 			bool IsConnected() const;
 
-			//Find available gamepads
-			bool FindConnectedGamepad();
-
 			ion::Vector2 GetLeftStick() const;
 			ion::Vector2 GetRightStick() const;
 
-			bool ButtonDown(Buttons button) const;
+			bool ButtonDown(GamepadButtons button) const;
+			bool ButtonPressedThisFrame(GamepadButtons button) const;
+			bool ButtonReleasedThisFrame(GamepadButtons button) const;
 
 			void SetDeadZone(float deadZone);
 			float GetDeadZone() const;
@@ -70,24 +141,35 @@ namespace ion
 			void SetOuterZone(float outerZone);
 			float GetOuterZone() const;
 
+			static const int s_maxControllers = 4;
+
 		private:
-			static int FindAvailableController();
-			static int ToPlatformButton(Buttons button);
+			void FindAndRegisterController();
+			void UnregisterController();
+			bool CheckButton(GamepadButtons button) const;
+			bool CheckPrevButton(GamepadButtons button) const;
 
-			int mControllerIndex;
-			bool mConnected;
-			float mDeadZone;
-			float mOuterZone;
+			int m_controllerIndex;
+			float m_deadZone;
+			float m_outerZone;
 
-#if defined ION_PLATFORM_WINDOWS
-			XINPUT_STATE mInputState;
-#elif defined ION_PLATFORM_DREAMCAST
-			cont_state_t m_mapleState;
-#endif
+			static const int s_invalidIndex = -1;
+			static bool s_registeredControllers[s_maxControllers];
 
-			static const int sInvalidIndex = -1;
-			static const int sMaxControllers = 4;
-			static bool sRegisteredControllers[sMaxControllers];
+			GamepadImpl* m_implementation;
+		};
+
+		class GamepadImpl
+		{
+		public:
+			virtual ~GamepadImpl() {}
+			virtual void Poll() = 0;
+			virtual bool IsConnected() const = 0;
+			virtual int ToPlatformButton(GamepadButtons button) const = 0;
+			virtual ion::Vector2 GetLeftStick() const = 0;
+			virtual ion::Vector2 GetRightStick() const = 0;
+			virtual bool CheckButton(GamepadButtons button) const = 0;
+			virtual bool CheckPrevButton(GamepadButtons button) const = 0;
 		};
 	}
 }

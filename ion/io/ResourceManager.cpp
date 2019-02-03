@@ -81,13 +81,12 @@ namespace ion
 			, m_jobQueueSemaphore(s_jobQueueSize)
 		{
 			m_numJobsInQueue = 0;
+			m_threadRunning = true;
 		}
 
 		ResourceManager::WorkerThread::~WorkerThread()
 		{
-			Job shutdownJob;
-			shutdownJob.m_jobType = Job::Shutdown;
-			PushJob(shutdownJob);
+			Terminate();
 		}
 
 		void ResourceManager::WorkerThread::PushJob(Job& job)
@@ -102,9 +101,17 @@ namespace ion
 			return m_numJobsInQueue;
 		}
 
+		void ResourceManager::WorkerThread::Terminate()
+		{
+			Job shutdownJob;
+			shutdownJob.m_jobType = Job::Shutdown;
+			PushJob(shutdownJob);
+			Join();
+		}
+
 		void ResourceManager::WorkerThread::Entry()
 		{
-			while(true)
+			while(m_threadRunning)
 			{
 				//Wait for job
 				m_jobQueueSemaphore.Wait();
@@ -112,15 +119,25 @@ namespace ion
 				//Pop job from queue
 				Job job = m_jobQueue.Pop();
 
-				if(job.m_jobType == ResourceManager::WorkerThread::Job::Load)
+				switch (job.m_jobType)
 				{
-					//Load resource
-					job.m_resource->Load();
-				}
-				else if(job.m_jobType == ResourceManager::WorkerThread::Job::Unload)
-				{
-					//Unload resource
-					job.m_resource->Unload();
+					case Job::Load:
+					{
+						//Load resource
+						job.m_resource->Load();
+						break;
+					}
+					case Job::Unload:
+					{
+						//Unload resource
+						job.m_resource->Unload();
+						break;
+					}
+					case Job::Shutdown:
+					{
+						m_threadRunning = false;
+						break;
+					}
 				}
 
 				thread::atomic::Decrement(m_numJobsInQueue);

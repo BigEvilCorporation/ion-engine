@@ -49,6 +49,10 @@ namespace ion
 #if defined ION_PLATFORM_WINDOWS
 			LPDIRECTINPUTDEVICE8 mMouseDevice;
 			DIMOUSESTATE2 mMouseState;
+#elif defined ION_PLATFORM_LINUX || defined ION_PLATFORM_MACOSX
+			s32 m_sdlMouseRelX;
+			s32 m_sdlMouseRelY;
+			u32 m_sdlMouseButtons;
 #endif
 		};
 	}

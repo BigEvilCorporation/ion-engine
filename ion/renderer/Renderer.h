@@ -40,7 +40,7 @@ namespace ion
 		{
 		public:
 			//Alpha blending types
-			enum AlphaBlendType { eNoBlend, eAdditive, eSubtractive, eTranslucent };
+			enum AlphaBlendType { eNoBlend, eAdditive, eSubtractive, eTranslucent, eColourFilter };
 
 			//Culling modes
 			enum CullingMode { eNoCull, eClockwise, eCounterClockwise };
@@ -52,6 +52,7 @@ namespace ion
 			enum VertexPattern { eTriangles, eQuads };
 
 			static Renderer* Create(DeviceContext globalDeviceContext);
+			static Renderer* Create(DeviceContext globalDeviceContext, RenderContext renderContext);
 
 			virtual ~Renderer();
 
@@ -69,13 +70,10 @@ namespace ion
 			virtual void LockContext(const DeviceContext& deviceContext) = 0;
 			virtual void UnlockContext() = 0;
 
-			//Render contexts
-			virtual RenderContext GetRenderContext() = 0;
-			virtual void ShareRenderContext(RenderContext& renderContext) = 0;
-
 			//Rendering - general
 			virtual void BeginFrame(const Viewport& viewport, const DeviceContext& deviceContext) = 0;
 			virtual void EndFrame() = 0;
+			virtual void SetupViewport(const Viewport& viewport) = 0;
 			virtual void SwapBuffers() = 0;
 			virtual void SetClearColour(const Colour& colour) = 0;
 			virtual void ClearColour() = 0;
@@ -84,9 +82,13 @@ namespace ion
 
 			//Render states
 			virtual void SetAlphaBlending(AlphaBlendType alphaBlendType) = 0;
+			virtual void SetBlendColour(const Colour& colour) = 0;
 			virtual void SetFaceCulling(CullingMode cullingMode) = 0;
 			virtual void SetDepthTest(DepthTest depthTest) = 0;
 			virtual void SetLineWidth(float width) = 0;
+
+			//Palettes
+			virtual void LoadColourPalette(int paletteIdx, const std::vector<Colour>& palette) = 0;
 
 			//Vertex buffer drawing
 			virtual void DrawVertexBuffer(const VertexBuffer& vertexBuffer) = 0;

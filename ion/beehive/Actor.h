@@ -33,9 +33,11 @@ public:
 	const TSpriteSheetMap::const_iterator SpriteSheetsEnd() const;
 	TSpriteSheetMap::iterator SpriteSheetsBegin();
 	TSpriteSheetMap::iterator SpriteSheetsEnd();
+	TSpriteSheetMap& GetSpriteSheets() { return m_spriteSheets; }
 	int GetSpriteSheetCount() const;
 
 	void SetMasterPalette(SpriteSheetId spriteSheetId);
+	const Palette* GetMasterPalette() const;
 
 	//Serialise
 	void Serialise(ion::io::Archive& archive);

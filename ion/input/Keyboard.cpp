@@ -46,7 +46,7 @@ namespace ion
 				mKeyboardDevice->Acquire();
 			}
 
-			for(int i = 0; i < Keycode::COUNT; i++)
+			for(int i = 0; i < (int)Keycode::COUNT; i++)
 			{
 				mCurrKeyStates[i] = false;
 				mPrevKeyStates[i] = false;
@@ -77,14 +77,20 @@ namespace ion
 		
 		bool Keyboard::KeyDown(Keycode key) const
 		{
-			debug::Assert(key >= 0 && key < Keycode::COUNT, "Keyboard::KeyDown() - Key out of range");
-			return (mCurrKeyStates[key] != 0);
+			debug::Assert((int)key >= 0 && (int)key < (int)Keycode::COUNT, "Keyboard::KeyDown() - Key out of range");
+			return (mCurrKeyStates[(int)key] != 0);
 		}
 		
 		bool Keyboard::KeyPressedThisFrame(Keycode key) const
 		{
-			debug::Assert(key >= 0 && key < Keycode::COUNT, "Keyboard::KeyPressedThisFrame() - Key out of range");
-			return (mCurrKeyStates[key] != 0) && (mPrevKeyStates[key] == 0);
+			debug::Assert((int)key >= 0 && (int)key < (int)Keycode::COUNT, "Keyboard::KeyPressedThisFrame() - Key out of range");
+			return (mCurrKeyStates[(int)key] != 0) && (mPrevKeyStates[(int)key] == 0);
+		}
+
+		bool Keyboard::KeyReleasedThisFrame(Keycode key) const
+		{
+			debug::Assert((int)key >= 0 && (int)key < (int)Keycode::COUNT, "Keyboard::KeyPressedThisFrame() - Key out of range");
+			return (mCurrKeyStates[(int)key] == 0) && (mPrevKeyStates[(int)key] != 0);
 		}
 
 		void Keyboard::Update()
@@ -111,7 +117,7 @@ namespace ion
 					}
 				}
 
-				for(int i = 0; i < Keycode::COUNT; i++)
+				for(int i = 0; i < (int)Keycode::COUNT; i++)
 				{
 					mCurrKeyStates[i] = diKeyStates[KeycodeTable[i]];
 				}
@@ -120,14 +126,14 @@ namespace ion
 			int numKeys = 0;
 			const u8* keyStates = SDL_GetKeyboardState(&numKeys);
 
-			for(int i = 0; i < Keycode::COUNT; i++)
+			for(int i = 0; i < (int)Keycode::COUNT; i++)
 			{
 				mCurrKeyStates[i] = keyStates[KeycodeTable[i]];
 			}
 #endif
 
 			//Determine changea and fire events
-			for(int i = 0; i < Keycode::COUNT; i++)
+			for(int i = 0; i < (int)Keycode::COUNT; i++)
 			{
 				if(mCurrKeyStates[i] != mPrevKeyStates[i])
 				{

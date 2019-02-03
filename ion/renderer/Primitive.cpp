@@ -22,9 +22,16 @@ namespace ion
 {
 	namespace render
 	{
-		Primitive::Primitive(VertexBuffer::Pattern vertexPattern)
-			: m_vertexBuffer(vertexPattern)
+		Primitive::Primitive(VertexBuffer::Pattern pattern, VertexBuffer::Preset preset)
+			: m_vertexBuffer(pattern, preset)
 		{
+
+		}
+
+		Primitive::Primitive(VertexBuffer::Pattern pattern, const std::vector<VertexBuffer::Element>& layout)
+			: m_vertexBuffer(pattern, layout)
+		{
+
 		}
 
 		Primitive::~Primitive()
@@ -35,6 +42,14 @@ namespace ion
 		void Primitive::SetCastShadows(bool shadows)
 		{
 
+		}
+
+		void Primitive::SetColour(const ion::Colour& colour)
+		{
+			for (int i = 0; i < m_vertexBuffer.GetNumVerts(); i++)
+			{
+				m_vertexBuffer.SetColour(i, colour);
+			}
 		}
 
 		LineSegments::LineSegments(const std::vector<Vector3>& points)
@@ -55,8 +70,19 @@ namespace ion
 			}
 		}
 
-		Quad::Quad(Axis axis, const Vector2& halfExtents)
-			: Primitive(VertexBuffer::eTriangles)
+		Quad::Quad(Axis axis, const Vector2& halfExtents, VertexBuffer::Preset preset)
+			: Primitive(VertexBuffer::eTriangles, preset)
+		{
+			Build(axis, halfExtents);
+		}
+
+		Quad::Quad(Axis axis, const Vector2& halfExtents, const std::vector<VertexBuffer::Element>& layout)
+			: Primitive(VertexBuffer::eTriangles, layout)
+		{
+			Build(axis, halfExtents);
+		}
+
+		void Quad::Build(Axis axis, const Vector2& halfExtents)
 		{
 			Vector3 offset(0.0f, 0.0f, 0.0f);
 
@@ -171,11 +197,12 @@ namespace ion
 			}
 		}
 
-		void Chessboard::SetTexCoords(int cellIndex, TexCoord coords[4])
+		void Chessboard::SetTexCoords(int cellIndex, TexCoord coords[4], float z)
 		{
 			for(int i = 0; i < 4; i++)
 			{
 				Vertex pos = m_vertexBuffer.GetPosition((cellIndex * 4) + i);
+				pos.z = z;
 				m_vertexBuffer.SetVertex((cellIndex * 4) + i, pos, Vector3(0.0f, 0.0f, 1.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), coords[i]);
 			}
 		}

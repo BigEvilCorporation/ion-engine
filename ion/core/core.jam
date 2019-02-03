@@ -2,6 +2,8 @@ SubDir bigevilcorp ion core ;
 
 local SRC =
 	# Debugging
+	debug/CrashHandler.cpp
+	debug/CrashHandler.h
 	debug/Debug.cpp
 	debug/Debug.h
 
@@ -22,6 +24,9 @@ local SRC =
 	# Memory management
 	memory/Memory.cpp
 	memory/Memory.h
+
+	# Platform
+	platform/Platform.h
 
 	# Threading and synchronisation
 	thread/Atomic.cpp
@@ -46,11 +51,48 @@ local SRC =
 	time/Time.cpp
 	time/Time.h
 
+	# Utils
+	utils/STL.cpp
+	utils/STL.h
+
 	# Base
 	Platform.h
 	Types.h
 	Version.h
 	;
+
+# Platform abstraction
+if ( ( win32 in $(PLATFORM) ) | ( win64 in $(PLATFORM) ) )
+{
+	SRC +=
+		platform/windows/Windows.cpp
+		platform/windows/Windows.h
+		;
+}
+
+if ( linux64 in $(PLATFORM) )
+{
+	SRC +=
+		platform/linux/Linux.cpp
+		platform/linux/Linux.h
+		;
+}
+
+if ( macosx64 in $(PLATFORM) )
+{
+    SRC +=
+    platform/macosx/MacOSX.cpp
+    platform/macosx/MacOSX.h
+    ;
+}
+
+if ( dreamcast in $(PLATFORM) )
+{
+	SRC +=
+		platform/dreamcast/Dreamcast.cpp
+		platform/dreamcast/Dreamcast.h
+		;
+}
 
 ApplyIonCompiler core ;
 ApplyIonDefines core ;

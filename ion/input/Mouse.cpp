@@ -89,6 +89,9 @@ namespace ion
 					}
 				}
 			}
+#elif defined ION_PLATFORM_LINUX || defined ION_PLATFORM_MACOSX
+			m_sdlMouseButtons = SDL_GetMouseState(&mAbsX, &mAbsY);
+			SDL_GetRelativeMouseState(&m_sdlMouseRelX, &m_sdlMouseRelX);
 #endif
 		}
 
@@ -96,8 +99,16 @@ namespace ion
 		{
 #if defined ION_PLATFORM_DREAMCAST
 			return false;
-#elif defined ION_PLATFORM_MACOSX
-            return false;
+#elif defined ION_PLATFORM_LINUX || defined ION_PLATFORM_MACOSX
+            switch(button)
+			{
+				case LB:
+					return (m_sdlMouseButtons & SDL_BUTTON_LEFT) != 0;
+				case RB:
+					return (m_sdlMouseButtons & SDL_BUTTON_RIGHT) != 0;
+				case MB:
+					return (m_sdlMouseButtons & SDL_BUTTON_MIDDLE) != 0;
+			}
 #elif defined ION_PLATFORM_WINDOWS
 			return (mMouseState.rgbButtons[button] & 0x80) != 0;
 #endif
@@ -107,8 +118,8 @@ namespace ion
 		{
 #if defined ION_PLATFORM_DREAMCAST
 			return 0;
-#elif defined ION_PLATFORM_MACOSX
-            return 0;
+#elif defined ION_PLATFORM_LINUX || defined ION_PLATFORM_MACOSX
+			return m_sdlMouseRelX;
 #elif defined ION_PLATFORM_WINDOWS
 			return mMouseState.lX;
 #endif
@@ -118,8 +129,8 @@ namespace ion
 		{
 #if defined ION_PLATFORM_DREAMCAST
 			return 0;
-#elif defined ION_PLATFORM_MACOSX
-            return 0;
+#elif defined ION_PLATFORM_LINUX || defined ION_PLATFORM_MACOSX
+            return m_sdlMouseRelY;
 #elif defined ION_PLATFORM_WINDOWS
 			return mMouseState.lY;
 #endif
@@ -139,7 +150,7 @@ namespace ion
 		{
 #if defined ION_PLATFORM_DREAMCAST
 			return 0;
-#elif defined ION_PLATFORM_MACOSX
+#elif defined ION_PLATFORM_LINUX || defined ION_PLATFORM_MACOSX
             return 0;
 #elif defined ION_PLATFORM_WINDOWS
 			return mMouseState.lZ;
@@ -155,6 +166,7 @@ namespace ion
 		{
 #if defined ION_PLATFORM_WINDOWS
 			::ShowCursor(enabled);
+#elif defined ION_PLATFORM_LINUX || defined ION_PLATFORM_MACOSX
 #endif
 		}
 

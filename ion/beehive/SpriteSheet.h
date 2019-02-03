@@ -82,6 +82,9 @@ public:
 	//Crop all frames and regenerate dimension data
 	void CropAllFrames(int tileWidth, int tileHeight);
 
+	//Clear all frames
+	void ClearFrames() { m_frames.clear(); }
+
 	//Serialise
 	void Serialise(ion::io::Archive& archive);
 	void ExportSpriteTiles(const PlatformConfig& config, std::stringstream& stream, const std::string& actorName) const;

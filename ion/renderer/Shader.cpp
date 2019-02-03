@@ -28,24 +28,29 @@ namespace ion
 
 		}
 
-		void Shader::SetProgram(const std::string& programFilename, const std::string& entryPoint, ProgramType programtype)
+		void Shader::SetProgram(const std::string& name, const std::string& programCode, const std::string& entryPoint, ProgramType programType)
 		{
-			m_programFilename = programFilename;
+			m_name = name;
+			m_programCode = programCode;
 			m_entryPoint = entryPoint;
-			m_programType = programtype;
+			m_programType = programType;
 		}
 
 		void Shader::Serialise(io::Archive& archive)
 		{
-			archive.Serialise(m_programFilename);
-			archive.Serialise(m_entryPoint);
-			archive.Serialise((u32&)m_programType);
+			archive.Serialise(m_name, "name");
+			archive.Serialise(m_programCode, "programCode");
+			archive.Serialise(m_entryPoint, "entryPoint");
+			archive.Serialise((u32&)m_programType, "programType");
 
-			if(archive.GetDirection() == io::Archive::eIn)
+			if(archive.GetDirection() == io::Archive::Direction::In)
 			{
 				if(archive.GetResourceManager())
 				{
-					Load(archive.GetResourceManager()->GetResourceDirectory<Shader>());
+					if (!Compile())
+					{
+						ion::debug::log << "Failed to compile shader " << m_name << ion::debug::end;
+					}
 				}
 			}
 		}

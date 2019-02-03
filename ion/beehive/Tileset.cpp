@@ -18,8 +18,13 @@
 
 const u32 Tileset::s_orientationFlags[eNumHashOrientations] = { 0, Map::eFlipX, Map::eFlipY, Map::eFlipX | Map::eFlipY };
 
+Tileset::Tileset()
+{
+	m_platformConfig = nullptr;
+}
+
 Tileset::Tileset(const PlatformConfig& platformConfig)
-	: m_platformConfig(platformConfig)
+	: m_platformConfig(&platformConfig)
 {
 }
 
@@ -31,7 +36,7 @@ void Tileset::Clear()
 TileId Tileset::AddTile()
 {
 	TileId index = m_tiles.size();
-	m_tiles.push_back(Tile(m_platformConfig.tileWidth, m_platformConfig.tileHeight));
+	m_tiles.push_back(Tile(m_platformConfig->tileWidth, m_platformConfig->tileHeight));
 	m_tiles[index].SetIndex(index);
 	m_tiles[index].CalculateHash();
 	AddToHashMap(index);
@@ -95,8 +100,8 @@ void Tileset::CalculateHashes(const Tile& tile, u64 hashes[Tileset::eNumHashOrie
 
 	std::vector<u8> pixelsFlipped(pixels.size());
 
-	const int tileWidth = m_platformConfig.tileWidth;
-	const int tileHeight = m_platformConfig.tileHeight;
+	const int tileWidth = m_platformConfig->tileWidth;
+	const int tileHeight = m_platformConfig->tileHeight;
 
 	//Normal
 	hashes[eNormal] = ion::Hash64(pixels.data(), pixels.size());
@@ -222,11 +227,15 @@ int Tileset::GetCount() const
 void Tileset::Serialise(ion::io::Archive& archive)
 {
 	archive.Serialise(m_tiles, "tiles");
-	archive.Serialise(m_hashMap, "multiHashMap");
 
-	if(archive.GetDirection() == ion::io::Archive::eIn)
+	if (archive.GetContentType() == ion::io::Archive::Content::Full)
 	{
-		RebuildHashMap();
+		archive.Serialise(m_hashMap, "multiHashMap");
+
+		if (archive.GetDirection() == ion::io::Archive::Direction::In)
+		{
+			RebuildHashMap();
+		}
 	}
 }
 

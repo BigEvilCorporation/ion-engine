@@ -21,10 +21,7 @@
 #include <ion/dependencies/slz/tool/main.h>
 #include <ion/dependencies/slz/tool/compress.h>
 #include <ion/dependencies/slz/tool/decompress.h>
-
-#pragma optimize("",off)
 #include <ion/io/compression/CompressionRLE.h>
-#pragma optimize("",on)
 
 #define HEX1(val) std::hex << std::setfill('0') << std::setw(1) << std::uppercase << (int)val
 #define HEX2(val) std::hex << std::setfill('0') << std::setw(2) << std::uppercase << (int)val
@@ -32,8 +29,8 @@
 #define HEX8(val) std::hex << std::setfill('0') << std::setw(8) << std::uppercase << (int)val
 
 Map::Map()
-	: m_platformConfig(PlatformPresets::s_configs[PlatformPresets::ePresetMegaDrive])
 {
+	m_platformConfig = &PlatformPresets::s_configs[PlatformPresets::ePresetMegaDrive];
 	m_name = "Unnamed";
 	m_width = 0;
 	m_height = 0;
@@ -41,8 +38,8 @@ Map::Map()
 }
 
 Map::Map(const PlatformConfig& platformConfig)
-	: m_platformConfig(platformConfig)
 {
+	m_platformConfig = &platformConfig;
 	m_name = "Unnamed";
 	m_width = 0;
 	m_height = 0;
@@ -109,8 +106,8 @@ int Map::GetHeightBlocks(int blockHeight) const
 
 void Map::Resize(int width, int height, bool shiftRight, bool shiftDown)
 {
-	const int tileWidth = m_platformConfig.tileWidth;
-	const int tileHeight = m_platformConfig.tileHeight;
+	const int tileWidth = m_platformConfig->tileWidth;
+	const int tileHeight = m_platformConfig->tileHeight;
 
 	//Create new tile array
 	std::vector<TileDesc> tiles;
@@ -440,8 +437,8 @@ GameObjectId Map::PlaceGameObject(int x, int y, const GameObjectType& objectType
 	if(it == m_gameObjects.end())
 		it = m_gameObjects.insert(std::make_pair(objectType.GetId(), std::vector<GameObjectMapEntry>())).first;
 
-	const int tileWidth = m_platformConfig.tileWidth;
-	const int tileHeight = m_platformConfig.tileHeight;
+	const int tileWidth = m_platformConfig->tileWidth;
+	const int tileHeight = m_platformConfig->tileHeight;
 
 	GameObjectId objectId = m_nextFreeGameObjectId++;
 	GameObject gameObject(objectId, objectType.GetId(), ion::Vector2i(x * tileWidth, y * tileHeight));
@@ -455,8 +452,8 @@ GameObjectId Map::PlaceGameObject(int x, int y, int width, int height, const Gam
 	if(it == m_gameObjects.end())
 		it = m_gameObjects.insert(std::make_pair(objectType.GetId(), std::vector<GameObjectMapEntry>())).first;
 
-	const int tileWidth = m_platformConfig.tileWidth;
-	const int tileHeight = m_platformConfig.tileHeight;
+	const int tileWidth = m_platformConfig->tileWidth;
+	const int tileHeight = m_platformConfig->tileHeight;
 
 	GameObjectId objectId = m_nextFreeGameObjectId++;
 	GameObject gameObject(objectId, objectType.GetId(), ion::Vector2i(x * tileWidth, y * tileHeight), ion::Vector2i(width * tileWidth, height * tileHeight));
@@ -470,8 +467,8 @@ GameObjectId Map::PlaceGameObject(int x, int y, const GameObject& object, const 
 	if(it == m_gameObjects.end())
 		it = m_gameObjects.insert(std::make_pair(object.GetTypeId(), std::vector<GameObjectMapEntry>())).first;
 
-	//const int tileWidth = m_platformConfig.tileWidth;
-	//const int tileHeight = m_platformConfig.tileHeight;
+	//const int tileWidth = m_platformConfig->tileWidth;
+	//const int tileHeight = m_platformConfig->tileHeight;
 
 	GameObjectId objectId = m_nextFreeGameObjectId++;
 	it->second.push_back(GameObjectMapEntry(GameObject(objectId, object), ion::Vector2i(x, y), ion::Vector2i(objectType.GetDimensions().x, objectType.GetDimensions().y)));
@@ -484,8 +481,8 @@ GameObjectId Map::FindGameObject(int x, int y, ion::Vector2i& topLeft) const
 	ion::Vector2i size;
 	ion::Vector2i bottomRight;
 
-	const int tileWidth = m_platformConfig.tileWidth;
-	const int tileHeight = m_platformConfig.tileHeight;
+	const int tileWidth = m_platformConfig->tileWidth;
+	const int tileHeight = m_platformConfig->tileHeight;
 
 	//Work backwards, find last placed game obj first
 	for(TGameObjectPosMap::const_iterator itMap = m_gameObjects.begin(), endMap = m_gameObjects.end(); itMap != endMap && !gameObjectId; ++itMap)
@@ -529,8 +526,8 @@ GameObject* Map::FindGameObject(const std::string& name)
 
 int Map::FindGameObjects(int x, int y, int width, int height, std::vector<const GameObjectMapEntry*>& gameObjects) const
 {
-	const int tileWidth = m_platformConfig.tileWidth;
-	const int tileHeight = m_platformConfig.tileHeight;
+	const int tileWidth = m_platformConfig->tileWidth;
+	const int tileHeight = m_platformConfig->tileHeight;
 
 	ion::Vector2i boundsMin(x * tileWidth, y * tileHeight);
 	ion::Vector2i boundsMax((x * tileWidth) + width, (y * tileHeight) + height);
@@ -595,8 +592,8 @@ void Map::MoveGameObject(GameObjectId gameObjectId, int x, int y)
 
 void Map::RemoveGameObject(int x, int y)
 {
-	const int tileWidth = m_platformConfig.tileWidth;
-	const int tileHeight = m_platformConfig.tileHeight;
+	const int tileWidth = m_platformConfig->tileWidth;
+	const int tileHeight = m_platformConfig->tileHeight;
 	const int worldSpaceX = x * tileWidth;
 	const int worldSpaceY = y * tileHeight;
 
@@ -632,6 +629,11 @@ void Map::RemoveGameObject(int x, int y)
 	}
 }
 
+TGameObjectPosMap& Map::GetGameObjects()
+{
+	return m_gameObjects;
+}
+
 const TGameObjectPosMap& Map::GetGameObjects() const
 {
 	return m_gameObjects;
@@ -655,6 +657,22 @@ TStampPosMap::iterator Map::StampsBegin()
 TStampPosMap::iterator Map::StampsEnd()
 {
 	return m_stamps.end();
+}
+
+void Map::Export(const Project& project, std::vector<TileDesc>& tileMap) const
+{
+	//Copy tiles
+	tileMap = m_tiles;
+
+	//Blit stamps
+	for (TStampPosMap::const_iterator it = m_stamps.begin(), end = m_stamps.end(); it != end; ++it)
+	{
+		if (const Stamp* stamp = project.GetStamp(it->m_id))
+		{
+			const ion::Vector2i& position = it->m_position;
+			BakeStamp(tileMap, m_width, m_height, position.x, position.y, *stamp, it->m_flags);
+		}
+	}
 }
 
 void Map::Export(const Project& project, std::stringstream& stream) const

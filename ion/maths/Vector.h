@@ -37,9 +37,12 @@ namespace ion
 		TVector2<T> operator -(const TVector2<T> &vector) const;
 		void operator +=(const TVector2<T> &vector);
 		void operator -=(const TVector2<T> &vector);
+		void operator *=(const TVector2<T> &vector);
 
-		T GetLength() const;
-		T Dot(const TVector2<T>& vector) const;
+		float GetLength() const;
+		float Dot(const TVector2<T>& vector) const;
+		float Angle(const TVector2<T>& vector) const;
+		TVector2<T> Normalise() const;
 
 		//Interpolation with another vector, with a given time
 		TVector2<T> Lerp(const TVector2<T> &vector, float time) const;
@@ -91,6 +94,9 @@ namespace ion
 
 		float GetLength() const;
 		float GetDistance(const Vector3 &vector) const;
+
+		//To Vector2
+		Vector2 xy() const;
 
 		//Interpolation with another vector, with a given time
 		Vector3 Lerp(const Vector3 &vector, float time) const;
@@ -180,14 +186,42 @@ namespace ion
 		y -= Vector.y;
 	}
 
-	template <typename T> T TVector2<T>::GetLength() const
+	template <typename T> void TVector2<T>::operator *=(const TVector2<T> &Vector)
 	{
-		return maths::Sqrt(x*x + y*y);
+		x *= Vector.x;
+		y *= Vector.y;
 	}
 
-	template <typename T> T TVector2<T>::Dot(const TVector2<T>& vector) const
+	template <typename T> float TVector2<T>::GetLength() const
 	{
-		return (x * vector.x + y * vector.y);
+		return maths::Sqrt((float)x*(float)x + (float)y*(float)y);
+	}
+
+	template <typename T> float TVector2<T>::Dot(const TVector2<T>& vector) const
+	{
+		return ((float)x * (float)vector.x + (float)y * (float)vector.y);
+	}
+
+	template <typename T> float TVector2<T>::Angle(const TVector2<T>& vector) const
+	{
+		float dot = Dot(vector);
+		float determinant = x * vector.y - y * vector.x;
+		return maths::Atan2(determinant, dot);
+	}
+
+	template <typename T> TVector2<T> TVector2<T>::Normalise() const
+	{
+		T length = GetLength();
+
+		TVector2<T> result;
+
+		if (length != 0.0f)
+		{
+			if (x != 0.0f) result.x = x / length;
+			if (y != 0.0f) result.y = y / length;
+		}
+
+		return result;
 	}
 
 	template <typename T> TVector2<T> TVector2<T>::Lerp(const TVector2<T>& Vector, float Weight) const

@@ -12,8 +12,13 @@
 #include "TerrainTileset.h"
 #include <ion/core/cryptography/Hash.h>
 
+TerrainTileset::TerrainTileset()
+{
+	m_platformConfig = nullptr;
+}
+
 TerrainTileset::TerrainTileset(const PlatformConfig& platformConfig)
-	: m_platformConfig(platformConfig)
+	: m_platformConfig(&platformConfig)
 {
 }
 
@@ -25,7 +30,7 @@ void TerrainTileset::Clear()
 
 TerrainTileId TerrainTileset::AddTerrainTile()
 {
-	return AddTerrainTile(TerrainTile(m_platformConfig.tileWidth, m_platformConfig.tileHeight));
+	return AddTerrainTile(TerrainTile(m_platformConfig->tileWidth, m_platformConfig->tileHeight));
 }
 
 TerrainTileId TerrainTileset::AddTerrainTile(const TerrainTile& tile)
@@ -160,5 +165,16 @@ void TerrainTileset::Export(ion::io::File& file) const
 	for(int i = 0; i < m_tiles.size(); i++)
 	{
 		m_tiles[i].Export(file);
+	}
+}
+
+void TerrainTileset::ExportAngles(ion::io::File& file) const
+{
+	for (int i = 0; i < m_tiles.size(); i++)
+	{
+		float angle = m_tiles[i].CalculateAngle();
+		float degrees = angle * ion::maths::RADIANS_TO_DEGREES;
+		u8 angleByte = (u8)((degrees / 360.0f) * 255.0f);
+		file.Write(&angleByte, 1);
 	}
 }

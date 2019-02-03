@@ -31,6 +31,11 @@ typedef HGLRC(APIENTRYP PFNWGLCREATECONTEXTATTRIBSARBPROC) (HDC hDC, HGLRC hShar
 
 typedef void (APIENTRYP DEBUGPROC)(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void *userParam);
 typedef void (APIENTRYP DEBUGMESSAGECALLBACKPROC) (DEBUGPROC callback, const void * userParam);
+
+typedef void (APIENTRYP PFNGLBLENDCOLOREXTPROC) (GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha);
+
+typedef void (APIENTRYP PFNGLCOLORTABLEPROC) (GLenum  target, GLenum  internalFormat, GLsizei width, GLenum  format, GLenum  type, const GLvoid  *data);
+
 #endif
 
 namespace ion
@@ -43,32 +48,42 @@ namespace ion
 			static void LoadExtensions(DeviceContext deviceContext);
 
 #if defined ION_PLATFORM_WINDOWS
-			static PFNGLACTIVETEXTUREARBPROC glActiveTextureARB;
+			static PFNGLACTIVETEXTUREARBPROC glActiveTexture;
 
-			static PFNGLGENFRAMEBUFFERSEXTPROC glGenFramebuffersEXT;
-			static PFNGLBINDFRAMEBUFFEREXTPROC glBindFramebufferEXT;
+			static PFNGLGENFRAMEBUFFERSEXTPROC glGenFramebuffers;
+			static PFNGLBINDFRAMEBUFFEREXTPROC glBindFramebuffer;
 
-			static PFNGLGENRENDERBUFFERSEXTPROC glGenRenderbuffersEXT;
-			static PFNGLBINDRENDERBUFFEREXTPROC glBindRenderbufferEXT;
-			static PFNGLDELETERENDERBUFFERSEXTPROC glDeleteRenderbuffersEXT;
-			static PFNGLRENDERBUFFERSTORAGEEXTPROC glRenderbufferStorageEXT;
+			static PFNGLGENRENDERBUFFERSEXTPROC glGenRenderbuffers;
+			static PFNGLBINDRENDERBUFFEREXTPROC glBindRenderbuffer;
+			static PFNGLDELETERENDERBUFFERSEXTPROC glDeleteRenderbuffers;
+			static PFNGLRENDERBUFFERSTORAGEEXTPROC glRenderbufferStorage;
 
-			static PFNGLGENBUFFERSARBPROC glGenBuffersARB;
-			static PFNGLBINDBUFFERARBPROC glBindBufferARB;
-			static PFNGLDELETEBUFFERSARBPROC glDeleteBuffersARB;
-			static PFNGLBUFFERDATAARBPROC glBufferDataARB;
-			static PFNGLMAPBUFFERARBPROC glMapBufferARB;
-			static PFNGLUNMAPBUFFERARBPROC glUnmapBufferARB;
+			static PFNGLGENBUFFERSARBPROC glGenBuffers;
+			static PFNGLBINDBUFFERARBPROC glBindBuffer;
+			static PFNGLDELETEBUFFERSARBPROC glDeleteBuffers;
+			static PFNGLBUFFERDATAARBPROC glBufferData;
+			static PFNGLMAPBUFFERARBPROC glMapBuffer;
+			static PFNGLMAPBUFFERRANGEPROC glMapBufferRange;
+			static PFNGLUNMAPBUFFERARBPROC glUnmapBuffer;
+			static PFNGLBUFFERSTORAGEPROC glBufferStorage;
 
-			static PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC glFramebufferRenderbufferEXT;
-			static PFNGLFRAMEBUFFERTEXTURE2DEXTPROC glFramebufferTexture2DEXT;
-			static PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC glCheckFramebufferStatusEXT;
-			static PFNGLDELETEFRAMEBUFFERSEXTPROC glDeleteFramebuffersEXT;
+			static PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC glFramebufferRenderbuffer;
+			static PFNGLFRAMEBUFFERTEXTURE2DEXTPROC glFramebufferTexture2D;
+			static PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC glCheckFramebufferStatus;
+			static PFNGLDELETEFRAMEBUFFERSEXTPROC glDeleteFramebuffers;
 
 			static PFNGLDRAWBUFFERSPROC glDrawBuffers;
-			static PFNGLSWAPINTERVALEXTPROC glSwapIntervalEXT;
+			static PFNGLSWAPINTERVALEXTPROC glSwapInterval;
 
-			static PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB;
+			static PFNGLCLIENTWAITSYNCPROC glClientWaitSync;
+			static PFNGLFENCESYNCPROC glFenceSync;
+			static PFNGLDELETESYNCPROC glDeleteSync;
+
+			static PFNGLBLENDCOLOREXTPROC glBlendColor;
+
+			static PFNGLCOLORTABLEPROC glColorTable;
+
+			static PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribs;
 			static DEBUGMESSAGECALLBACKPROC glDebugMessageCallback;
 #endif
 		};

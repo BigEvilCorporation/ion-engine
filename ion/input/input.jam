@@ -1,5 +1,9 @@
 SubDir bigevilcorp ion input ;
 
+ApplyIonCompiler input ;
+ApplyIonDefines input ;
+ApplyIonIncludes input ;
+
 local SRC =
 	Gamepad.cpp
  	Gamepad.h
@@ -12,25 +16,81 @@ local SRC =
 	Mouse.h
 	;
 
-ApplyIonCompiler input ;
-ApplyIonDefines input ;
-ApplyIonIncludes input ;
-
-if ( win32 in $PLATFORM) )
+rule ApplyInputXInput TARGET
 {
-	ApplyWin32SDK input ;
-	ApplyXInputSDK input ;
+	SRC +=
+		xinput/GamepadXInput.cpp
+		xinput/GamepadXInput.h
+		;
+
+	C.Defines $(TARGET) : ION_INPUT_XINPUT ;
+
+	ApplyXInputSDK $(TARGET) ;
 }
 
-if ( win64 in $PLATFORM) )
+rule ApplyInputSDL TARGET
 {
-	ApplyWin32SDK input ;
-	ApplyXInputSDK input ;
+	SRC +=
+		sdl/GamepadSDL.cpp
+		sdl/GamepadSDL.h
+		sdl/GamepadSDLLegacy.cpp
+		sdl/GamepadSDLLegacy.h
+		;
+
+	C.Defines $(TARGET) : ION_INPUT_SDL ;
+
+	ApplySDL2SDK $(TARGET) ;
+}
+
+rule ApplyInputMaple TARGET
+{
+	SRC +=
+		dreamcast/GamepadMaple.cpp
+		dreamcast/GamepadMaple.h
+		;
+
+	C.Defines $(TARGET) : ION_INPUT_MAPLE ;
+}
+
+rule ApplyInputSteam TARGET
+{
+	SRC +=
+		steam/GamepadSteam.cpp
+		steam/GamepadSteam.h
+		;
+
+	C.Defines $(TARGET) : ION_INPUT_STEAM ;
+}
+
+if ( win32 in $(PLATFORM) )
+{
+	ApplyInputXInput input ;
+	ApplyInputSDL input ;
+	# ApplyInputSteam input ;
+}
+
+if ( win64 in $(PLATFORM) )
+{
+	ApplyInputXInput input ;
+	ApplyInputSDL input ;
+	# ApplyInputSteam input ;
+}
+
+if ( linux64 in $(PLATFORM) )
+{
+	ApplyInputSDL input ;
+	# ApplyInputSteam input ;
 }
 
 if ( macosx64 in $(PLATFORM) )
 {
-	ApplySDLSDK input ;
+	ApplyInputSDL input ;
+	# ApplyInputSteam input ;
+}
+
+if ( dreamcast in $(PLATFORM) )
+{
+	ApplyInputMaple input ;
 }
 
 AutoSourceGroup input : $(SRC) ;

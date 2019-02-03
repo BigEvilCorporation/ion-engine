@@ -25,6 +25,7 @@ class TerrainTileset
 	typedef std::map<u64, TerrainTileId> HashMap;
 
 public:
+	TerrainTileset();
 	TerrainTileset(const PlatformConfig& platformConfig);
 
 	void Clear();
@@ -44,13 +45,14 @@ public:
 	void Serialise(ion::io::Archive& archive);
 	void Export(std::stringstream& stream) const;
 	void Export(ion::io::File& file) const;
+	void ExportAngles(ion::io::File& file) const;
 	
 private:
 	void AddToHashMap(TerrainTileId tileId);
 	void RemoveFromHashMap(TerrainTileId tileId);
 	void CalculateHash(const TerrainTile& tile, u64& hash) const;
 	
-	const PlatformConfig& m_platformConfig;
+	const PlatformConfig* m_platformConfig;
 	std::vector<TerrainTile> m_tiles;
 	HashMap m_hashMap;
 };

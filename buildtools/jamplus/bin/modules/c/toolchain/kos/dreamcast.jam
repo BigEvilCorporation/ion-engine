@@ -1,7 +1,25 @@
-KOS_PORTS_PATH = C:/msys32/opt/toolchains/dc/kos-ports ;
-KOS_PATH = C:/msys32/opt/toolchains/dc/kos ;
-KOS_SHELF_PATH = C:/msys32/opt/toolchains/dc/sh-elf ;
-GCC_VER = 4.7.3 ;
+if $(NT)
+{
+	KOS_PATH = C:/msys32/opt/toolchains/dc/kos ;
+	KOS_PORTS_PATH = C:/msys32/opt/toolchains/dc/kos-ports ;
+	KOS_SHELF_PATH = C:/msys32/opt/toolchains/dc/sh-elf ;
+	SH_ELF_EXE_SUFFIX = .exe ;
+	SH_ELF_EXE = sh-elf-c++.exe ;
+	GCC_VER = 4.7.3 ;
+}
+else if $(UNIX)
+{
+	KOS_PATH = /opt/toolchains/dc/kos ;
+	KOS_PORTS_PATH = /opt/toolchains/dc/kos-ports ;
+	KOS_SHELF_PATH = /opt/toolchains/dc/sh-elf ;
+	SH_ELF_EXE = sh-elf-c++ ;
+	SH_ELF_EXE_SUFFIX = "" ;
+	GCC_VER = 4.7.3 ;
+}
+else
+{
+	error "Dreamcast tool chain not supported on this host platform" ;
+}
 
 if ! [ RuleExists FindKOSToolchain ]
 {
@@ -12,7 +30,7 @@ if ! [ RuleExists FindKOSToolchain ]
 			$(KOS_PATH)/sh-elf/bin
 		;
 
-		local kos = [ Glob $(PATHS) : sh-elf-c++.exe ] ;
+		local kos = [ Glob $(PATHS) : $(SH_ELF_EXE) ] ;
 		if ! $(kos)
 		{
 			return ;
@@ -43,26 +61,33 @@ if ! [ RuleExists FindMingW32Runtime ]
 
 rule C.Toolchain.kos.dreamcast.Detect
 {
+	# Find compiler
 	local COMPILER_BIN_PATH = [ FindKOSToolchain ] ;
-	local COMPILER_RUNTIME_PATH = [ FindMingW32Runtime ] ;
-
 	if ! $(COMPILER_BIN_PATH)
 	{
-		echo "ERROR: Path to sh-elf-c++.exe (KOS compiler suite) not found" ;
+		echo "ERROR: Path to sh-elf-c++ (KOS compiler suite) not found" ;
 		return ;
 	}
 
-	if ! $(COMPILER_RUNTIME_PATH)
+	COMPILER_BIN_PATH on $(C.COMPILER_SUITE_SYMBOL) = $(COMPILER_BIN_PATH) ;
+
+	# Find compiler runtime (MingW32, etc) if needed
+	if $(NT)
 	{
-		echo "ERROR: Path to libiconv-2.dll (mingw32 runtime) not found" ;
-		return ;
+		local COMPILER_RUNTIME_PATH = [ FindMingW32Runtime ] ;
+
+		if ! $(COMPILER_RUNTIME_PATH)
+		{
+			echo "ERROR: Path to libiconv-2.dll (mingw32 runtime) not found" ;
+			return ;
+		}
+
+		COMPILER_RUNTIME_PATH on $(C.COMPILER_SUITE_SYMBOL) = $(COMPILER_RUNTIME_PATH) ;
 	}
 
 	C.COMPILER = kos ;
 	C.COMPILER_SUITE = kos ;
 	C.COMPILER_SUITE_SYMBOL = !c.$(C.ACTIVE_TOOLCHAIN).info! ;
-	COMPILER_BIN_PATH on $(C.COMPILER_SUITE_SYMBOL) = $(COMPILER_BIN_PATH) ;
-	COMPILER_RUNTIME_PATH on $(C.COMPILER_SUITE_SYMBOL) = $(COMPILER_RUNTIME_PATH) ;
 
 	C._MultiCppCompile_SetupFlags on $(C.COMPILER_SUITE_SYMBOL) = C.kos._MultiCppCompile_SetupFlags ;
 

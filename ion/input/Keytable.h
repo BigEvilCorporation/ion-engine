@@ -14,7 +14,7 @@ namespace ion
     namespace input
     {
 #if defined ION_PLATFORM_WINDOWS
-        static int KeycodeTable[Keycode::COUNT] =
+        static int KeycodeTable[(int)Keycode::COUNT] =
         {
 			//Alpha
 			DIK_A,
@@ -86,7 +86,7 @@ namespace ion
 			DIK_UP
         };
 #elif defined ION_PLATFORM_MACOSX || defined ION_PLATFORM_LINUX || defined ION_PLATFORM_RASPBERRYPI
-        static int KeycodeTable[Keycode::COUNT] =
+        static int KeycodeTable[(int)Keycode::COUNT] =
         {
             //Alpha
             SDL_SCANCODE_A,
@@ -158,7 +158,7 @@ namespace ion
             SDL_SCANCODE_UP
         };
 #elif defined ION_PLATFORM_DREAMCAST
-        static int KeycodeTable[Keycode::COUNT] =
+        static int KeycodeTable[(int)Keycode::COUNT] =
         {
             0,
         };

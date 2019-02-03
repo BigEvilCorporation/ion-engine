@@ -27,9 +27,17 @@ namespace ion
 			virtual ~WindowDreamcast();
 
 			virtual bool Update();
-			virtual bool Resize(u32 clientAreaWidth, u32 clientAreaHeight);
-			virtual void SetFullscreen(bool fullscreen);
+			virtual bool Resize(u32 clientAreaWidth, u32 clientAreaHeight, bool adjustForTitle);
+			virtual bool SetFullscreen(bool fullscreen, int displayIdx);
 			virtual void SetTitle(const std::string& title);
+			virtual void ShowCursor(bool show);
+			virtual bool HasFocus() const;
+
+			virtual u32 GetDesktopWidth(int displayIdx) const;
+			virtual u32 GetDesktopHeight(int displayIdx) const;
+
+			virtual int GetDisplays(std::vector<Display>& displays) const;
+			virtual int GetSupportedResolutions(std::vector<Vector2i>& resolutions, int displayIdx) const;
 
 			virtual DeviceContext GetDeviceContext() const { return m_deviceContext; }
 			virtual WindowHandle GetWindowHandle() const { return m_windowHandle; }

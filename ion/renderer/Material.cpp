@@ -30,10 +30,10 @@ namespace ion
 		Material::Material()
 		{
 			//Set default lighting and shadows
-			SetLightingEnabled(true);
+			SetLightingEnabled(false);
 			SetLightingMode(ePhong);
 			SetBlendMode(eAdditive);
-			SetReceiveShadows(true);
+			SetReceiveShadows(false);
 
 #if defined ION_RENDERER_SHADER
 			m_vertexShader = NULL;
@@ -73,9 +73,27 @@ namespace ion
 			}
 
 #if !defined ION_RENDERER_OPENGLES
-			glMaterialfv(GL_FRONT, GL_AMBIENT, (float*)&m_ambientColour.r);
-			glMaterialfv(GL_FRONT, GL_DIFFUSE, (float*)&m_diffuseColour.r);
-			glMaterialfv(GL_FRONT, GL_SPECULAR, (float*)&m_specularColour.r);
+			//TODO: Renderer needs an ApplyMaterial() to handle this
+
+			//Setup default lighting
+            if(m_lightingEnabled)
+            {
+                float ambient[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+                float diffuse[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+                glLightfv(GL_LIGHT0, GL_AMBIENT, ambient);
+                glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse);
+                glEnable(GL_LIGHT0);
+                glEnable(GL_LIGHTING);
+
+				//Set material properties
+				glMaterialfv(GL_FRONT, GL_AMBIENT, (float*)&m_ambientColour.r);
+				glMaterialfv(GL_FRONT, GL_DIFFUSE, (float*)&m_diffuseColour.r);
+				glMaterialfv(GL_FRONT, GL_SPECULAR, (float*)&m_specularColour.r);
+
+				//Disable lighting
+				glDisable(GL_LIGHT0);
+				glDisable(GL_LIGHTING);
+            }
 #endif
 
 			RendererOpenGL::CheckGLError("Material::Bind");
@@ -177,7 +195,7 @@ namespace ion
 			archive.Serialise((u32&)m_lightingMode);
 			archive.Serialise((u32&)m_blendMode);
 
-			if(archive.GetDirection() == io::Archive::eIn)
+			if(archive.GetDirection() == io::Archive::Direction::In)
 			{
 				//SetVertexShader(mVertexShader);
 				//SetPixelShader(mPixelShader);

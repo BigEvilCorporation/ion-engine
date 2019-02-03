@@ -20,6 +20,7 @@
 #include "renderer/Colour.h"
 
 #include <string>
+#include <vector>
 
 namespace ion
 {
@@ -28,35 +29,37 @@ namespace ion
 		class Texture
 		{
 		public:
-			enum Format
+			enum class Format
 			{
-				eRGB,
-				eBGR,
-				eRGBA,
-				eBGRA,
-				eRGBA_DXT5
+				R,
+				RGB,
+				BGR,
+				RGBA,
+				RGBA_Indexed,
+				BGRA,
+				RGBA_DXT5
 			};
 
-			enum BitsPerPixel
+			enum class BitsPerPixel
 			{
-				eBPP8 = 8,
-				eBPP16 = 16,
-				eBPP24 = 24,
-				eBPP32 = 32
+				BPP8 = 8,
+				BPP16 = 16,
+				BPP24 = 24,
+				BPP32 = 32
 			};
 
-			enum Filter
+			enum class Filter
 			{
-				eFilterNearest,
-				eFilterLinear,
-				eFilterMipMapLinear
+				Nearest,
+				Linear,
+				MipMapLinear
 			};
 
-			enum Wrapping
+			enum class Wrapping
 			{
-				eWrapClamp,
-				eWrapRepeat,
-				eWrapMirror
+				Clamp,
+				Repeat,
+				Mirror
 			};
 
 			static Texture* Create();
@@ -67,22 +70,31 @@ namespace ion
 
 			u32 GetWidth() const;
 			u32 GetHeight() const;
+			BitsPerPixel GetBitsPerPixel() const;
 
 			virtual bool Load(const std::string& filename) = 0;
 			virtual bool Load(u32 width, u32 height, Format sourceFormat, Format destFormat, BitsPerPixel bitsPerPixel, bool generateMipmaps, bool generatePixelBuffer, const u8* data) { return false; }
 			void SetImageFilename(const std::string& filename);
+
+			//Indexed textures
+			virtual void SetColourPalette(int paletteIndex) = 0;
 
 			virtual void SetMinifyFilter(Filter filter) = 0;
 			virtual void SetMagnifyFilter(Filter filter) = 0;
 			virtual void SetWrapping(Wrapping wrapping) = 0;
 
 			virtual void SetPixel(const ion::Vector2i& position, const Colour& colour) = 0;
-			virtual void SetPixels(Format sourceFormat, u8* data) = 0;
+			virtual void SetPixels(Format sourceFormat, bool synchronised, u8* data) = 0;
 			virtual void GetPixels(const ion::Vector2i& position, const ion::Vector2i& size, Format format, BitsPerPixel bitsPerPixel, u8* data) const = 0;
+			virtual u8* LockPixelBuffer() = 0;
+			virtual void UnlockPixelBuffer() = 0;
 
 			//Serialise
 			static void RegisterSerialiseType(io::Archive& archive);
 			void Serialise(io::Archive& archive);
+
+			//Stats
+			static u32 GetTextureMemoryUsed() { return s_textureMemoryUsed; }
 
 		protected:
 			Texture();
@@ -94,8 +106,13 @@ namespace ion
 
 			u32 m_width;
 			u32 m_height;
+			u32 m_pixelSize;
+			BitsPerPixel m_bitsPerPixel;
 
 			std::string m_imageFilename;
+
+			//Memory stats
+			static u32 s_textureMemoryUsed;
 		};
 	}
 }

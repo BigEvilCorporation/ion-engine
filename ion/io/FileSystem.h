@@ -17,6 +17,7 @@
 #include "io/FileDevice.h"
 
 #include <vector>
+#include <string>
 
 namespace ion
 {
@@ -36,6 +37,9 @@ namespace ion
 			//Set default file device
 			void SetDefaultFileDevice(FileDevice& device);
 			FileDevice* GetDefaultFileDevice();
+
+			//Get user data directory (e.g., "C:\[user]\appdata\roaming" on Windows)
+			std::string GetUserDataDirectory();
 
 		private:
 			void EnumerateDevices();

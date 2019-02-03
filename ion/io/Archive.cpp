@@ -24,13 +24,25 @@ namespace ion
 			: m_stream(stream)
 		{
 			m_direction = direction;
+			m_contentType = Content::Full;
 			m_version = version;
 			m_resourceManager = resourceManager;
 		}
 
+
+		void Archive::SetContentType(Archive::Content content)
+		{
+			m_contentType = content;
+		}
+
+		Archive::Content Archive::GetContentType() const
+		{
+			return m_contentType;
+		}
+
 		void Archive::Serialise(void* data, u64 size)
 		{
-			if(GetDirection() == eIn)
+			if(GetDirection() == Direction::In)
 			{
 				m_stream.Read(data, size);
 			}
@@ -75,7 +87,7 @@ namespace ion
 				block.parent = &m_blockStack.back();
 			}
 
-			if(m_direction == eIn)
+			if(m_direction == Direction::In)
 			{
 				u64 parentStart = block.parent ? (block.parent->startPos + sizeof(Block::Header)) : 0;
 				u64 parentEnd = block.parent ? (block.parent->startPos + block.parent->header.size) : m_stream.GetSize();
@@ -159,7 +171,7 @@ namespace ion
 			//Pop block
 			m_blockStack.pop_back();
 
-			if(m_direction == eIn)
+			if(m_direction == Direction::In)
 			{
 				//Seek to block end
 				m_stream.Seek(block.startPos + block.header.size, eSeekModeStart);
@@ -222,7 +234,7 @@ namespace ion
 			const u64 bufferSize = 1024;
 			u8 buffer[bufferSize] = { 0 };
 
-			if(GetDirection() == eIn)
+			if(GetDirection() == Direction::In)
 			{
 				debug::Error("Archive::Serialise() - Cannot serialise a stream back in");
 			}
@@ -292,7 +304,7 @@ namespace ion
 
 		void Archive::Serialise(bool& data)
 		{
-			if(GetDirection() == eIn)
+			if(GetDirection() == Direction::In)
 			{
 				u8 boolean = 0;
 				Serialise(boolean);
@@ -352,7 +364,7 @@ namespace ion
 
 		void Archive::Serialise(std::string& string)
 		{
-			if(GetDirection() == eIn)
+			if(GetDirection() == Direction::In)
 			{
 				if(PushBlock("__string"))
 				{

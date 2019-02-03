@@ -14,8 +14,15 @@
 
 #include "String.h"
 
+#include <locale>
 #include <algorithm>
+#include <cctype>
+#include <functional>
 #include <vector>
+
+#if !defined ION_PLATFORM_DREAMCAST
+#include <codecvt>
+#endif
 
 namespace ion
 {
@@ -27,6 +34,47 @@ namespace ion
             std::transform(stringLower.begin(), stringLower.end(), stringLower.begin(), ::tolower);
             return stringLower;
         }
+
+		std::string TrimWhitespaceStart(const std::string& string)
+		{
+			std::string output = string;
+			output.erase(output.begin(), std::find_if(output.begin(), output.end(), std::not1(std::ptr_fun<int, int>(std::isspace))));
+			return output;
+		}
+
+		std::string TrimWhitespaceEnd(const std::string& string)
+		{
+			std::string output = string;
+			output.erase(std::find_if(output.rbegin(), output.rend(), std::not1(std::ptr_fun<int, int>(std::isspace))).base(), output.end());
+			return output;
+		}
+
+		std::string RemoveSubstring(const std::string& string, const std::string& substring)
+		{
+			std::string output = string;
+			size_t pos = output.find(substring);
+
+			if (pos != std::string::npos)
+			{
+				output.erase(pos, substring.size());
+			}
+
+			return output;
+		}
+
+#if !defined ION_PLATFORM_DREAMCAST
+		std::string WStringToString(const std::wstring& string)
+		{
+			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+			return converter.to_bytes(string);
+		}
+
+		std::wstring StringToWString(const std::string& string)
+		{
+			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+			return converter.from_bytes(string);
+		}
+#endif
 
         int Tokenise(const std::string input, std::vector<std::string>& tokens, char separator)
         {

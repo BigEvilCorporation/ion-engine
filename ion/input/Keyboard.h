@@ -13,7 +13,7 @@
 #include <XInput.h>
 #include <dinput.h>
 #elif defined ION_PLATFORM_MACOSX
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #elif defined ION_PLATFORM_LINUX
 #include <SDL2/SDL.h>
 #elif defined ION_PLATFORM_RASPBERRYPI
@@ -56,14 +56,15 @@ namespace ion
 
 			//Was key pressed this frame
 			bool KeyPressedThisFrame(Keycode key) const;
+			bool KeyReleasedThisFrame(Keycode key) const;
 
 			void Update();
 
 			void SetCooperativeWindow(CoopLevel coopLevel);
 
 		private:
-			char mCurrKeyStates[Keycode::COUNT];
-			char mPrevKeyStates[Keycode::COUNT];
+			char mCurrKeyStates[(int)Keycode::COUNT];
+			char mPrevKeyStates[(int)Keycode::COUNT];
 
 			std::vector<KeyboardHandler*> m_handlers;
 

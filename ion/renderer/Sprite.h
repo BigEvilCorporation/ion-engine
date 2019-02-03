@@ -23,8 +23,11 @@
 #include "renderer/Entity.h"
 #include "renderer/Primitive.h"
 #include "renderer/Renderer.h"
-#include "renderer/Shader.h"
 #include "renderer/Texture.h"
+
+#if defined ION_RENDERER_SHADER
+#include "renderer/Shader.h"
+#endif
 
 namespace ion
 {
@@ -47,9 +50,11 @@ namespace ion
 			void Render(Renderer& renderer, Camera& camera);
 
 		protected:
+			io::ResourceHandle<Texture> m_spriteSheet;
+
+#if defined ION_RENDERER_SHADER
 			io::ResourceHandle<Shader> m_vertexShader;
 			io::ResourceHandle<Shader> m_pixelShader;
-			io::ResourceHandle<Texture> m_spriteSheet;
 
 			struct ShaderParams
 			{
@@ -61,6 +66,8 @@ namespace ion
 			};
 
 			ShaderParams m_shaderParams;
+#endif
+
 			RenderType m_renderType;
 			Vector2 m_size;
 			float m_drawDepth;

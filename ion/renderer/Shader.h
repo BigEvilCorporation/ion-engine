@@ -70,11 +70,11 @@ namespace ion
 			static Shader* Create();
 			virtual ~Shader();
 
-			//Load from file
-			virtual bool Load(const std::string& filename) = 0;
+			//Set entry point, program type and program code
+			void SetProgram(const std::string& name, const std::string& programCode, const std::string& entryPoint, ProgramType programType);
 
-			//Set entry point, program type and program filename
-			void SetProgram(const std::string& programFilename, const std::string& entryPoint, ProgramType programtype);
+			//Compile shader
+			virtual bool Compile() = 0;
 
 			//Get handle to a shader parameter
 			template <typename T> ParamHndl<T> CreateParamHndl(const std::string& name);
@@ -102,6 +102,9 @@ namespace ion
 				virtual void Set(const Colour& value) = 0;
 				virtual void Set(const Matrix4& value) = 0;
 				virtual void Set(const Texture& value) = 0;
+
+				virtual void Set(const std::vector<float>& values) = 0;
+				virtual void Set(const std::vector<Colour>& values) = 0;
 			protected:
 				u32 m_refCount;
 				friend class Shader;
@@ -110,7 +113,8 @@ namespace ion
 			Shader();
 			virtual ShaderParamDelegate* CreateShaderParamDelegate(const std::string& paramName) = 0;
 
-			std::string m_programFilename;
+			std::string m_name;
+			std::string m_programCode;
 			std::string m_entryPoint;
 			ProgramType m_programType;
 		};

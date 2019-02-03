@@ -8,6 +8,11 @@
 #pragma once
 
 #include "Widget.h"
+#include "Font.h"
+
+#include <ion/core/cryptography/UUID.h>
+
+#include <string>
 
 namespace ion
 {
@@ -16,17 +21,40 @@ namespace ion
 		class Window : public Widget
 		{
 		public:
-			Window(std::string text, Scheme& scheme, bool modal = false);
+			Window(const std::string& title, const Vector2i& position, const Vector2i& size);
 			virtual ~Window();
 
-			void MoveToFront();
-			void MoveToBack();
+			void AddWidget(Widget& widget);
 
-			virtual void Show();
-			virtual void Hide();
+			void AllowResize(bool allow);
+			void AllowMove(bool allow);
+			void AllowRollUp(bool allow);
+
+			void RollUp(bool rolled);
+
+			void SetFont(Font& font);
+			void SetBackgroundAlpha(float alpha);
+
+			virtual void Update(float deltaTime);
 
 		protected:
-			bool mModal;
+			void OnWindowAdded();
+
+			std::string m_title;
+			std::string m_hashName;
+			int m_hashIdx;
+
+			bool m_allowResize;
+			bool m_allowMove;
+			bool m_allowRollup;
+			bool m_rolledUp;
+
+			Font* m_font;
+			float m_backgroundAlpha;
+
+			std::vector<Widget*> m_widgets;
+
+			friend class GUI;
 		};
 	}
 }

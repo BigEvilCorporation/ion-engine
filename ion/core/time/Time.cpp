@@ -17,6 +17,8 @@
 #include "core/Platform.h"
 #include "core/debug/Debug.h"
 
+#include <chrono>
+
 namespace ion
 {
 	namespace time
@@ -69,6 +71,61 @@ namespace ion
 #elif defined ION_PLATFORM_DREAMCAST
 			return (double)ticks / 1000000.0f;
 #endif
+		}
+
+		TimeStamp::TimeStamp()
+		{
+			time = 0;
+		}
+
+		TimeStamp GetLocalTime()
+		{
+			TimeStamp timeStamp;
+			std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+			timeStamp.time = std::chrono::system_clock::to_time_t(now);
+			return timeStamp;
+		}
+
+		u32 TimeStamp::GetSecond()
+		{
+			time_t nativetime = (time_t)time;
+			tm localTime = *localtime(&nativetime);
+			return localTime.tm_sec;
+		}
+
+		u32 TimeStamp::GetMinute()
+		{
+			time_t nativetime = (time_t)time;
+			tm localTime = *localtime(&nativetime);
+			return localTime.tm_min;
+		}
+
+		u32 TimeStamp::GetHour()
+		{
+			time_t nativetime = (time_t)time;
+			tm localTime = *localtime(&nativetime);
+			return localTime.tm_hour;
+		}
+
+		u32 TimeStamp::GetDay()
+		{
+			time_t nativetime = (time_t)time;
+			tm localTime = *localtime(&nativetime);
+			return localTime.tm_mday;
+		}
+
+		u32 TimeStamp::GetMonth()
+		{
+			time_t nativetime = (time_t)time;
+			tm localTime = *localtime(&nativetime);
+			return localTime.tm_mon;
+		}
+
+		u32 TimeStamp::GetYear()
+		{
+			time_t nativetime = (time_t)time;
+			tm localTime = *localtime(&nativetime);
+			return localTime.tm_year + 1900;
 		}
 	}
 }

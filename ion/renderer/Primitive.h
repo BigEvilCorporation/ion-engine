@@ -21,6 +21,7 @@
 #include "renderer/Entity.h"
 
 #include <string>
+#include <vector>
 
 namespace ion
 {
@@ -32,13 +33,19 @@ namespace ion
 		class Primitive : public Entity
 		{
 		public:
-			Primitive(VertexBuffer::Pattern vertexPattern);
+			Primitive(VertexBuffer::Pattern pattern, VertexBuffer::Preset preset = VertexBuffer::eDefault);
+			Primitive(VertexBuffer::Pattern pattern, const std::vector<VertexBuffer::Element>& layout);
 			virtual ~Primitive();
 
 			void SetCastShadows(bool shadows);
 
+			void SetColour(const ion::Colour& colour);
+
 			const VertexBuffer& GetVertexBuffer() const { return m_vertexBuffer; }
 			const IndexBuffer& GetIndexBuffer() const { return m_indexBuffer; }
+
+			VertexBuffer& GetVertexBuffer() { return m_vertexBuffer; }
+			IndexBuffer& GetIndexBuffer() { return m_indexBuffer; }
 
 		protected:
 			VertexBuffer m_vertexBuffer;
@@ -61,8 +68,12 @@ namespace ion
 		{
 		public:
 			enum Axis { xy, xz, yz };
-			Quad(Axis axis, const Vector2& halfExtents);
+			Quad(Axis axis, const Vector2& halfExtents, VertexBuffer::Preset preset = VertexBuffer::eDefault);
+			Quad(Axis axis, const Vector2& halfExtents, const std::vector<VertexBuffer::Element>& layout);
 			void SetTexCoords(const TexCoord coords[4]);
+
+		private:
+			void Build(Axis axis, const Vector2& halfExtents);
 		};
 
 		class LineQuad : public Primitive
@@ -84,7 +95,7 @@ namespace ion
 		public:
 			enum Axis { xy, xz, yz };
 			Chessboard(Axis axis, const Vector2& halfExtents, int widthCells, int heightCells, bool uniqueVerts);
-			void SetTexCoords(int cellIndex, TexCoord coords[4]);
+			void SetTexCoords(int cellIndex, TexCoord coords[4], float z = 0.0f);
 		};
 
 		class Box : public Primitive

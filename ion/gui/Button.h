@@ -19,14 +19,25 @@ namespace ion
 		class Button : public Widget
 		{
 		public:
+
+			enum class TextAlign
+			{
+				Left,
+				Right,
+				Centre
+			};
+
 			Button(const std::string& text, std::function<void(const Button&)> const& onPressed);
 			virtual ~Button();
+
+			void SetTextAlign(TextAlign align);
 
 			virtual void Update(float deltaTime);
 
 		private:
 			std::string m_text;
-			std::function<void(const Button&)> const& m_onPressed;
+			TextAlign m_textAlign;
+			std::function<void(const Button&)> m_onPressed;
 		};
 	}
 }

@@ -7,30 +7,44 @@
 
 #include "TextBox.h"
 
+#include <ion/dependencies/imgui/imgui.h>
+
 namespace ion
 {
 	namespace gui
 	{
-		Event TextBox::sOnTextChangedEvent;
-
-		TextBox::TextBox(Scheme& scheme)
-			: Widget(scheme, Widget::TextBox)
+		TextBox::TextBox()
+			: m_text("")
 		{
-			mCEWidget->subscribeEvent(CEGUI::Window::EventTextChanged, CEGUI::Event::Subscriber(&TextBox::OnTextChanged, this));
+
+		}
+
+		TextBox::TextBox(const std::string& text)
+			: m_text(text)
+		{
+			
 		}
 
 		TextBox::~TextBox()
 		{
 		}
 
-		bool TextBox::OnTextChanged(const CEGUI::EventArgs& args)
+		void TextBox::SetText(const std::string& text)
 		{
-			Params params(std::string(mCEWidget->getText().c_str()));
-			params.mWidget = this;
+			m_text = text;
+		}
 
-			sOnTextChangedEvent.Post(params);
+		void TextBox::Update(float deltaTime)
+		{
+			if (m_visible)
+			{
+				if (m_arrangement == Arrangement::Horizontal)
+				{
+					ImGui::SameLine();
+				}
 
-			return true;
+				ImGui::Text("%s", m_text.c_str());
+			}
 		}
 	}
 }

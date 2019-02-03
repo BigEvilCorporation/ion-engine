@@ -1,11 +1,15 @@
 SubDir bigevilcorp ion test rendertest ;
 
+ion_renderer_opts = fixed ;
+ion_audio_engine = sdl2 ;
+ion_online_engine = none ;
+
+ApplyIonCompiler RenderTest ;
+ApplyIonDefines RenderTest ;
 ApplyIonIncludes RenderTest ;
 ApplyIonCore RenderTest ;
-# ApplyIonEditor RenderTest ;
-# ApplyIonGui RenderTest ;
+ApplyIonIo RenderTest ;
 ApplyIonInput RenderTest ;
-# ApplyIonRenderer RenderTest : ogre3d ;
 ApplyIonRenderer RenderTest : opengl ;
 
 SRC = 
@@ -15,5 +19,5 @@ SRC =
 	;
 
 AutoSourceGroup RenderTest : $(SRC) ;
-C.RuntimeType RenderTest : dynamic ;
+C.RuntimeType RenderTest : static ;
 C.Application RenderTest : $(SRC) ;

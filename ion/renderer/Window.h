@@ -22,6 +22,14 @@ namespace ion
 {
 	namespace render
 	{
+		struct Display
+		{
+			int index;
+			std::string name;
+			Vector2i size;
+			Vector2i topLeft;
+		};
+
 		class Window
 		{
 		public:
@@ -38,15 +46,20 @@ namespace ion
 
 			bool GetFullscreen() const;
 
-			virtual u32 GetDesktopWidth() const = 0;
-			virtual u32 GetDesktopHeight() const = 0;
+			virtual u32 GetDesktopWidth(int displayIdx) const = 0;
+			virtual u32 GetDesktopHeight(int displayIdx) const = 0;
+
+			virtual int GetDisplays(std::vector<Display>& displays) const = 0;
+			virtual int GetSupportedResolutions(std::vector<Vector2i>& resolutions, int displayIdx) const = 0;
 
 			float GetAspectRatio() const;
 
 			virtual bool Update() = 0;
 			virtual bool Resize(u32 clientAreaWidth, u32 clientAreaHeight, bool adjustForTitle) = 0;
-			virtual bool SetFullscreen(bool fullscreen) = 0;
+			virtual bool SetFullscreen(bool fullscreen, int displayIdx) = 0;
 			virtual void SetTitle(const std::string& title) = 0;
+			virtual void ShowCursor(bool show) = 0;
+			virtual bool HasFocus() const = 0;
 
 			virtual DeviceContext GetDeviceContext() const = 0;
 			virtual WindowHandle GetWindowHandle() const = 0;

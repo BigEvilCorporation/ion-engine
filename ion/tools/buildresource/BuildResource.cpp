@@ -76,6 +76,24 @@ int main(int numargs, char** args)
 				}
 			}
 		}
+		else if (!std::strcmp(resourceType.c_str(), "pshader"))
+		{
+			if (CheckToken(tokens, "Missing vertex shader name"))
+			{
+				const std::string& name = tokens.Pop();
+
+				if (CheckToken(tokens, "Missing vertex shader binary"))
+				{
+					const std::string& shaderBinaryFile = tokens.Pop();
+
+					if (CheckToken(tokens, "Missing vertex shader entry point"))
+					{
+						const std::string& entrypoint = tokens.Pop();
+						ion::build::BuildShader(name, shaderBinaryFile, entrypoint, ion::render::Shader::eFragment);
+					}
+				}
+			}
+		}
 	}
 
 	ion::debug::Log("Done.");
@@ -108,7 +126,7 @@ namespace ion
 			}
 		}
 
-		void BuildShader(const std::string& name, const std::string& binary, const std::string& entrypoint, render::Shader::ProgramType programType)
+		void BuildShader(const std::string& name, const std::string& codeFile, const std::string& entrypoint, render::Shader::ProgramType programType)
 		{
 			std::string filename = name;
 			filename += ".ion.shader";
@@ -116,16 +134,31 @@ namespace ion
 			ion::io::File file(filename, ion::io::File::eOpenWrite);
 			if(file.IsOpen())
 			{
-				ion::render::Shader* shader = ion::render::Shader::Create();
-				shader->SetProgram(binary, entrypoint, programType);
-				ion::io::Archive archive(file, ion::io::Archive::eOut);
-				//ion::render::Shader::RegisterSerialiseType(archive);
-				archive.Serialise(*shader);
-				file.Close();
+				ion::io::File program(codeFile, ion::io::File::eOpenRead);
+				if (program.IsOpen())
+				{
+					std::string code;
+					code.resize(program.GetSize() + 1);
+					program.Read(&code[0], program.GetSize());
 
-				std::string message = "Written: ";
-				message += filename;
-				debug::Log(message.c_str());
+					ion::render::Shader* shader = ion::render::Shader::Create();
+					shader->SetProgram(name, code, entrypoint, programType);
+					ion::io::Archive archive(file, ion::io::Archive::eOut);
+					ion::render::Shader::RegisterSerialiseType(archive);
+
+					//Serialise pointer to shader
+					archive.Serialise(shader);
+
+					file.Close();
+
+					std::string message = "Written: ";
+					message += filename;
+					debug::Log(message.c_str());
+				}
+				else
+				{
+					ion::debug::log << "Failed to open shader program " << codeFile << ion::debug::end;
+				}
 			}
 		}
 	}

@@ -14,7 +14,11 @@
 
 #pragma once
 
+#include <ion/core/cryptography/UUID.h>
+
 #include <vector>
+#include <map>
+#include <string>
 
 namespace ion
 {
@@ -22,6 +26,7 @@ namespace ion
 	{
 		class Renderer;
 		class Camera;
+		class Viewport;
 	}
 
 	namespace io
@@ -43,7 +48,7 @@ namespace ion
 		class State
 		{
 		public:
-			State(StateManager& stateManager, io::ResourceManager& resourceManager);
+			State(const std::string& name, StateManager& stateManager, io::ResourceManager& resourceManager);
 			virtual ~State();
 
 			virtual void OnEnterState() = 0;
@@ -51,10 +56,12 @@ namespace ion
 			virtual void OnPauseState() = 0;
 			virtual void OnResumeState() = 0;
 
-			virtual void Update(float deltaTime, input::Keyboard* keyboard, input::Mouse* mouse, input::Gamepad* gamepad) = 0;
-			virtual void Render(render::Renderer& renderer, render::Camera& camera) = 0;
+			virtual bool Update(float deltaTime, input::Keyboard* keyboard, input::Mouse* mouse, input::Gamepad* gamepad) = 0;
+			virtual void Render(render::Renderer& renderer, const render::Camera& camera, render::Viewport& viewport) = 0;
 
 		protected:
+			std::string m_name;
+			ion::UUID64 m_id;
 			StateManager& m_stateManager;
 			io::ResourceManager& m_resourceManager;
 		};
@@ -65,18 +72,29 @@ namespace ion
 			StateManager();
 			~StateManager();
 
+			void PushState(const std::string& name);
 			void PushState(State& state);
+			void SwapState(const std::string& name);
 			void SwapState(State& state);
 			void PopState();
+
+			void DeleteStates();
 
 			void Pause();
 			void Resume();
 
-			void Update(float deltaTime, input::Keyboard* keyboard, input::Mouse* mouse, input::Gamepad* gamepad);
-			void Render(render::Renderer& renderer, render::Camera& camera);
+			bool Update(float deltaTime, input::Keyboard* keyboard, input::Mouse* mouse, input::Gamepad* gamepad);
+			void Render(render::Renderer& renderer, const render::Camera& camera, render::Viewport& viewport);
+
+		protected:
+			void AddState(State& state, const std::string& name);
 
 		private:
+			std::map<std::string, State*> m_states;
 			std::vector<State*> m_stateStack;
+			State* m_renderingState;
+
+			friend class State;
 		};
 	}
 }

@@ -119,6 +119,8 @@ public:
 	Map();
 	Map(const PlatformConfig& platformConfig);
 
+	void SetPlatformConfig(const PlatformConfig& platformConfig) { m_platformConfig = &platformConfig; }
+
 	void SetName(const std::string& name) { m_name = name; }
 	const std::string& GetName() const { return m_name; }
 
@@ -169,6 +171,7 @@ public:
 	void MoveGameObject(GameObjectId gameObjectId, int x, int y);
 	void RemoveGameObject(int x, int y);
 	const TGameObjectPosMap& GetGameObjects() const;
+	TGameObjectPosMap& GetGameObjects();
 
 	const TStampPosMap::const_iterator StampsBegin() const;
 	const TStampPosMap::const_iterator StampsEnd() const;
@@ -181,6 +184,7 @@ public:
 	const std::vector<Block>& GetBlocks() const;
 
 	void Serialise(ion::io::Archive& archive);
+	void Export(const Project& project, std::vector<TileDesc>& tileMap) const;
 	void Export(const Project& project, std::stringstream& stream) const;
 	void Export(const Project& project, ion::io::File& file) const;
 	void ExportBlockMap(const Project& project, std::stringstream& stream, int blockWidth, int blockHeight) const;
@@ -194,6 +198,7 @@ public:
 		std::string map;
 		std::string stampMap;
 		std::string collisionMap;
+		std::string sceneAnims;
 		std::string gameObjects;
 		std::string blocks;
 		std::string blockMap;
@@ -203,6 +208,7 @@ public:
 		bool mapExportEnabled = false;
 		bool stampMapExportEnabled = false;
 		bool collisionMapExportEnabled = false;
+		bool sceneAnimExportEnabled = false;
 		bool gameObjectsExportEnabled = false;
 		bool blocksExportEnabled = false;
 		bool blockMapExportEnabled = false;
@@ -217,6 +223,7 @@ public:
 			archive.Serialise(terrainBlocksExportEnabled, "terrainBlocksExportEnabled");
 			archive.Serialise(terrainBlockMapExportEnabled, "terrainBlockMapExportEnabled");
 			archive.Serialise(collisionMapExportEnabled, "collisionMapExportEnabled");
+			archive.Serialise(sceneAnimExportEnabled, "sceneAnimExportEnabled");
 			archive.Serialise(gameObjectsExportEnabled, "gameObjectsExportEnabled");
 
 			archive.Serialise(map, "exportFNameMap");
@@ -225,6 +232,7 @@ public:
 			archive.Serialise(terrainBlocks, "exportFNameTerrainBlocks");
 			archive.Serialise(terrainBlockMap, "exportFNameTerrainBlockMap");
 			archive.Serialise(collisionMap, "exportFNameCollisionMap");
+			archive.Serialise(sceneAnims, "exportFNameSceneAnims");
 			archive.Serialise(gameObjects, "exportFNameGameObjects");
 		}
 	};
@@ -235,7 +243,7 @@ private:
 
 	void BakeStamp(std::vector<TileDesc>& tiles, int mapWidth, int mapHeight, int x, int y, const Stamp& stamp, u32 flipFlags) const;
 
-	const PlatformConfig& m_platformConfig;
+	const PlatformConfig* m_platformConfig;
 	std::string m_name;
 	int m_width;
 	int m_height;

@@ -24,8 +24,10 @@ namespace ion
 			{
 				#if defined ION_PLATFORM_WINDOWS
 				InterlockedIncrement((LONG*)&integer);
-                #elif defined ION_PLATFORM_LINUX
+                #elif defined ION_PLATFORM_LINUX || defined ION_PLATFORM_MACOSX
                 __atomic_fetch_add(&integer, 1, __ATOMIC_SEQ_CST);
+				#else
+				++integer;
 				#endif
 			}
 
@@ -33,8 +35,10 @@ namespace ion
 			{
 				#if defined ION_PLATFORM_WINDOWS
 				InterlockedDecrement((LONG*)&integer);
-				#elif defined ION_PLATFORM_LINUX
+				#elif defined ION_PLATFORM_LINUX || defined ION_PLATFORM_MACOSX
                 __atomic_fetch_sub(&integer, 1, __ATOMIC_SEQ_CST);
+				#else
+				--integer;
 				#endif
 			}
 		}

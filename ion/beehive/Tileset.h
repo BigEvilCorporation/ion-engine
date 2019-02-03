@@ -37,6 +37,7 @@ public:
 
 	static const u32 s_orientationFlags[eNumHashOrientations];
 
+	Tileset();
 	Tileset(const PlatformConfig& platformConfig);
 
 	void Clear();
@@ -64,7 +65,7 @@ private:
 	void AddToHashMap(TileId tileId);
 	void RemoveFromHashMap(TileId tileId);
 	
-	const PlatformConfig& m_platformConfig;
+	const PlatformConfig* m_platformConfig;
 	std::vector<Tile> m_tiles;
 	HashMap m_hashMap;
 };

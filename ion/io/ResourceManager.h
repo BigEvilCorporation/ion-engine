@@ -36,8 +36,9 @@ namespace ion
 			~ResourceManager();
 
 			//Set/get resource directory
-			template <class T> void SetResourceDirectory(const std::string& directory);
+			template <class T> void SetResourceDirectory(const std::string& directory, const std::string& extension);
 			template <class T> std::string GetResourceDirectory() const;
+			template <class T> std::string GetResourceExtension() const;
 
 			//Get resource handle
 			template <class T> ResourceHandle<T> GetResource(const std::string& filename);
@@ -76,8 +77,11 @@ namespace ion
 
 				WorkerThread();
 				~WorkerThread();
+
 				void PushJob(Job& job);
 				u32 GetNumJobsInQueue() const;
+
+				void Terminate();
 
 			protected:
 				virtual void Entry();
@@ -87,11 +91,18 @@ namespace ion
 				Queue<Job, s_jobQueueSize> m_jobQueue;
 				thread::Semaphore m_jobQueueSemaphore;
 				u32 m_numJobsInQueue;
+				bool m_threadRunning;
 			};
 
 
 			//Directories
-			std::map<std::string, std::string> m_directoryMap;
+			struct DirectoryEntry
+			{
+				std::string directory;
+				std::string extension;
+			};
+
+			std::map<std::string, DirectoryEntry> m_directoryMap;
 
 			//Resources
 			std::map<std::string, Resource*> m_resourceMap;
@@ -115,18 +126,22 @@ namespace ion
 {
 	namespace io
 	{
-		template <class T> void ResourceManager::SetResourceDirectory(const std::string& directory)
+		template <class T> void ResourceManager::SetResourceDirectory(const std::string& directory, const std::string& extension)
 		{
 			std::string typeName = typeid(T).name();
-			std::map<std::string, std::string>::iterator it = m_directoryMap.find(typeName);
+			std::map<std::string, DirectoryEntry>::iterator it = m_directoryMap.find(typeName);
+
+			DirectoryEntry entry;
+			entry.directory = directory;
+			entry.extension = extension;
 
 			if(it == m_directoryMap.end())
 			{
-				std::pair<std::map<std::string, std::string>::iterator, bool> result = m_directoryMap.insert(std::pair<std::string, std::string>(typeName, directory));
+				std::pair<std::map<std::string, DirectoryEntry>::iterator, bool> result = m_directoryMap.insert(std::pair<std::string, DirectoryEntry>(typeName, entry));
 				it = result.first;
 			}
 
-			it->second = directory;
+			it->second = entry;
 		}
 
 		template <class T> std::string ResourceManager::GetResourceDirectory() const
@@ -134,14 +149,29 @@ namespace ion
 			std::string directory = "";
 
 			std::string typeName = typeid(T).name();
-			std::map<std::string, std::string>::const_iterator it = m_directoryMap.find(typeName);
+			std::map<std::string, DirectoryEntry>::const_iterator it = m_directoryMap.find(typeName);
 
 			if(it != m_directoryMap.end())
 			{
-				directory = it->second;
+				directory = it->second.directory;
 			}
 
 			return directory;
+		}
+
+		template <class T> std::string ResourceManager::GetResourceExtension() const
+		{
+			std::string extension = "";
+
+			std::string typeName = typeid(T).name();
+			std::map<std::string, DirectoryEntry>::const_iterator it = m_directoryMap.find(typeName);
+
+			if (it != m_directoryMap.end())
+			{
+				extension = it->second.extension;
+			}
+
+			return extension;
 		}
 
 		template <class T> ResourceHandle<T> ResourceManager::GetResource(const std::string& filename)

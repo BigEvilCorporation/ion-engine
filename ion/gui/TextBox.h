@@ -8,35 +8,25 @@
 #pragma once
 
 #include "Widget.h"
-#include "EventListener.h"
-#include <CEGUI/CEGUI.h>
-
 #include <string>
 
 namespace ion
 {
 	namespace gui
 	{
-		//Forward declaration
-		class Scheme;
-
 		class TextBox : public Widget
 		{
 		public:
-			static Event sOnTextChangedEvent;
+			TextBox();
+			TextBox(const std::string& text);
+			virtual ~TextBox();
 
-			class Params : public Widget::EventParams
-			{
-			public:
-				Params(const std::string& text) : mText(text) {}
-				const std::string mText;
-			};
+			void SetText(const std::string& text);
 
-			TextBox(Scheme& scheme);
-			~TextBox();
+			virtual void Update(float deltaTime);
 
 		private:
-			bool OnTextChanged(const CEGUI::EventArgs& args);
+			std::string m_text;
 		};
 	}
 }

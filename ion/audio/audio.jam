@@ -39,6 +39,15 @@ SRC_ENGINE_XAUDIO =
 	xaudio/VoiceXAudio.h
 	;
 
+SRC_ENGINE_SDL =
+	sdl/EngineSDL.cpp
+	sdl/EngineSDL.h
+	sdl/OutputDeviceSDL.cpp
+	sdl/OutputDeviceSDL.h
+	sdl/VoiceSDL.cpp
+	sdl/VoiceSDL.h
+	;
+
 SRC_ENGINE_SDL2 =
 	sdl2/EngineSDL2.cpp
 	sdl2/EngineSDL2.h
@@ -64,6 +73,13 @@ if ( ( win32 in $(PLATFORM) ) | ( win64 in $(PLATFORM) ) )
 		SRC += $(SRC_ENGINE_SDL2) ;
 		ApplySDL2SDK audio : audio ;
 	}
+}
+
+if ( dreamcast in $(PLATFORM) )
+{
+	echo "ion::audio using SDL engine" ;
+	SRC += $(SRC_ENGINE_SDL) ;
+	ApplySDLSDK audio : audio ;
 }
 
 if ( ( linux64 in $(PLATFORM) ) | ( macosx64 in $(PLATFORM) ) )

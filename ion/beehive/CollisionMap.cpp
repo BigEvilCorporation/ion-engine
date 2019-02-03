@@ -65,7 +65,7 @@ void CollisionMap::Serialise(ion::io::Archive& archive)
 	archive.Serialise(m_physicsWorldTopLeftBlocks, "physicsWorldTopLeftBlocks");
 	archive.Serialise(m_physicsWorldSizeBlocks, "physicsWorldSizeBlocks");
 
-	if(archive.GetDirection() == ion::io::Archive::eIn)
+	if(archive.GetDirection() == ion::io::Archive::Direction::In)
 	{
 		if(m_terrainBeziers.size() == 0)
 		{

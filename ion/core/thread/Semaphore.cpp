@@ -28,6 +28,8 @@ namespace ion
             {
                 debug::error << "Semaphore::Semaphore() - sem_init() failed" << debug::end;
             }
+            #elif defined ION_PLATFORM_MACOSX
+            m_semaphoreHndl = dispatch_semaphore_create(0);
 			#endif
 		}
 
@@ -37,6 +39,8 @@ namespace ion
 			CloseHandle(m_semaphoreHndl);
             #elif defined ION_PLATFORM_LINUX
             sem_destroy(&m_semaphoreHndl);
+            #elif defined ION_PLATFORM_MACOSX
+            dispatch_release(m_semaphoreHndl);
 			#endif
 		}
 
@@ -46,6 +50,8 @@ namespace ion
 			ReleaseSemaphore(m_semaphoreHndl, 1, NULL);
             #elif defined ION_PLATFORM_LINUX
             sem_post(&m_semaphoreHndl);
+            #elif defined ION_PLATFORM_MACOSX
+            dispatch_semaphore_signal(m_semaphoreHndl);
 			#endif
 		}
 
@@ -55,6 +61,8 @@ namespace ion
 			WaitForSingleObject(m_semaphoreHndl, INFINITE);
             #elif defined ION_PLATFORM_LINUX
             sem_wait(&m_semaphoreHndl);
+            #elif defined ION_PLATFORM_MACOSX
+            dispatch_semaphore_wait(m_semaphoreHndl, DISPATCH_TIME_FOREVER);
 			#endif
 		}
 	}

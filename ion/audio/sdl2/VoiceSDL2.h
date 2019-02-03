@@ -48,6 +48,7 @@ namespace ion
 			SDL_AudioDeviceID m_sdlVoiceId;
 
 			u64 m_startTime;
+			u64 m_pauseTime;
 
 			static const int s_bufferQueueSize = 2;
 			Queue<Buffer*, s_bufferQueueSize> m_bufferQueue;

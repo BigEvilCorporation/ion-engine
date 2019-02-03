@@ -23,6 +23,8 @@ namespace ion
 		{
 			#if defined ION_PLATFORM_WINDOWS
 			return (ThreadId)::GetCurrentThreadId();
+			#elif defined ION_PLATFORM_LINUX || defined ION_PLATFORM_MACOSX || defined ION_PLATFORM_DREAMCAST
+			return (ThreadId)pthread_self();
 			#else
 			return 0;
 			#endif
@@ -79,9 +81,12 @@ namespace ion
 			__except(EXCEPTION_CONTINUE_EXECUTION)
 			{
 			}
-#elif defined ION_PLATFORM_LINUX
+#elif defined ION_PLATFORM_LINUX || defined ION_PLATFORM_MACOSX || defined ION_PLATFORM_DREAMCAST
 			int result = pthread_create(&m_threadHndl, NULL, ThreadFunction, this);
 			debug::Assert(result == 0, "Thread::Thread() - pthread_create() failed");
+#endif
+            
+#if defined ION_PLATFORM_LINUX
             pthread_setname_np(m_threadHndl, m_name.c_str());
 #endif
 		}
@@ -90,6 +95,8 @@ namespace ion
 		{
 #if defined ION_PLATFORM_WINDOWS
 			WaitForSingleObject(m_threadHndl, INFINITE);
+#elif defined ION_PLATFORM_LINUX || defined ION_PLATFORM_MACOSX || defined ION_PLATFORM_DREAMCAST
+			pthread_join(m_threadHndl, nullptr);
 #endif
 		}
 
@@ -131,9 +138,7 @@ namespace ion
 				debug::error << "Thread::SetPriority() - SetThreadPriority() failed" << debug::end;
 			}
 
-#elif defined ION_PLATFORM_LINUX
-			int result = 0;
-
+#elif defined ION_PLATFORM_LINUX || defined ION_PLATFORM_MACOSX
 			int policy = 0;
 			sched_param param;
 			pthread_getschedparam(m_threadHndl, &policy, &param);
@@ -146,18 +151,20 @@ namespace ion
 			switch(priority)
 			{
 				case Priority::Low:
-					result = pthread_setschedprio(m_threadHndl, minPrio);
+					param.sched_priority = minPrio;
 					break;
 				case Priority::Normal:
-					result = pthread_setschedprio(m_threadHndl, medPrio);
+					param.sched_priority = medPrio;
 					break;
 				case Priority::High:
-					result = pthread_setschedprio(m_threadHndl, highPrio);
+                    param.sched_priority = highPrio;
 					break;
 				case Priority::Critical:
-					result = pthread_setschedprio(m_threadHndl, maxPrio);
+					param.sched_priority = maxPrio;
 					break;
 			}
+            
+            int result = pthread_setschedparam(m_threadHndl, policy, &param);
 
 			if(result != 0)
 			{
@@ -174,11 +181,13 @@ namespace ion
 			thread->Entry();
 			return 0;
 		}
-#elif defined ION_PLATFORM_LINUX
+#elif defined ION_PLATFORM_LINUX || defined ION_PLATFORM_MACOSX || defined ION_PLATFORM_DREAMCAST
 		void* Thread::ThreadFunction(void* params)
 		{
-			
 			Thread* thread = (Thread*)params;
+#if defined ION_PLATFORM_MACOSX
+            pthread_setname_np(thread->m_name.c_str());
+#endif
 			thread->Entry();
 			return NULL;
 		}

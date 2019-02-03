@@ -8,42 +8,35 @@
 #pragma once
 
 #include "Widget.h"
-#include "EventListener.h"
-#include <CEGUI/CEGUI.h>
 
 #include <string>
+#include <functional>
 
 namespace ion
 {
 	namespace gui
 	{
-		//Forward declaration
-		class Scheme;
-
 		class Slider : public Widget
 		{
 		public:
-			static Event sOnValueChangedEvent;
+			enum DataType { Integer, Float };
 
-			enum Orientation { Horizontal, Vertical };
-
-			class Params : public Widget::EventParams
-			{
-			public:
-				Params(float value) : mValue(value) {}
-				const float mValue;
-			};
-
-			Slider(Scheme& scheme, float max, float default, float step);
+			Slider(const std::string& text, float min, float max, float defaultValue, float step, std::function<void(const Slider&, float)> const& onChanged);
 			~Slider();
 
-			void SetOrientation(Orientation orientation);
-			void SetRange(float max, float step);
+			void SetRange(float min, float max, float step);
 			void SetValue(float value);
-			float GetValue();
+			float GetValue() const;
+
+			virtual void Update(float deltaTime);
 
 		private:
-			bool OnValueChanged(const CEGUI::EventArgs& args);
+			std::function<void(const Slider&, float)> m_onChanged;
+			std::string m_text;
+			float m_value;
+			float m_min;
+			float m_max;
+			float m_step;
 		};
 	}
 }

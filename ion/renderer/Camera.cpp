@@ -33,6 +33,12 @@ namespace ion
 			Matrix4 transform = GetTransform();
 			transform.SetScale(Vector3(1.0f, 1.0f, 1.0f) / zoom);
 			SetTransform(transform);
+			m_zoom = zoom;
+		}
+
+		const Vector3& Camera::GetZoom() const
+		{
+			return m_zoom;
 		}
 	}
 }

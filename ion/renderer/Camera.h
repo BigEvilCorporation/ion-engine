@@ -27,6 +27,10 @@ namespace ion
 			~Camera();
 
 			void SetZoom(const Vector3& zoom);
+			const Vector3& GetZoom() const;
+
+		private:
+			Vector3 m_zoom;
 		};
 	}
 }

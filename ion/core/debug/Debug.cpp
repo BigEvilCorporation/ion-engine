@@ -14,54 +14,28 @@
 
 #include "Debug.h"
 #include "ion/core/Types.h"
+#include "ion/core/Platform.h"
+#include "CrashHandler.h"
 
 #include <iostream>
-
-#if defined ION_PLATFORM_WINDOWS
-#include <Windows.h>
-#elif defined ION_PLATFORM_DREAMCAST
-#include <kos.h>
-#include <malloc.h>
-#include <assert.h>
-extern unsigned long end;
-extern unsigned long start;
-#define _end end
-#define _start start
-#elif defined ION_PLATFORM_LINUX
-#include <signal.h>
-#elif defined ION_PLATFORM_RASPBERRYPI
-#include <signal.h>
-#elif defined ION_PLATFORM_MACOSX
-#include <signal.h>
-#endif
 
 namespace ion
 {
 	namespace debug
 	{
-#if defined ION_PLATFORM_DREAMCAST
-		void HandleKOSException(const char * file, int line, const char * expr, const char * msg, const char * func)
-		{
-			error << "ASSERT: \n"
-				<< "file: " << file << "\n"
-				<< "line: " << line << "\n"
-				<< "expr: " << expr << "\n"
-				<< "msg: " << msg << "\n"
-				<< "func: " << func << "\n"
-				<< end;
-		}
-#endif
-
-		void InitExceptionHandling()
-		{
-#if defined ION_PLATFORM_DREAMCAST
-			assert_set_handler(HandleKOSException);
-#endif
-		}
+		LogStream log(LogStream::eLog);
+		LogStream error(LogStream::eError);
+		LogTokenEnd end;
 
 		void Log(const char* message)
 		{
+#if defined ION_PLATFORM_DREAMCAST
+			dbgio_write_str(message);
+			dbgio_write_str("\n");
+			dbgio_flush();
+#else
 			std::cout << message << "\n";
+#endif
 		}
 
 		void Flush()
@@ -73,12 +47,8 @@ namespace ion
 		{
 			Log(message);
 			Flush();
-
-#if defined ION_PLATFORM_DREAMCAST
-			assert_msg(0, message);
-#else
+			PrintCallstack();
 			Break();
-#endif
 		}
 
 		void Popup(const char* message, const char* title)
@@ -98,6 +68,8 @@ namespace ion
 			raise(SIGTRAP);
 #elif defined ION_PLATFORM_MACOSX
 			raise(SIGTRAP);
+#elif defined ION_PLATFORM_DREAMCAST
+			while (1) {}
 #endif
 		}
 
@@ -122,6 +94,16 @@ namespace ion
 			printf("Allocated system RAM: %i (%ikb)\n", mi.usmblks, mi.usmblks / 1024);
 			printf("Allocated stack size: %i (%ikb)\n", stackSize, stackSize / 1024);
 			printf("Free system RAM: %i (%ikb)\n", systemRamFree, systemRamFree / 1024);
+#endif
+		}
+
+		u32 GetRAMUsed()
+		{
+#if defined ION_PLATFORM_DREAMCAST
+			struct mallinfo mi = mallinfo();
+			return mi.uordblks;
+#else
+			return 0;
 #endif
 		}
 
@@ -187,7 +169,7 @@ namespace ion
 
 		LogStream& LogStream::operator << (float number)
 		{
-			m_stream << (int)number;
+			m_stream << number;
 			return *this;
 		}
 
@@ -203,6 +185,7 @@ namespace ion
 			}
 
 			m_stream.str(std::string());
+
 			return *this;
 		}
 	}

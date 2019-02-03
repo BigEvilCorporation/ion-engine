@@ -78,6 +78,11 @@ u16 Colour::ToVDPFormat() const
 	return mdValue;
 }
 
+ion::Colour Colour::ToIonColour() const
+{
+	return ion::Colour(GetRed(), GetGreen(), GetBlue(), 255);
+}
+
 Palette::Palette()
 {
 	m_colours.resize(coloursPerPalette);

@@ -25,6 +25,12 @@ namespace ion
 			return (int)(x + 0.5f);
 		}
 
+		int Wrap(int value, int divisor)
+		{
+			int mod = value % divisor;
+			return mod + ((mod >> 31) & divisor);
+		}
+
 		float RoundToNearest(float value, int nearest)
 		{
 			return floorf(value / nearest) * nearest;
@@ -65,6 +71,11 @@ namespace ion
 #else
 			return sqrtf(value);
 #endif
+		}
+
+		float Pow(float value, float power)
+		{
+			return pow(value, power);
 		}
 
 		float Floor(float value)
@@ -140,7 +151,11 @@ namespace ion
 
 		float Tan(float value)
 		{
+#if defined ION_PLATFORM_DREAMCAST
+			return ftan(value);
+#else
 			return tanf(value);
+#endif
 		}
 
 		float Acos(float value)
@@ -161,6 +176,11 @@ namespace ion
 		float Atan2(float y, float x)
 		{
 			return atan2f(y, x);
+		}
+
+		bool IsZero(float value)
+		{
+			return Abs(value) < FLOAT_EPSILON;
 		}
 
 		float DegreesToRadians(float degrees)

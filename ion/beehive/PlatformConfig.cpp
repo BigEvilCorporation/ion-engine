@@ -15,6 +15,8 @@ void PlatformConfig::Serialise(ion::io::Archive& archive)
 	archive.Serialise(screenHeight, "screenHeight");
 	archive.Serialise(tileWidth, "tileWidth");
 	archive.Serialise(tileHeight, "tileHeight");
+	archive.Serialise(stampWidth, "stampWidth");
+	archive.Serialise(stampHeight, "stampHeight");
 	archive.Serialise(scrollPlaneWidthTiles, "scrollPlaneWidthTiles");
 	archive.Serialise(scrollPlaneHeightTiles, "scrollPlaneHeightTiles");
 	archive.Serialise(numPlanes, "numPlanes");

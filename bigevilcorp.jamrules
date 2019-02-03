@@ -12,6 +12,7 @@ rule ApplyIonCompiler TARGET
     if ( linux64 in $(PLATFORM) )
     {
         C.Flags $(TARGET) : C++	: -std=c++11 ;
+	C.LinkFlags $(TARGET) : -rdynamic ;
     }
 }
 
@@ -23,6 +24,16 @@ rule ApplyIonIncludes TARGET
 
 rule ApplyIonDefines TARGET
 {
+	if ( debug in $(CONFIG) )
+	{
+		C.Defines $(TARGET) : ION_BUILD_DEBUG ;
+	}
+
+	if ( release in $(CONFIG) )
+	{
+		C.Defines $(TARGET) : ION_BUILD_RELEASE ;
+	}
+
 	if ( win32 in $(PLATFORM) )
 	{
 		C.Defines $(TARGET) :
@@ -185,12 +196,12 @@ rule ApplyDefaultRenderer TARGET : LINK_OPT
 	{
 		if ( shader in $(ion_renderer_opts) )
 		{
-			ApplyRendererImpl $(TARGET) : opengl cggl sdl sdlimage $(LINK_OPT) ;
+			ApplyRendererImpl $(TARGET) : opengl cggl sdl2 sdl2image $(LINK_OPT) ;
 		}
 		
 		if ( fixed in $(ion_renderer_opts) )
 		{
-			ApplyRendererImpl $(TARGET) : opengl sdl sdlimage $(LINK_OPT) ;
+			ApplyRendererImpl $(TARGET) : opengl sdl2 sdl2image $(LINK_OPT) ;
 		}
 	}
 
@@ -198,33 +209,33 @@ rule ApplyDefaultRenderer TARGET : LINK_OPT
 	{
 		if ( shader in $(ion_renderer_opts) )
 		{
-			ApplyRendererImpl $(TARGET) : opengl cggl sdl sdlimage $(LINK_OPT) ;
+			ApplyRendererImpl $(TARGET) : opengl cggl sdl2 sdl2image $(LINK_OPT) ;
 		}
 		
 		if ( fixed in $(ion_renderer_opts) )
 		{
-			ApplyRendererImpl $(TARGET) : opengl sdl sdlimage $(LINK_OPT) ;
+			ApplyRendererImpl $(TARGET) : opengl sdl2 sdl2image $(LINK_OPT) ;
 		}
 	}
 
 	if ( macosx64 in $(PLATFORM) )
 	{
-		ApplyRendererImpl $(TARGET) : opengl sdl sdlimage $(LINK_OPT) ;
+		ApplyRendererImpl $(TARGET) : opengl sdl2 sdl2image $(LINK_OPT) ;
 	}
 
 	if ( linux64 in $(PLATFORM) )
 	{
-		ApplyRendererImpl $(TARGET) : opengl sdl sdlimage $(LINK_OPT) ;
+		ApplyRendererImpl $(TARGET) : opengl sdl2 sdl2image $(LINK_OPT) ;
 	}
 
 	if ( raspberrypi in $(PLATFORM) )
 	{
-		ApplyRendererImpl $(TARGET) : opengles sdl sdlimage $(LINK_OPT) ;
+		ApplyRendererImpl $(TARGET) : opengles sdl2 sdl2image $(LINK_OPT) ;
 	}
 
 	if ( dreamcast in $(PLATFORM) )
 	{
-		ApplyRendererImpl $(TARGET) : opengl glut sdlimage $(LINK_OPT) ;
+		ApplyRendererImpl $(TARGET) : opengl glut $(LINK_OPT) ;
 	}
 }
 
@@ -256,13 +267,18 @@ rule ApplyRendererImpl TARGET : RENDER_IMPL_OPTS
 
 	if ( glut in $(RENDER_IMPL_OPTS) )
 	{
-		if ( sdk in $(RENDER_IMPL_OPTS) )
-		{
-			ApplyGlutSDK $(TARGET) ;
-		}
+		ApplyGlutSDK $(TARGET) ;
 	}
 
 	if ( sdl in $(RENDER_IMPL_OPTS) )
+	{
+		if ( sdk in $(RENDER_IMPL_OPTS) )
+		{
+			ApplySDLSDK $(TARGET) : render ;
+		}
+	}
+
+	if ( sdl2 in $(RENDER_IMPL_OPTS) )
 	{
 		if ( sdk in $(RENDER_IMPL_OPTS) )
 		{
@@ -273,6 +289,11 @@ rule ApplyRendererImpl TARGET : RENDER_IMPL_OPTS
 	if ( sdlimage in $(RENDER_IMPL_OPTS) )
 	{
 		ApplySDLImageSDK $(TARGET) ;
+	}
+
+	if ( sdl2image in $(RENDER_IMPL_OPTS) )
+	{
+		ApplySDL2ImageSDK $(TARGET) ;
 	}
 }
 
@@ -291,6 +312,31 @@ rule ApplyIonGameKit TARGET
 rule ApplyIonNetwork TARGET
 {
 	ApplyIonLib $(TARGET) : network ;
+}
+
+rule ApplyIonOnline TARGET
+{
+	if ( galaxy in $(ion_online_engine) && ( linux64 in $(PLATFORM) ) )
+	{
+		echo NOT applying ion::online - GOG unsupported on Linux ;
+	}
+	else
+	{
+		ApplyIonLib $(TARGET) : online ;
+		C.Defines $(TARGET) : ION_ONLINE ;
+
+		if ( steam in $(ion_online_engine) )
+		{
+			ApplySteamworksSDK $(TARGET) ;
+			C.Defines $(TARGET) : ION_ONLINE_STEAM ;
+		}
+
+		if ( galaxy in $(ion_online_engine) )
+		{
+			ApplyGalaxySDK $(TARGET) ;
+			C.Defines $(TARGET) : ION_ONLINE_GALAXY ;
+		}
+	}
 }
 
 #################################################
@@ -513,7 +559,7 @@ rule ApplyOpenGLSDK TARGET
 		C.Defines $(TARGET) : ION_RENDERER_KGL ;
 
 		local OPENGL_LIBS =
-			libgl.a
+			libGL.a
 			;
 
 		C.LinkPrebuiltLibraries $(TARGET) : $(OPENGL_LIBS) ;
@@ -625,7 +671,7 @@ rule ApplyGlfwSDK TARGET
 	C.LinkPrebuiltLibraries $(TARGET) : $(GLFW_LIBS) ;
 }
 
-rule ApplySDL2SDK TARGET : OPTIONS
+rule ApplySDLSDK TARGET : OPTIONS
 {
 	if ( audio in $(OPTIONS) )
 	{
@@ -635,6 +681,19 @@ rule ApplySDL2SDK TARGET : OPTIONS
 	if ( render in $(OPTIONS) )
 	{
 		C.Defines $(TARGET) : ION_RENDER_SUPPORTS_SDL ;
+	}
+}
+
+rule ApplySDL2SDK TARGET : OPTIONS
+{
+	if ( audio in $(OPTIONS) )
+	{
+		C.Defines $(TARGET) : ION_AUDIO_SUPPORTS_SDL2 ;
+	}
+	
+	if ( render in $(OPTIONS) )
+	{
+		C.Defines $(TARGET) : ION_RENDER_SUPPORTS_SDL2 ;
 	}
 
 	if ( win32 in $(PLATFORM) )
@@ -695,7 +754,6 @@ rule ApplySDL2SDK TARGET : OPTIONS
 
     if ( macosx64 in $(PLATFORM) )
     {
-        C.IncludeDirectories $(TARGET) : /Library/Frameworks/SDL2.framework/Headers ;
         C.macosx.FrameworkDirectories $(TARGET) : /Library/Frameworks ;
         C.macosx.LinkFrameworks $(TARGET) : SDL2 ;
     }
@@ -731,6 +789,11 @@ rule ApplySDL2SDK TARGET : OPTIONS
 rule ApplySDLImageSDK TARGET : OPTIONS
 {
 	C.Defines $(TARGET) : ION_RENDER_SUPPORTS_SDLIMAGE ;
+}
+
+rule ApplySDL2ImageSDK TARGET : OPTIONS
+{
+	C.Defines $(TARGET) : ION_RENDER_SUPPORTS_SDL2IMAGE ;
 
 	if ( win32 in $(PLATFORM) )
 	{
@@ -798,6 +861,13 @@ rule ApplySDLImageSDK TARGET : OPTIONS
 
 		C.LinkPrebuiltLibraries $(TARGET) : $(SDL_LIBS) ;
 	}
+
+	if ( macosx64 in $(PLATFORM) )
+    {
+        C.IncludeDirectories $(TARGET) : /Library/Frameworks/SDL2_image.framework/Headers ;
+        C.macosx.FrameworkDirectories $(TARGET) : /Library/Frameworks ;
+        C.macosx.LinkFrameworks $(TARGET) : SDL2_image ;
+    }
 }
 
 rule ApplyCgSDK TARGET
@@ -838,6 +908,53 @@ rule ApplyCgSDK TARGET
 	}
 }
 
+rule ApplySteamworksSDK TARGET
+{
+	C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/Steamworks/include ;
+	C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/Steamworks/lib ;
+
+	if ( win32 in $(PLATFORM) )
+	{
+		C.LinkPrebuiltLibraries $(TARGET) : win32/steam_api.lib ;
+	}
+
+	if ( win64 in $(PLATFORM) )
+	{
+		C.LinkPrebuiltLibraries $(TARGET) : win64/steam_api64.lib ;
+	}
+
+	if ( linux64 in $(PLATFORM) )
+	{
+		C.LinkPrebuiltLibraries $(TARGET) : linux64/libsteam_api.so ;
+	}
+
+	if ( macosx64 in $(PLATFORM) )
+	{
+		C.LinkPrebuiltLibraries $(TARGET) : osx32/libsteam_api.dylib ;
+	}
+}
+
+rule ApplyGalaxySDK TARGET
+{
+	C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/Galaxy/include ;
+	C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/Galaxy/lib ;
+
+	if ( win32 in $(PLATFORM) )
+	{
+		C.LinkPrebuiltLibraries $(TARGET) : win32/Galaxy.lib ;
+	}
+
+	if ( win64 in $(PLATFORM) )
+	{
+		C.LinkPrebuiltLibraries $(TARGET) : win64/Galaxy64.lib ;
+	}
+
+	if ( macosx64 in $(PLATFORM) )
+	{
+		C.LinkPrebuiltLibraries $(TARGET) : osx64/libGalaxy.dylib ;
+	}
+}
+
 rule ApplyTinyXMLSDK TARGET
 {
 	C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/TinyXML/include ;
@@ -856,32 +973,23 @@ rule ApplyTinyXMLSDK TARGET
 	C.LinkLibraries $(TARGET) : tinyxml ;
 }
 
-rule ApplyBulletSDK TARGET
+rule ApplyTinyFileDialogsSDK TARGET
 {
-	C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/Dependencies/Bullet/include ;
-	C.LinkDirectories $(TARGET) : $(bigevilcorp)/ion/Dependencies/Bullet/lib ;
+	C.IncludeDirectories $(TARGET) : $(bigevilcorp)/ion/dependencies/tinyfiledialogs ;
+	C.Defines $(TARGET) : ION_GUI_SUPPORTS_TINYFILEDIALOGS ;
 
-	BULLET_LIBS_DEBUG =
-		BulletCollision_debug.lib
-		BulletDynamics_debug.lib
-		LinearMath_debug.lib
+    ApplyIonCompiler tinyfiledialogs ;
+    ApplyIonDefines tinyfiledialogs ;
+    ApplyIonIncludes tinyfiledialogs ;
+
+	C.RuntimeType tinyfiledialogs : static ;
+
+	C.Library tinyfiledialogs :
+		$(bigevilcorp)/ion/dependencies/tinyfiledialogs/tinyfiledialogs.h
+		$(bigevilcorp)/ion/dependencies/tinyfiledialogs/tinyfiledialogs.c
 		;
 
-	BULLET_LIBS_RELEASE =
-		BulletCollision.lib
-		BulletDynamics.lib
-		LinearMath.lib
-		;
-
-	if ( debug in $(CONFIG) )
-	{
-		C.LinkPrebuiltLibraries $(TARGET) : $(BULLET_LIBS_DEBUG) : debug ;
-	}
-
-	if ( release in $(CONFIG) )
-	{
-		C.LinkPrebuiltLibraries $(TARGET) : $(BULLET_LIBS_RELEASE) : release ;
-	}
+	C.LinkLibraries $(TARGET) : tinyfiledialogs ;
 }
 
 rule ApplyPNGSDK TARGET
@@ -1007,7 +1115,6 @@ rule ApplyWxSDK TARGET
 		wxregexud.lib
 		wxscintillad.lib
 		wxtiffd.lib
-		wxzlibd.lib
 		;
 
 	WX_LIBS_RELEASE =
@@ -1033,7 +1140,6 @@ rule ApplyWxSDK TARGET
 		wxregexu.lib
 		wxscintilla.lib
 		wxtiff.lib
-		wxzlib.lib
 		;
 
 	if ( debug in $(CONFIG) )
@@ -1086,7 +1192,6 @@ rule ApplyImguiSDK TARGET
 	C.Library imgui :
 			$(bigevilcorp)/ion/dependencies/imgui/imgui.cpp
 			$(bigevilcorp)/ion/dependencies/imgui/imgui.h
-			$(bigevilcorp)/ion/dependencies/imgui/imgui_demo.cpp
 			$(bigevilcorp)/ion/dependencies/imgui/imgui_draw.cpp
 			$(bigevilcorp)/ion/dependencies/imgui/imgui_internal.h
 			$(bigevilcorp)/ion/dependencies/imgui/imconfig.h

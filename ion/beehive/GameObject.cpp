@@ -69,12 +69,16 @@ void GameObjectType::Serialise(ion::io::Archive& archive)
 {
 	archive.Serialise(m_id, "id");
 	archive.Serialise(m_name, "name");
-	archive.Serialise(m_spriteActorId, "spriteActorId");
-	archive.Serialise(m_previewSpriteSheetId, "previewSpriteSheetId");
-	archive.Serialise(m_previewSpriteSheet, "previewSpriteSheetData");
 	archive.Serialise(m_variables, "variables");
 	archive.Serialise(m_initPriority, "initPriority");
 	archive.Serialise(m_dimensions, "dimensions");
+
+	if (archive.GetContentType() == ion::io::Archive::Content::Full)
+	{
+		archive.Serialise(m_spriteActorId, "spriteActorId");
+		archive.Serialise(m_previewSpriteSheetId, "previewSpriteSheetId");
+		archive.Serialise(m_previewSpriteSheet, "previewSpriteSheetData");
+	}
 
 	if(m_initPriority < 0)
 	{

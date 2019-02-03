@@ -1,8 +1,15 @@
 #include "RenderTest.h"
-#include "Core/Time.h"
+#include <ion/core/time/Time.h>
+#include <ion/core/debug/Debug.h>
+
+#include "arch/gdb.h"
 
 int main(char** args, int numargs)
 {
+	gdb_init();
+
+	ion::debug::Log("HELLO WORLD");
+
 	RenderTest app;
 	
 	if(app.Initialise())

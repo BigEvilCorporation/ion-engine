@@ -106,6 +106,26 @@ void Actor::SetMasterPalette(SpriteSheetId spriteSheetId)
 	m_masterPaletteHolder = spriteSheetId;
 }
 
+const Palette* Actor::GetMasterPalette() const
+{
+	const Palette* palette = nullptr;
+
+	if (m_masterPaletteHolder)
+	{
+		if (const SpriteSheet* sheet = GetSpriteSheet(m_masterPaletteHolder))
+		{
+			palette = &sheet->GetPalette();
+		}
+	}
+
+	if(!palette && !m_spriteSheets.empty())
+	{
+		palette = &m_spriteSheets.begin()->second.GetPalette();
+	}
+
+	return palette;
+}
+
 void Actor::Serialise(ion::io::Archive& archive)
 {
 	archive.Serialise(m_name, "name");
@@ -124,6 +144,12 @@ void Actor::ExportSpriteSheets(const PlatformConfig& config, std::stringstream& 
 	int largestWidthTiles = 0;
 	int largestHeightTiles = 0;
 
+	//Crop all sprites
+	for (TSpriteSheetMap::iterator it = m_spriteSheets.begin(), end = m_spriteSheets.end(); it != end; ++it)
+	{
+		it->second.CropAllFrames(config.tileWidth, config.tileHeight);
+	}
+
 	for(TSpriteSheetMap::iterator it = m_spriteSheets.begin(), end = m_spriteSheets.end(); it != end; ++it)
 	{
 		u32 vramWidthTiles = it->second.GetMaxWidthTiles(config.tileWidth);
@@ -137,13 +163,49 @@ void Actor::ExportSpriteSheets(const PlatformConfig& config, std::stringstream& 
 	}
 
 	stream << "actor_" << m_name << "_VRAM_size_b\t\tequ 0x" << HEX2(largestWidthTiles * largestHeightTiles * 32) << "\t; VRAM size to alloc (size of largest frame, bytes)" << std::endl;
+	stream << std::endl;
+
+	//Export sprite sheet structures
+	for (TSpriteSheetMap::iterator it = m_spriteSheets.begin(), end = m_spriteSheets.end(); it != end; ++it)
+	{
+		//	SpriteSheet_TileDataAddr			rs.l 1; Base address of tile data
+		//	SpriteSheet_DimensionsArrAddr		rs.l 1; Address of VDP dimentions per subsprite array
+		//	SpriteSheet_SubspriteOffsetArrAddr	rs.l 1; Address of position offsets per subsprite array
+		//	SpriteSheet_PaletteAddr				rs.l 1; Address of palette
+		//	SpriteSheet_WidthHeightTiles		rs.w 1; Sprite object width / height in tiles(0xWWHH)
+		//	SpriteSheet_SizeBytes				rs.w 1; VRAM size(bytes)
+		//	SpriteSheet_SizeTiles				rs.w 1; Sprite object single frame size in tiles
+		//	SpriteSheet_SizeSubsprites			rs.b 1; Sprite object single frame size in subsprites
+		//	SpriteSheet_PaletteId				rs.b 1; Palette ID
+		//	SpriteSheet_Priority				rs.b 1; Sprite draw priority(0 / 1)
+
+		std::stringstream label;
+		label << "actor_" << m_name << "_sheet_" << it->second.GetName();
+
+		stream << ";==============================================================" << std::endl;
+		stream << "; Actor: " << m_name << " Sprite: " << it->second.GetName() << std::endl;
+		stream << ";==============================================================" << std::endl;
+
+		stream << "actor_" << m_name << "_sprite_" << it->second.GetName() << ":" << std::endl;
+		stream << "\tdc.l spritesheet_" << m_name << "_" << it->second.GetName() << std::endl;
+		stream << "\tdc.l actor_" << m_name << "_sheet_" << it->second.GetName() << "_frame_0_subsprite_dimensions_bits" << std::endl;
+		stream << "\tdc.l actor_" << m_name << "_sheet_" << it->second.GetName() << "_frame_0_subsprite_pos_offsets" << std::endl;
+		stream << "\tdc.l palette_" << m_name << std::endl;
+		stream << "\tdc.w (actor_" << m_name << "_sheet_" << it->second.GetName() << "_width<<8)|"
+			<< "actor_" << m_name << "_sheet_" << it->second.GetName() << "_height" << std::endl;
+		stream << "\tdc.w actor_" << m_name << "_VRAM_size_b" << std::endl;
+		stream << "\tdc.w actor_" << m_name << "_sheet_" << it->second.GetName() << "_frame_0_size_t" << std::endl;
+		stream << "\tdc.w actor_" << m_name << "_sheet_" << it->second.GetName() << "_frame_0_size_subsprites" << std::endl;
+		stream << "\tdc.b 0x0" << std::endl;
+		stream << "\tdc.b 0x0" << std::endl;
+		stream << ";==============================================================" << std::endl;
+
+		stream << std::endl;
+	}
 
 	//Export sprite sheet size headers
 	for(TSpriteSheetMap::iterator it = m_spriteSheets.begin(), end = m_spriteSheets.end(); it != end; ++it)
 	{
-		//Crop all sprites
-		it->second.CropAllFrames(config.tileWidth, config.tileHeight);
-
 		u32 widthTiles = it->second.GetWidthTiles();
 		u32 heightTiles = it->second.GetHeightTiles();
 

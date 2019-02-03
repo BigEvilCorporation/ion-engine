@@ -20,27 +20,34 @@ namespace ion
 	namespace render
 	{
 #if defined ION_PLATFORM_WINDOWS
-		PFNGLACTIVETEXTUREARBPROC OpenGLExt::glActiveTextureARB = NULL;
-		PFNGLGENFRAMEBUFFERSEXTPROC OpenGLExt::glGenFramebuffersEXT = NULL;
-		PFNGLBINDFRAMEBUFFEREXTPROC OpenGLExt::glBindFramebufferEXT = NULL;
-		PFNGLGENRENDERBUFFERSEXTPROC OpenGLExt::glGenRenderbuffersEXT = NULL;
-		PFNGLBINDRENDERBUFFEREXTPROC OpenGLExt::glBindRenderbufferEXT = NULL;
-		PFNGLGENBUFFERSARBPROC OpenGLExt::glGenBuffersARB = NULL;
-		PFNGLBINDBUFFERARBPROC OpenGLExt::glBindBufferARB = NULL;
-		PFNGLDELETEBUFFERSARBPROC OpenGLExt::glDeleteBuffersARB = NULL;
-		PFNGLBUFFERDATAARBPROC OpenGLExt::glBufferDataARB = NULL;
-		PFNGLMAPBUFFERARBPROC OpenGLExt::glMapBufferARB = NULL;
-		PFNGLUNMAPBUFFERARBPROC OpenGLExt::glUnmapBufferARB = NULL;
-		PFNGLRENDERBUFFERSTORAGEEXTPROC OpenGLExt::glRenderbufferStorageEXT = NULL;
-		PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC OpenGLExt::glFramebufferRenderbufferEXT = NULL;
-		PFNGLFRAMEBUFFERTEXTURE2DEXTPROC OpenGLExt::glFramebufferTexture2DEXT = NULL;
-		PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC OpenGLExt::glCheckFramebufferStatusEXT = NULL;
-		PFNGLDELETEFRAMEBUFFERSEXTPROC OpenGLExt::glDeleteFramebuffersEXT = NULL;
-		PFNGLDELETERENDERBUFFERSEXTPROC OpenGLExt::glDeleteRenderbuffersEXT = NULL;
+		PFNGLACTIVETEXTUREARBPROC OpenGLExt::glActiveTexture = NULL;
+		PFNGLGENFRAMEBUFFERSEXTPROC OpenGLExt::glGenFramebuffers = NULL;
+		PFNGLBINDFRAMEBUFFEREXTPROC OpenGLExt::glBindFramebuffer = NULL;
+		PFNGLGENRENDERBUFFERSEXTPROC OpenGLExt::glGenRenderbuffers = NULL;
+		PFNGLBINDRENDERBUFFEREXTPROC OpenGLExt::glBindRenderbuffer = NULL;
+		PFNGLGENBUFFERSARBPROC OpenGLExt::glGenBuffers = NULL;
+		PFNGLBINDBUFFERARBPROC OpenGLExt::glBindBuffer = NULL;
+		PFNGLDELETEBUFFERSARBPROC OpenGLExt::glDeleteBuffers = NULL;
+		PFNGLBUFFERDATAARBPROC OpenGLExt::glBufferData = NULL;
+		PFNGLMAPBUFFERARBPROC OpenGLExt::glMapBuffer = NULL;
+		PFNGLMAPBUFFERRANGEPROC OpenGLExt::glMapBufferRange = NULL;
+		PFNGLUNMAPBUFFERARBPROC OpenGLExt::glUnmapBuffer = NULL;
+		PFNGLBUFFERSTORAGEPROC OpenGLExt::glBufferStorage = NULL;
+		PFNGLRENDERBUFFERSTORAGEEXTPROC OpenGLExt::glRenderbufferStorage = NULL;
+		PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC OpenGLExt::glFramebufferRenderbuffer = NULL;
+		PFNGLFRAMEBUFFERTEXTURE2DEXTPROC OpenGLExt::glFramebufferTexture2D = NULL;
+		PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC OpenGLExt::glCheckFramebufferStatus = NULL;
+		PFNGLDELETEFRAMEBUFFERSEXTPROC OpenGLExt::glDeleteFramebuffers = NULL;
+		PFNGLDELETERENDERBUFFERSEXTPROC OpenGLExt::glDeleteRenderbuffers = NULL;
 		PFNGLDRAWBUFFERSPROC OpenGLExt::glDrawBuffers = NULL;
-		PFNGLSWAPINTERVALEXTPROC OpenGLExt::glSwapIntervalEXT = NULL;
+		PFNGLCLIENTWAITSYNCPROC OpenGLExt::glClientWaitSync = NULL;
+		PFNGLFENCESYNCPROC OpenGLExt::glFenceSync = NULL;
+		PFNGLDELETESYNCPROC OpenGLExt::glDeleteSync = NULL;
+		PFNGLBLENDCOLOREXTPROC OpenGLExt::glBlendColor = NULL;
+		PFNGLCOLORTABLEPROC OpenGLExt::glColorTable = NULL;
+		PFNGLSWAPINTERVALEXTPROC OpenGLExt::glSwapInterval = NULL;
 		DEBUGMESSAGECALLBACKPROC OpenGLExt::glDebugMessageCallback = NULL;
-		PFNWGLCREATECONTEXTATTRIBSARBPROC OpenGLExt::wglCreateContextAttribsARB = NULL;
+		PFNWGLCREATECONTEXTATTRIBSARBPROC OpenGLExt::wglCreateContextAttribs = NULL;
 #endif
 
 		void OpenGLExt::LoadExtensions(DeviceContext deviceContext)
@@ -48,26 +55,33 @@ namespace ion
 #if defined ION_PLATFORM_WINDOWS
 			RenderContext context = wglCreateContext(deviceContext);
 			wglMakeCurrent(deviceContext, context);
-			glActiveTextureARB = (PFNGLACTIVETEXTUREARBPROC)wglGetProcAddress("glActiveTextureARB");
-			glGenFramebuffersEXT = (PFNGLGENFRAMEBUFFERSEXTPROC)wglGetProcAddress("glGenFramebuffersEXT");
-			glBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)wglGetProcAddress("glBindFramebufferEXT");
-			glGenRenderbuffersEXT = (PFNGLGENRENDERBUFFERSEXTPROC)wglGetProcAddress("glGenRenderbuffersEXT");
-			glBindRenderbufferEXT = (PFNGLBINDRENDERBUFFEREXTPROC)wglGetProcAddress("glBindRenderbufferEXT");
-			glRenderbufferStorageEXT = (PFNGLRENDERBUFFERSTORAGEEXTPROC)wglGetProcAddress("glRenderbufferStorageEXT");
-			glFramebufferRenderbufferEXT = (PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC)wglGetProcAddress("glFramebufferRenderbufferEXT");
-			glFramebufferTexture2DEXT = (PFNGLFRAMEBUFFERTEXTURE2DEXTPROC)wglGetProcAddress("glFramebufferTexture2DEXT");
-			glCheckFramebufferStatusEXT = (PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC)wglGetProcAddress("glCheckFramebufferStatusEXT");
-			glDeleteFramebuffersEXT = (PFNGLDELETEFRAMEBUFFERSEXTPROC)wglGetProcAddress("glDeleteFramebuffersEXT");
-			glDeleteRenderbuffersEXT = (PFNGLDELETERENDERBUFFERSEXTPROC)wglGetProcAddress("glDeleteRenderbuffersEXT");
+			glActiveTexture = (PFNGLACTIVETEXTUREARBPROC)wglGetProcAddress("glActiveTextureARB");
+			glGenFramebuffers = (PFNGLGENFRAMEBUFFERSEXTPROC)wglGetProcAddress("glGenFramebuffersEXT");
+			glBindFramebuffer = (PFNGLBINDFRAMEBUFFEREXTPROC)wglGetProcAddress("glBindFramebufferEXT");
+			glGenRenderbuffers = (PFNGLGENRENDERBUFFERSEXTPROC)wglGetProcAddress("glGenRenderbuffersEXT");
+			glBindRenderbuffer = (PFNGLBINDRENDERBUFFEREXTPROC)wglGetProcAddress("glBindRenderbufferEXT");
+			glRenderbufferStorage = (PFNGLRENDERBUFFERSTORAGEEXTPROC)wglGetProcAddress("glRenderbufferStorageEXT");
+			glFramebufferRenderbuffer = (PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC)wglGetProcAddress("glFramebufferRenderbufferEXT");
+			glFramebufferTexture2D = (PFNGLFRAMEBUFFERTEXTURE2DEXTPROC)wglGetProcAddress("glFramebufferTexture2DEXT");
+			glCheckFramebufferStatus = (PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC)wglGetProcAddress("glCheckFramebufferStatusEXT");
+			glDeleteFramebuffers = (PFNGLDELETEFRAMEBUFFERSEXTPROC)wglGetProcAddress("glDeleteFramebuffersEXT");
+			glDeleteRenderbuffers = (PFNGLDELETERENDERBUFFERSEXTPROC)wglGetProcAddress("glDeleteRenderbuffersEXT");
 			glDrawBuffers = (PFNGLDRAWBUFFERSPROC)wglGetProcAddress("glDrawBuffers");
-			glSwapIntervalEXT = (PFNGLSWAPINTERVALEXTPROC)wglGetProcAddress("wglSwapIntervalEXT");
-			glGenBuffersARB = (PFNGLGENBUFFERSARBPROC)wglGetProcAddress("glGenBuffers");
-			glBindBufferARB = (PFNGLBINDBUFFERARBPROC)wglGetProcAddress("glBindBuffer");
-			glDeleteBuffersARB = (PFNGLDELETEBUFFERSARBPROC)wglGetProcAddress("glDeleteBuffers");
-			glBufferDataARB = (PFNGLBUFFERDATAARBPROC)wglGetProcAddress("glBufferData");
-			glMapBufferARB = (PFNGLMAPBUFFERARBPROC)wglGetProcAddress("glMapBuffer");
-			glUnmapBufferARB = (PFNGLUNMAPBUFFERARBPROC)wglGetProcAddress("glUnmapBuffer");
-			wglCreateContextAttribsARB = (PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress("wglCreateContextAttribsARB");
+			glSwapInterval = (PFNGLSWAPINTERVALEXTPROC)wglGetProcAddress("wglSwapIntervalEXT");
+			glGenBuffers = (PFNGLGENBUFFERSARBPROC)wglGetProcAddress("glGenBuffers");
+			glBindBuffer = (PFNGLBINDBUFFERARBPROC)wglGetProcAddress("glBindBuffer");
+			glDeleteBuffers = (PFNGLDELETEBUFFERSARBPROC)wglGetProcAddress("glDeleteBuffers");
+			glBufferData = (PFNGLBUFFERDATAARBPROC)wglGetProcAddress("glBufferData");
+			glMapBuffer = (PFNGLMAPBUFFERARBPROC)wglGetProcAddress("glMapBuffer");
+			glMapBufferRange = (PFNGLMAPBUFFERRANGEPROC)wglGetProcAddress("glMapBufferRange");
+			glUnmapBuffer = (PFNGLUNMAPBUFFERARBPROC)wglGetProcAddress("glUnmapBuffer");
+			glBufferStorage = (PFNGLBUFFERSTORAGEPROC)wglGetProcAddress("glBufferStorage");
+			glClientWaitSync = (PFNGLCLIENTWAITSYNCPROC)wglGetProcAddress("glClientWaitSync");
+			glFenceSync = (PFNGLFENCESYNCPROC)wglGetProcAddress("glFenceSync");
+			glDeleteSync = (PFNGLDELETESYNCPROC)wglGetProcAddress("glDeleteSync");
+			glBlendColor = (PFNGLBLENDCOLOREXTPROC)wglGetProcAddress("glBlendColor");
+			glColorTable = (PFNGLCOLORTABLEPROC)wglGetProcAddress("glColorTableEXT");
+			wglCreateContextAttribs = (PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress("wglCreateContextAttribsARB");
 			glDebugMessageCallback = (DEBUGMESSAGECALLBACKPROC)wglGetProcAddress("glDebugMessageCallback");
 			wglDeleteContext(context);
 #endif

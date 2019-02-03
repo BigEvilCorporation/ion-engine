@@ -164,6 +164,11 @@ namespace ion
 		return maths::Sqrt(dx*dx + dy*dy + dz*dz);
 	}
 
+	Vector2 Vector3::xy() const
+	{
+		return Vector2(x, y);
+	}
+
 	Vector3 Vector3::Lerp(const Vector3& vector, float time) const
 	{
 		Vector3 result;

@@ -23,7 +23,11 @@ namespace ion
 {
 	namespace thread
 	{
-		typedef u32 ThreadId;
+#if defined ION_PLATFORM_WINDOWS
+		typedef unsigned long ThreadId;
+#else
+		typedef u64 ThreadId;
+#endif
 
 		ThreadId GetCurrentThreadId();
 
@@ -55,16 +59,16 @@ namespace ion
 		private:
 			#if defined ION_PLATFORM_WINDOWS
 			static unsigned long WINAPI ThreadFunction(void* params);
-			#elif defined ION_PLATFORM_LINUX
+			#elif defined ION_PLATFORM_LINUX || defined ION_PLATFORM_MACOSX || defined ION_PLATFORM_DREAMCAST
 			static void* ThreadFunction(void* params);
 			#endif
 
-			unsigned long m_threadId;
-            std::string m_name;
+			ThreadId m_threadId;
+			std::string m_name;
 
 			#if defined ION_PLATFORM_WINDOWS
 			HANDLE m_threadHndl;
-			#elif defined ION_PLATFORM_LINUX
+			#elif defined ION_PLATFORM_LINUX || defined ION_PLATFORM_MACOSX || defined ION_PLATFORM_DREAMCAST
 			pthread_t m_threadHndl;
 			#endif
 		};

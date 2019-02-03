@@ -64,7 +64,7 @@ namespace ion
 			bool m_open;
 
 			std::fstream m_stream;
-			u8 m_readBuffer[s_bufferSize];
+			u8* m_readBuffer;
 		};
 	}
 } //Namespace

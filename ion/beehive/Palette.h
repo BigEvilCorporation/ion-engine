@@ -16,6 +16,7 @@
 #include <vector>
 #include <core/Types.h>
 #include <io/Archive.h>
+#include <renderer/Colour.h>
 
 struct Colour
 {
@@ -34,6 +35,8 @@ struct Colour
 	bool operator != (const Colour& rhs) const { return !(*this == rhs); }
 
 	u16 ToVDPFormat() const;
+	ion::Colour ToIonColour() const;
+
 	void Serialise(ion::io::Archive& archive)
 	{
 		archive.Serialise(rgb);

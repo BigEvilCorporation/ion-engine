@@ -16,18 +16,25 @@
 
 #include "core/Platform.h"
 #include "core/thread/CriticalSection.h"
+#include "core/thread/LocalStorage.h"
 #include "renderer/Renderer.h"
+#include "renderer/VertexBuffer.h"
 #include "renderer/opengl/OpenGLInclude.h"
 
 namespace ion
 {
 	namespace render
 	{
+		class RendererOpenGL;
+
 		class RendererOpenGL : public Renderer
 		{
 		public:
 			//Create from existing DC
-			RendererOpenGL(DeviceContext deviceContext);
+			RendererOpenGL(DeviceContext globalDeviceContext);
+
+			//Create from existing GL context
+			RendererOpenGL(DeviceContext globalDeviceContext, RenderContext renderContext);
 
 			virtual ~RendererOpenGL();
 
@@ -42,13 +49,10 @@ namespace ion
 			virtual void LockContext(const DeviceContext& deviceContext);
 			virtual void UnlockContext();
 
-			//Render contexts
-			virtual RenderContext GetRenderContext();
-			virtual void ShareRenderContext(RenderContext& renderContext);
-
 			//Rendering - general
 			virtual void BeginFrame(const Viewport& viewport, const DeviceContext& deviceContext);
 			virtual void EndFrame();
+			virtual void SetupViewport(const Viewport& viewport);
 			virtual void SwapBuffers();
 			virtual void SetClearColour(const Colour& colour);
 			virtual void ClearColour();
@@ -57,9 +61,13 @@ namespace ion
 
 			//Render states
 			virtual void SetAlphaBlending(AlphaBlendType alphaBlendType);
+			virtual void SetBlendColour(const Colour& colour);
 			virtual void SetFaceCulling(CullingMode cullingMode);
 			virtual void SetDepthTest(DepthTest depthTest);
 			virtual void SetLineWidth(float width);
+
+			//Palettes
+			virtual void LoadColourPalette(int paletteIdx, const std::vector<Colour>& palette);
 
 			//Vertex buffer drawing
 			virtual void DrawVertexBuffer(const VertexBuffer& vertexBuffer);
@@ -68,28 +76,52 @@ namespace ion
 			//Check for OpenGL errors
 			static bool CheckGLError(const char* message);
 
+			//Threaded GL contexts
+			static void LockGLContext();
+			static void LockGLContext(const DeviceContext& deviceContext);
+			static void UnlockGLContext();
+
 		protected:
+			static const int s_maxThreadContexts = 4;
+
 			//Setup
-			void BindDC(DeviceContext deviceContext);
-			void CreateContext(DeviceContext deviceContext);
+			static RenderContext CreateContext(DeviceContext deviceContext, RenderContext sharedFrom);
 			void InitContext(DeviceContext deviceContext);
-			void SetupViewport(const Viewport& viewport);
 
-			//OpenGL context
-			RenderContext m_openGLContext;
+			//Main OpenGL context
+			static RenderContext s_globalContext;
 
-			//DC for gobal (non-rendering) context
-			DeviceContext m_globalDC;
+			//Main DC
+			static DeviceContext s_globalDC;
 
-			//DC for current locked context
-			DeviceContext m_currentDC;
+			//Currently locked OpenGL context
+			static RenderContext s_currentContext;
 
-			thread::CriticalSection m_contextCriticalSection;
-			u32 m_contextLockStack;
+			//Currently locked DC
+			static DeviceContext s_currentDC;
 
-#if defined ION_RENDERER_OPENGLES
+			//Context threading
+			static thread::LocalStorage<RenderContext, s_maxThreadContexts> s_threadContexts;
+			static thread::CriticalSection s_contextCriticalSection;
+			static u32 s_contextLockStack;
+
 			Matrix4 m_projectionMatrix;
-#endif
+
+			static int s_glVertexDataTypes[VertexBuffer::eDataTypeCount];
+		};
+
+		class OpenGLContextStackLock
+		{
+		public:
+			OpenGLContextStackLock()
+			{
+				RendererOpenGL::LockGLContext();
+			}
+
+			~OpenGLContextStackLock()
+			{
+				RendererOpenGL::UnlockGLContext();
+			}
 		};
 	}
 }

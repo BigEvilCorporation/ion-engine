@@ -1,6 +1,8 @@
 SubDir bigevilcorp ion maths ;
 
 local SRC =
+	Fixed.cpp
+	Fixed.h
 	Geometry.cpp
 	Geometry.h
 	Maths.cpp

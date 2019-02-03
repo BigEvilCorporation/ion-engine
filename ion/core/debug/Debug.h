@@ -22,9 +22,6 @@ namespace ion
 {
 	namespace debug
 	{
-		//Init exception handling, set default assert handlers
-		void InitExceptionHandling();
-
 		void Log(const char* message);
 		void Flush();
 		void Error(const char* message);
@@ -34,6 +31,7 @@ namespace ion
 		inline void Assert(bool condition, const char* message);
 
 		void PrintMemoryUsage();
+		u32 GetRAMUsed();
 
 		struct LogTokenEnd {};
 
@@ -67,9 +65,9 @@ namespace ion
 			Type m_type;
 		};
 
-		static LogStream log(LogStream::eLog);
-		static LogStream error(LogStream::eError);
-		static LogTokenEnd end;
+		extern LogStream log;
+		extern LogStream error;
+		extern LogTokenEnd end;
 	}
 }
 

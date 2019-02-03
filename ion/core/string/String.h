@@ -23,6 +23,16 @@ namespace ion
 	{
         std::string ToLower(const std::string& string);
 
+		std::string TrimWhitespaceStart(const std::string& string);
+		std::string TrimWhitespaceEnd(const std::string& string);
+
+		std::string RemoveSubstring(const std::string& string, const std::string& substring);
+
+#if !defined ION_PLATFORM_DREAMCAST
+		std::string WStringToString(const std::wstring& string);
+		std::wstring StringToWString(const std::string& string);
+#endif
+
         int Tokenise(const std::string input, std::vector<std::string>& tokens, char separator);
         
         bool CompareNoCase(const std::string& lhs, const std::string& rhs);

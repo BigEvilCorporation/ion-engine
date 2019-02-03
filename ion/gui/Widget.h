@@ -20,24 +20,39 @@ namespace ion
 		{
 		public:
 
+			enum class Arrangement
+			{
+				Vertical,
+				Horizontal
+			};
+
 			Widget();
+			Widget(const Vector2i& position, const Vector2i& size);
 			virtual ~Widget();
+
+			virtual bool operator == (const Widget& rhs) const;
 
 			UUID64 GetId() const;
 
-			void AddChild(Widget& widget);
-
-			void SetPosition(const Vector2& position);
-			void SetSize(const Vector2& size);
+			void SetPosition(const Vector2i& position);
+			void SetSize(const Vector2i& size);
+			void SetCentred(bool centred);
+			void SetArrangement(Arrangement arrangement);
+			void SetEnabled(bool enabled);
 
 			virtual void Show();
 			virtual void Hide();
 
 			virtual void Update(float deltaTime) = 0;
 
-		private:
+		protected:
 			UUID64 m_id;
 			bool m_visible;
+			bool m_enabled;
+			bool m_centred;
+			Vector2i m_position;
+			Vector2i m_size;
+			Arrangement m_arrangement;
 		};
 	}
 }

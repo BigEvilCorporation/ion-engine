@@ -59,19 +59,45 @@ namespace ion
 			return true;
 		}
 
-		u32 WindowLinux::GetDesktopWidth() const
-		{
-			SDL_DisplayMode displayMode;
-			SDL_GetDesktopDisplayMode(0, &displayMode);
-			return displayMode.w;
-		}
+        int WindowLinux::GetDisplays(std::vector<Display>& displays) const
+        {
+            Display display;
+            display.size.x = GetDesktopWidth(0);
+            display.size.y = GetDesktopHeight(0);
+            display.topLeft.x = 0;
+            display.topLeft.y = 0;
+            display.name = "Display1";
+            displays.push_back(display);
+        }
+        
+        u32 WindowLinux::GetDesktopWidth(int displayIdx) const
+        {
+            SDL_DisplayMode displayMode;
+            SDL_GetDesktopDisplayMode(0, &displayMode);
+            return displayMode.w;
+        }
+        
+        u32 WindowLinux::GetDesktopHeight(int displayIdx) const
+        {
+            SDL_DisplayMode displayMode;
+            SDL_GetDesktopDisplayMode(0, &displayMode);
+            return displayMode.h;
+        }
 
-		u32 WindowLinux::GetDesktopHeight() const
-		{
-			SDL_DisplayMode displayMode;
-			SDL_GetDesktopDisplayMode(0, &displayMode);
-			return displayMode.h;
-		}
+        int WindowLinux::GetSupportedResolutions(std::vector<Vector2i>& resolutions, int displayIdx) const
+        {
+            SDL_DisplayMode mode;
+            
+            for(int i = 0; i < SDL_GetNumDisplayModes(0); i++)
+            {
+                if(SDL_GetDisplayMode(0, i, &mode) == 0)
+                {
+                    resolutions.insert(resolutions.begin(), ion::Vector2i(mode.w, mode.h));
+                }
+            }
+            
+            return resolutions.size();
+        }
 
 		bool WindowLinux::Resize(u32 clientAreaWidth, u32 clientAreaHeight, bool adjustForTitle)
 		{
@@ -88,14 +114,29 @@ namespace ion
 			return true;
 		}
 
-		bool WindowLinux::SetFullscreen(bool fullscreen)
+		bool WindowLinux::SetFullscreen(bool fullscreen, int displayIdx)
 		{
-			return SDL_SetWindowFullscreen(m_windowHandle, fullscreen ? SDL_WINDOW_FULLSCREEN : 0) == 0;
+			int result = SDL_SetWindowFullscreen(m_windowHandle,
+				fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+			bool success = (result == 0);
+			if (success) { m_fullscreen = fullscreen; }
+			return success;
 		}
 
 		void WindowLinux::SetTitle(const std::string& title)
 		{
 			SDL_SetWindowTitle(m_windowHandle, title.c_str());
+		}
+
+		void WindowLinux::ShowCursor(bool show)
+		{
+			SDL_ShowCursor(show ? SDL_ENABLE : SDL_DISABLE);
+		}
+
+		bool WindowLinux::HasFocus() const
+		{
+			u32 windowFlags = SDL_GetWindowFlags(m_windowHandle);
+			return (windowFlags & SDL_WINDOW_INPUT_FOCUS) != 0;
 		}
 	}
 }
