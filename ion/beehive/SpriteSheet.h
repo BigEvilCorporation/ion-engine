@@ -24,8 +24,8 @@ class Stamp;
 class SpriteSheet
 {
 public:
-	static const int subSpriteWidthTiles;
-	static const int subSpriteHeightTiles;
+	static const int s_subSpriteWidthTiles;
+	static const int s_subSpriteHeightTiles;
 
 	struct SpriteFrameDimensions
 	{
@@ -49,9 +49,11 @@ public:
 
 	SpriteSheet();
 
-	bool ImportBitmap(const std::string& filename, const std::string& name, int tileWidth, int tileHeight, int widthFrames, int heightFrames, int maxFrames);
+	bool ImportBitmap(const std::string& filename, const std::string& name, int tileWidth, int tileHeight, int widthFrames, int heightFrames, int startFrame, int endFrame);
 
 	const std::string& GetName() const;
+	void SetName(const std::string& name);
+
 	const SpriteSheetFrame& GetFrame(int index) const;
 	int GetNumFrames() const;
 
@@ -62,6 +64,8 @@ public:
 	SpriteAnimation* GetAnimation(SpriteAnimId animId);
 	const SpriteAnimation* GetAnimation(SpriteAnimId animId) const;
 	SpriteAnimation* FindAnimation(const std::string name);
+	const SpriteAnimation* FindAnimation(const std::string name) const;
+	AnimationId FindAnimationId(const std::string name) const;
 	int GetNumAnimations() const;
 	TSpriteAnimMap::const_iterator AnimationsBegin() const;
 	TSpriteAnimMap::const_iterator AnimationsEnd() const;

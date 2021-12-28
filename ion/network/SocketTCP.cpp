@@ -12,6 +12,9 @@
 // Description:	Network TCP socket base
 ///////////////////////////////////////////////////
 
+// TODO
+#if ION_PLATFORM_WINDOWS
+
 #include <core/debug/Debug.h>
 #include "SocketTCP.h"
 
@@ -135,3 +138,5 @@ namespace ion
 		}
 	}
 }
+
+#endif // ION_PLATFORM_WINDOWS

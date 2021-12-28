@@ -28,7 +28,7 @@ namespace ion
 
 			void SetCurrentCamera(ion::render::Camera* camera);
 
-			virtual void Update() {}
+			virtual void Update(float deltaTime) {}
 
 		protected:
 			ion::render::Camera* GetCurrentCamera() const;

@@ -21,14 +21,19 @@ namespace ion
 		class Window : public Widget
 		{
 		public:
-			Window(const std::string& title, const Vector2i& position, const Vector2i& size);
+			Window(const std::string& title, const Vector2i& Position, const Vector2i& size);
 			virtual ~Window();
 
 			void AddWidget(Widget& widget);
+			void InsertWidget(Widget& widget, u32 index);
+			void RemoveWidget(Widget& widget);
 
 			void AllowResize(bool allow);
 			void AllowMove(bool allow);
 			void AllowRollUp(bool allow);
+			void AllowScroll(bool allow);
+			void ShowTitle(bool show);
+			void ShowBorder(bool show);
 
 			void RollUp(bool rolled);
 
@@ -47,6 +52,9 @@ namespace ion
 			bool m_allowResize;
 			bool m_allowMove;
 			bool m_allowRollup;
+			bool m_allowScroll;
+			bool m_showTitle;
+			bool m_showBorder;
 			bool m_rolledUp;
 
 			Font* m_font;

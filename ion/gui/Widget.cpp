@@ -18,17 +18,21 @@ namespace ion
 			m_centred = true;
 			m_arrangement = Arrangement::Vertical;
 			m_enabled = true;
+			m_position.x = -1;
+			m_position.y = -1;
+			m_alpha = 1.0f;
 		}
 
-		Widget::Widget(const Vector2i& position, const Vector2i& size)
-			: m_position(position)
+		Widget::Widget(const Vector2i& Position, const Vector2i& size)
+			: m_position(Position)
 			, m_size(size)
 		{
 			m_id = ion::GenerateUUID64();
 			m_visible = true;
-			m_centred = (position.x != 0 || position.y != 0) ? false : true;
+			m_centred = (Position.x != 0 || Position.y != 0) ? false : true;
 			m_arrangement = Arrangement::Vertical;
 			m_enabled = true;
+			m_alpha = 1.0f;
 		}
 
 		Widget::~Widget()
@@ -45,9 +49,9 @@ namespace ion
 			return m_id;
 		}
 
-		void Widget::SetPosition(const Vector2i& position)
+		void Widget::SetPosition(const Vector2i& Position)
 		{
-			m_position = position;
+			m_position = Position;
 		}
 
 		void Widget::SetSize(const Vector2i& size)
@@ -65,9 +69,24 @@ namespace ion
 			m_arrangement = arrangement;
 		}
 
+		void Widget::SetAlpha(float alpha)
+		{
+			m_alpha = alpha;
+		}
+
 		void Widget::SetEnabled(bool enabled)
 		{
 			m_enabled = enabled;
+		}
+
+		const Vector2i& Widget::GetSize() const
+		{
+			return m_size;
+		}
+
+		const Vector2i& Widget::GetPosition() const
+		{
+			return m_position;
 		}
 
 		void Widget::Show()

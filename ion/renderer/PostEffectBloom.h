@@ -5,6 +5,8 @@
 // Description:	Bloom post effect
 ///////////////////////////////////////////////////
 
+#if 0
+
 #pragma once
 
 #include "PostEffect.h"
@@ -56,3 +58,5 @@ namespace ion
 		};
 	}
 }
+
+#endif

@@ -30,6 +30,7 @@ namespace ion
 
 		int Round(float x);
 		int Wrap(int value, int divisor);
+		int WrapRange(int value, int rangeMin, int rangeMax);
 		int NextPowerOfTwo(int x);
 
 		float RoundToNearest(float value, int nearest);
@@ -40,14 +41,15 @@ namespace ion
 		float Pow(float value, float power);
 		float Floor(float value);
 		float Ceil(float value);
-		float Clamp(float value, float min, float max);
 		float Abs(float value);
+		int Abs(int value);
 		float Fmod(float value, float divisor);
 		float Lerp(float valueA, float valueB, float time);
 		float UnLerp(float valueFrom, float valueTo, float valueCurrent);
 
 		template <typename T> T Min(const T& a, const T& b);
 		template <typename T> T Max(const T& a, const T& b);
+		template <typename T> T Clamp(const T& value, const T& min, const T& max);
 
 		template <typename T> T Square(const T& value);
 
@@ -60,7 +62,9 @@ namespace ion
 		float Atan2(float y, float x);
 
 		bool IsZero(float value);
+		bool CompareFloats(float val1, float val2);
 
+		void RandSeed(int seed);
 		int RandInt();
 		float RandFloat();
 
@@ -78,6 +82,18 @@ namespace ion
 		template <typename T> T Max(const T& a, const T& b)
 		{
 			return a > b ? a : b;
+		}
+
+		template <typename T> T Clamp(const T& value, const T& min, const T& max)
+		{
+			T clamped = value;
+
+			if (value < min)
+				clamped = min;
+			else if (value > max)
+				clamped = max;
+
+			return clamped;
 		}
 
 		template <typename T> T Square(const T& value)

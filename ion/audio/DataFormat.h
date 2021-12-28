@@ -4,7 +4,7 @@ namespace ion
 {
 	namespace audio
 	{
-		enum DataFormat
+		enum class DataFormat
 		{
 			PCM8,
 			PCM16

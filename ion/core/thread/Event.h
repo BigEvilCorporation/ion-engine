@@ -17,6 +17,20 @@
 #include "core/Platform.h"
 #include "core/Types.h"
 
+#if defined ION_PLATFORM_WINDOWS
+#include "core/platform/windows/thread/EventWindows.h"
+#elif defined ION_PLATFORM_LINUX
+#include "core/platform/linux/thread/EventLinux.h"
+#elif defined ION_PLATFORM_MACOSX
+#include "core/platform/macosx/thread/EventMacOSX.h"
+#elif defined ION_PLATFORM_DREAMCAST
+#include "core/platform/dreamcast/thread/EventDreamcast.h"
+#elif defined ION_PLATFORM_SWITCH
+#include "core/platform/nx/thread/EventSwitch.h"
+#elif defined ION_PLATFORM_ANDROID
+#include "core/platform/android/thread/EventAndroid.h"
+#endif
+
 namespace ion
 {
 	namespace thread
@@ -31,9 +45,7 @@ namespace ion
 			void Wait();
 
 		private:
-			#if defined ION_PLATFORM_WINDOWS
-			HANDLE m_threadEventHndl;
-			#endif
+			EventImpl m_impl;
 		};
 	}
 }

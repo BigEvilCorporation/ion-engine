@@ -80,20 +80,25 @@ namespace ion
 				{
 					ImGui::SameLine();
 				}
+				
+				float alpha = ImGui::GetStyle().Alpha * m_alpha;
 
 				if (!m_enabled)
 				{
 					ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-					ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+					alpha *= 0.5f;
 				}
 
-				ImGui::Combo(m_text.c_str(), &m_selected, itemNames.data(), itemNames.size());
+				ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
+
+				ImGui::Combo(m_text.c_str(), &m_selected, itemNames.data(), (int)itemNames.size());
 
 				if (!m_enabled)
 				{
 					ImGui::PopItemFlag();
-					ImGui::PopStyleVar();
 				}
+
+				ImGui::PopStyleVar(); // alpha
 
 				if (m_selected != prevSelected)
 				{

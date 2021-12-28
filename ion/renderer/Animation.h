@@ -15,7 +15,8 @@
 #pragma once
 
 #include "maths/Matrix.h"
-#include "io/Archive.h"
+#include "core/io/Archive.h"
+#include "core/debug/Debug.h"
 
 #include <vector>
 
@@ -26,9 +27,9 @@ namespace ion
 		class Animation
 		{
 		public:
-			enum AnimationState { eStopped, ePlaying };
-			enum PlaybackBehaviour { ePlayOnce, eLoop };
-			enum PlaybackDirection { eForwards, eBackwards };
+			enum class State { Stopped, Playing };
+			enum class PlaybackBehaviour { PlayOnce, Loop };
+			enum class PlaybackDirection { Forwards, Backwards };
 
 			Animation();
 			virtual ~Animation();
@@ -52,8 +53,8 @@ namespace ion
 			void SetEnd();
 
 			//Set/get animation state
-			void SetState(AnimationState state);
-			AnimationState GetState() const;
+			void SetState(State state);
+			State GetState() const;
 
 			//Set/get playback speed
 			void SetPlaybackSpeed(float speed);
@@ -80,7 +81,7 @@ namespace ion
 			float m_previousFrame;
 			float m_playbackSpeed;
 
-			AnimationState m_state;
+			State m_state;
 			PlaybackBehaviour m_playbackBehaviour;
 			PlaybackDirection m_playbackDirection;
 		};
@@ -110,7 +111,7 @@ namespace ion
 		{
 		public:
 
-			enum BlendMode { eSnap, eLinear };
+			enum class BlendMode { Snap, Linear };
 
 			AnimationTrack();
 			virtual ~AnimationTrack();
@@ -222,7 +223,7 @@ namespace ion
 
 		template <class T> AnimationTrack<T>::AnimationTrack()
 		{
-			m_blendMode = eLinear;
+			m_blendMode = BlendMode::Linear;
 		}
 
 		template <class T> AnimationTrack<T>::~AnimationTrack()

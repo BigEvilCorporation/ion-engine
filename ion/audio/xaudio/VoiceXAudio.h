@@ -16,8 +16,11 @@ namespace ion
 			virtual void Pause();
 			virtual void Resume();
 
+			virtual u32 GetQueuedBuffers();
+			virtual u32 GetBufferedBytes();
+			virtual u32 GetConsumedBytes();
 			virtual u64 GetPositionSamples();
-			virtual float GetPositionSeconds();
+			virtual double GetPositionSeconds();
 
 			//Properties
 			virtual void SetVolume(float volume);
@@ -33,16 +36,20 @@ namespace ion
 			virtual void __stdcall OnStreamEnd();
 			virtual void __stdcall OnVoiceError(void* bufferContext, HRESULT error);
 			virtual void __stdcall OnVoiceProcessingPassStart(UINT32 bytesRequired) {}
-			virtual void __stdcall OnVoiceProcessingPassEnd() {}
+			virtual void __stdcall OnVoiceProcessingPassEnd();
 
 		protected:
 			VoiceXAudio(IXAudio2* xaudio2System, Source& source, bool loop);
 			virtual ~VoiceXAudio();
 
-			virtual void Update();
+			virtual void Update(float deltaTime);
 
 		private:
-			IXAudio2SourceVoice* mXAudioVoice;
+			IXAudio2SourceVoice* m_XAudioVoice;
+			u64 m_buffersQueued;
+			u64 m_bytesBuffered;
+			u64 m_bytesConsumed;
+			u64 m_samplesPlayed;
 		};
 	}
 }

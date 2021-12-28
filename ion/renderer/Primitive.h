@@ -33,8 +33,8 @@ namespace ion
 		class Primitive : public Entity
 		{
 		public:
-			Primitive(VertexBuffer::Pattern pattern, VertexBuffer::Preset preset = VertexBuffer::eDefault);
-			Primitive(VertexBuffer::Pattern pattern, const std::vector<VertexBuffer::Element>& layout);
+			Primitive(VertexBuffer::Pattern pattern, VertexBuffer::Preset preset = VertexBuffer::Preset::Default);
+			Primitive(VertexBuffer::Pattern pattern, const std::vector<VertexBuffer::Element>& layout, VertexBuffer::PackType packType = VertexBuffer::PackType::Interleaved);
 			virtual ~Primitive();
 
 			void SetCastShadows(bool shadows);
@@ -67,33 +67,33 @@ namespace ion
 		class Quad : public Primitive
 		{
 		public:
-			enum Axis { xy, xz, yz };
-			Quad(Axis axis, const Vector2& halfExtents, VertexBuffer::Preset preset = VertexBuffer::eDefault);
-			Quad(Axis axis, const Vector2& halfExtents, const std::vector<VertexBuffer::Element>& layout);
+			enum class Axis { xy, xz, yz };
+			Quad(Axis axis, const Vector2& halfExtents, const Vector3& offset = Vector3(), VertexBuffer::Preset preset = VertexBuffer::Preset::Default);
+			Quad(Axis axis, const Vector2& halfExtents, const Vector3& offset, const std::vector<VertexBuffer::Element>& layout);
 			void SetTexCoords(const TexCoord coords[4]);
 
 		private:
-			void Build(Axis axis, const Vector2& halfExtents);
+			void Build(Axis axis, const Vector2& halfExtents, const Vector3& offset);
 		};
 
 		class LineQuad : public Primitive
 		{
 		public:
-			enum Axis { xy, xz, yz };
+			enum class Axis { xy, xz, yz };
 			LineQuad(Axis axis, const Vector2& halfExtents, const Vector2 offset = ion::Vector2());
 		};
 
 		class Grid : public Primitive
 		{
 		public:
-			enum Axis { xy, xz, yz };
+			enum class Axis { xy, xz, yz };
 			Grid(Axis axis, const Vector2& halfExtents, int widthCells, int heightCells);
 		};
 
 		class Chessboard : public Primitive
 		{
 		public:
-			enum Axis { xy, xz, yz };
+			enum class Axis { xy, xz, yz };
 			Chessboard(Axis axis, const Vector2& halfExtents, int widthCells, int heightCells, bool uniqueVerts);
 			void SetTexCoords(int cellIndex, TexCoord coords[4], float z = 0.0f);
 		};

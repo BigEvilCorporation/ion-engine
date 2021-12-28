@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <execinfo.h>
 #include <cxxabi.h>
+#include <memory.h>
 
 //C strings
 #define sprintf_s snprintf

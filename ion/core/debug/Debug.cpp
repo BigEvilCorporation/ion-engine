@@ -17,174 +17,116 @@
 #include "ion/core/Platform.h"
 #include "CrashHandler.h"
 
-#include <iostream>
-
 namespace ion
 {
 	namespace debug
 	{
-		LogStream log(LogStream::eLog);
-		LogStream error(LogStream::eError);
+		LogStream log(LogStream::Type::Log);
+		LogStream error(LogStream::Type::Error);
 		LogTokenEnd end;
-
-		void Log(const char* message)
-		{
-#if defined ION_PLATFORM_DREAMCAST
-			dbgio_write_str(message);
-			dbgio_write_str("\n");
-			dbgio_flush();
-#else
-			std::cout << message << "\n";
-#endif
-		}
-
-		void Flush()
-		{
-			std::cout << std::flush;
-		}
-
-		void Error(const char* message)
-		{
-			Log(message);
-			Flush();
-			PrintCallstack();
-			Break();
-		}
-
-		void Popup(const char* message, const char* title)
-		{
-#if defined ION_PLATFORM_WINDOWS
-			::MessageBoxA(NULL, message, title, MB_OK);
-#endif
-		}
-
-		void Break()
-		{
-#if defined ION_PLATFORM_WINDOWS
-			__debugbreak();
-#elif defined ION_PLATFORM_LINUX
-			raise(SIGTRAP);
-#elif defined ION_PLATFORM_RASPBERRYPI
-			raise(SIGTRAP);
-#elif defined ION_PLATFORM_MACOSX
-			raise(SIGTRAP);
-#elif defined ION_PLATFORM_DREAMCAST
-			while (1) {}
-#endif
-		}
-
-		void PrintMemoryUsage()
-		{
-#if defined ION_PLATFORM_WINDOWS
-			printf("ion::debug::PrintMemoryUsage() - TODO\n");
-#elif defined ION_PLATFORM_MACOSX
-            printf("ion::debug::PrintMemoryUsage() - TODO\n");
-#elif defined ION_PLATFORM_DREAMCAST
-			malloc_stats();
-			pvr_mem_stats();
-
-			u32 systemRam = 0x8d000000 - 0x8c000000;
-			u32 elfOffset = 0x8c000000;
-			u32 stackSize = (int)&_end - (int)&_start + ((int)&_start - elfOffset);
-
-			struct mallinfo mi = mallinfo();
-			u32 systemRamFree = systemRam - (mi.usmblks + stackSize);
-
-			printf("Total system RAM: %i (%ikb)\n", systemRam, systemRam / 1024);
-			printf("Allocated system RAM: %i (%ikb)\n", mi.usmblks, mi.usmblks / 1024);
-			printf("Allocated stack size: %i (%ikb)\n", stackSize, stackSize / 1024);
-			printf("Free system RAM: %i (%ikb)\n", systemRamFree, systemRamFree / 1024);
-#endif
-		}
-
-		u32 GetRAMUsed()
-		{
-#if defined ION_PLATFORM_DREAMCAST
-			struct mallinfo mi = mallinfo();
-			return mi.uordblks;
-#else
-			return 0;
-#endif
-		}
 
 		LogStream& LogStream::operator << (const char* text)
 		{
+#if !defined ION_BUILD_MASTER
 			m_stream << text;
+#endif
 			return *this;
 		}
 
 		LogStream& LogStream::operator << (const std::string& text)
 		{
+#if !defined ION_BUILD_MASTER
 			m_stream << text;
+#endif
 			return *this;
 		}
 
 		LogStream& LogStream::operator << (u8 number)
 		{
+#if !defined ION_BUILD_MASTER
 			m_stream << (int)number;
+#endif
 			return *this;
 		}
 
 		LogStream& LogStream::operator << (s8 number)
 		{
+#if !defined ION_BUILD_MASTER
 			m_stream << (int)number;
+#endif
 			return *this;
 		}
 
 		LogStream& LogStream::operator << (u16 number)
 		{
+#if !defined ION_BUILD_MASTER
 			m_stream << (int)number;
+#endif
 			return *this;
 		}
 
 		LogStream& LogStream::operator << (s16 number)
 		{
+#if !defined ION_BUILD_MASTER
 			m_stream << (int)number;
+#endif
 			return *this;
 		}
 
 		LogStream& LogStream::operator << (u32 number)
 		{
+#if !defined ION_BUILD_MASTER
 			m_stream << (int)number;
+#endif
 			return *this;
 		}
 
 		LogStream& LogStream::operator << (s32 number)
 		{
+#if !defined ION_BUILD_MASTER
 			m_stream << (int)number;
+#endif
 			return *this;
 		}
 
 		LogStream& LogStream::operator << (u64 number)
 		{
+#if !defined ION_BUILD_MASTER
 			m_stream << (long long)number;
+#endif
 			return *this;
 		}
 
 		LogStream& LogStream::operator << (s64 number)
 		{
+#if !defined ION_BUILD_MASTER
 			m_stream << (long long)number;
+#endif
 			return *this;
 		}
 
 		LogStream& LogStream::operator << (float number)
 		{
+#if !defined ION_BUILD_MASTER
 			m_stream << number;
+#endif
 			return *this;
 		}
 
 		LogStream& LogStream::operator << (LogTokenEnd token)
 		{
-			if(m_type == eLog)
+#if !defined ION_BUILD_MASTER
+			if(m_type == Type::Log)
 			{
 				Log(m_stream.str().c_str());
 			}
-			else if(m_type == eError)
+			else if(m_type == Type::Error)
 			{
 				Error(m_stream.str().c_str());
 			}
 
 			m_stream.str(std::string());
+#endif
 
 			return *this;
 		}

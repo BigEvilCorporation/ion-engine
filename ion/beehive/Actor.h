@@ -29,11 +29,14 @@ public:
 	SpriteSheet* GetSpriteSheet(SpriteSheetId spriteSheetId);
 	const SpriteSheet* GetSpriteSheet(SpriteSheetId SpriteSheetId) const;
 	SpriteSheet* FindSpriteSheet(const std::string& name);
+	const SpriteSheet* FindSpriteSheet(const std::string& name) const;
+	SpriteSheetId FindSpriteSheetId(const std::string& name) const;
 	const TSpriteSheetMap::const_iterator SpriteSheetsBegin() const;
 	const TSpriteSheetMap::const_iterator SpriteSheetsEnd() const;
 	TSpriteSheetMap::iterator SpriteSheetsBegin();
 	TSpriteSheetMap::iterator SpriteSheetsEnd();
 	TSpriteSheetMap& GetSpriteSheets() { return m_spriteSheets; }
+	const TSpriteSheetMap& GetSpriteSheets() const { return m_spriteSheets; }
 	int GetSpriteSheetCount() const;
 
 	void SetMasterPalette(SpriteSheetId spriteSheetId);

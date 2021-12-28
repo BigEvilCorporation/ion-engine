@@ -6,6 +6,9 @@
 ///////////////////////////////////////////////////
 
 #include "Linux.h"
+#include "core/debug/CrashHandler.h"
+
+#include <iostream>
 
 namespace ion
 {
@@ -21,4 +24,9 @@ namespace ion
 
 		}
 	}
+}
+
+int main(int numargs, char** args)
+{
+	return ion::EntryPoint(numargs, args);
 }

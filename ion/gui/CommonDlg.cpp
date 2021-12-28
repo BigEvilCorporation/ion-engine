@@ -9,6 +9,7 @@
 
 #include <ion/core/Platform.h>
 #include <ion/core/string/String.h>
+#include <ion/core/debug/Debug.h>
 
 #include <sstream>
 
@@ -61,9 +62,9 @@ namespace ion
 					}
 
 					fileDialog->Release();
-
-					return directory;
 				}
+
+				return directory;
 #elif defined ION_GUI_SUPPORTS_TINYFILEDIALOGS
 				const char* directory = tinyfd_selectFolderDialog(title.c_str(), defaultPath.c_str());
 
@@ -91,7 +92,7 @@ namespace ion
 					patternArr[i] = patterns[i];
 				}
 
-				const char* filename = tinyfd_saveFileDialog(title.c_str(), defaultPath.c_str(), filter.size(), patternArr, fileTypeName.c_str());
+				const char* filename = tinyfd_saveFileDialog(title.c_str(), defaultPath.c_str(), (int)filter.size(), patternArr, fileTypeName.c_str());
 
 				if (filename)
 					return filename;

@@ -9,6 +9,7 @@
 
 #include <ion/renderer/Texture.h>
 #include <ion/renderer/Material.h>
+#include <ion/renderer/Shader.h>
 #include <ion/dependencies/imgui/imgui.h>
 
 namespace ion
@@ -20,6 +21,10 @@ namespace ion
 		public:
 			~Font();
 
+#if defined ION_RENDERER_SHADER
+			void SetShader(ion::io::ResourceHandle<ion::render::Shader> shader);
+#endif
+
 		protected:
 			//Protected constructor - create fonts with ion::gui::GUI::LoadFontTTF()
 			Font();
@@ -29,7 +34,7 @@ namespace ion
 			ImFont* m_imFont;
 
 		private:
-			render::Texture* m_fontAtlasTexture;
+			ion::io::ResourceHandle<ion::render::Texture> m_fontAtlasTexture;
 			render::Material* m_fontAtlasMaterial;
 
 			friend class GUI;

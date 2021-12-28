@@ -16,6 +16,7 @@
 #include <assert.h>
 #include <unwind.h>
 #include <pthread.h>
+#include <memory>
 
 //C strings
 #define sprintf_s snprintf

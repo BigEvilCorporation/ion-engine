@@ -13,8 +13,7 @@ namespace ion
 {
 	namespace gui
 	{
-		Image::Image(render::Texture* texture)
-			: m_texture(texture)
+		Image::Image(ion::io::ResourceHandle<render::Texture>& texture)
 		{
 			m_material = nullptr;
 			m_maintainAspect = true;
@@ -30,7 +29,7 @@ namespace ion
 			}
 		}
 
-		void Image::SetTexture(render::Texture* texture)
+		void Image::SetTexture(ion::io::ResourceHandle<render::Texture>& texture)
 		{
 			m_texture = texture;
 
@@ -39,12 +38,16 @@ namespace ion
 				delete m_material;
 			}
 
-			if (m_texture)
-			{
-				m_material = new render::Material();
-				m_material->AddDiffuseMap(m_texture);
-			}
+			m_material = new render::Material();
+			m_material->AddDiffuseMap(m_texture);
 		}
+
+#if defined ION_RENDERER_SHADER
+		void Image::SetShader(ion::io::ResourceHandle<ion::render::Shader>& shader)
+		{
+			m_material->SetShader(shader);
+		}
+#endif
 
 		void Image::SetImageBorder(const Vector2i& border)
 		{
@@ -63,7 +66,7 @@ namespace ion
 
 		void Image::Update(float deltaTime)
 		{
-			if (m_material && m_visible)
+			if (m_material && m_texture && m_visible)
 			{
 				ImVec2 size;
 
@@ -71,13 +74,13 @@ namespace ion
 				{
 					if (m_maintainAspect)
 					{
-						size.x = m_size.x - (m_imageBorder.x * 2);
-						size.y = (int)((float)size.x * ((float)m_texture->GetHeight() / (float)m_texture->GetWidth()));
+						size.x = (float)m_size.x - (m_imageBorder.x * 2);
+						size.y = ((float)size.x * ((float)m_texture->GetHeight() / (float)m_texture->GetWidth()));
 					}
 					else
 					{
-						size.x = m_size.x - (m_imageBorder.x * 2);
-						size.y = m_size.y - (m_imageBorder.y * 2);
+						size.x = (float)m_size.x - (m_imageBorder.x * 2);
+						size.y = (float)m_size.y - (m_imageBorder.y * 2);
 					}
 				}
 				else
@@ -85,7 +88,7 @@ namespace ion
 					if (m_maintainAspect)
 					{
 						size.x = ImGui::GetWindowWidth() - (m_imageBorder.x * 2);
-						size.y = (int)((float)size.x * ((float)m_texture->GetHeight() / (float)m_texture->GetWidth()));
+						size.y = ((float)size.x * ((float)m_texture->GetHeight() / (float)m_texture->GetWidth()));
 					}
 					else
 					{
@@ -98,9 +101,9 @@ namespace ion
 				{
 					ImGui::SetCursorPosX((ImGui::GetWindowWidth() / 2) - (size.x / 2));
 				}
-				else if (m_position.x != 0 && m_position.y != 0)
+				else if (m_position.x != -1 && m_position.y != -1)
 				{
-					ImGui::SetCursorPos(ImVec2(m_position.x, m_position.y));
+					ImGui::SetCursorPos(ImVec2((float)m_position.x, (float)m_position.y));
 				}
 
 				if (m_arrangement == Arrangement::Horizontal)
@@ -108,7 +111,7 @@ namespace ion
 					ImGui::SameLine();
 				}
 
-				ImGui::Image((void*)m_material, size);
+				ImGui::Image((void*)m_material, size, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), ImVec4(1.0f, 1.0f, 1.0f, m_alpha));
 			}
 		}
 	}

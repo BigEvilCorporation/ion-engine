@@ -19,10 +19,10 @@
 #include <iomanip>
 
 //std::stringstream modifier helpers
-#define SSTREAM_HEX1(val) std::hex << std::setfill('0') << std::setw(1) << std::uppercase << (int)val
-#define SSTREAM_HEX2(val) std::hex << std::setfill('0') << std::setw(2) << std::uppercase << (int)val
-#define SSTREAM_HEX4(val) std::hex << std::setfill('0') << std::setw(4) << std::uppercase << (int)val
-#define SSTREAM_HEX8(val) std::hex << std::setfill('0') << std::setw(8) << std::uppercase << (int)val
+#define SSTREAM_HEX1(val) std::hex << std::setfill('0') << std::setw(1) << std::uppercase << (int)(val&0xF) << std::dec
+#define SSTREAM_HEX2(val) std::hex << std::setfill('0') << std::setw(2) << std::uppercase << (int)(val&0xFF) << std::dec
+#define SSTREAM_HEX4(val) std::hex << std::setfill('0') << std::setw(4) << std::uppercase << (int)(val&0xFFFF) << std::dec
+#define SSTREAM_HEX8(val) std::hex << std::setfill('0') << std::setw(8) << std::uppercase << (int)(val&0xFFFFFFFF) << std::dec
 
 #define SSTREAM_INT2(val) std::dec << std::setfill('0') << std::setw(2) << (int)val
 #define SSTREAM_INT4(val) std::dec << std::setfill('0') << std::setw(4) << (int)val
@@ -50,7 +50,7 @@ namespace ion
 				typename std::vector<T>::const_iterator it = std::find(vector.begin(), vector.end(), item);
 				if (it != vector.end())
 				{
-					index = std::distance(vector.begin(), it);
+					index = (int)std::distance(vector.begin(), it);
 				}
 
 				return index;

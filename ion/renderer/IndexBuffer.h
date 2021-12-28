@@ -22,33 +22,27 @@ namespace ion
 {
 	namespace render
 	{
-#if defined ION_PLATFORM_WINDOWS
+#if defined ION_PLATFORM_WINDOWS || defined ION_PLATFORM_MACOSX || defined ION_PLATFORM_LINUX || defined ION_PLATFORM_SWITCH || defined ION_PLATFORM_ANDROID
 		typedef u32 TIndex;
-#elif defined ION_PLATFORM_MACOSX
-        typedef u32 TIndex;
-#elif defined ION_PLATFORM_LINUX
-        typedef u32 TIndex;
-#elif defined ION_PLATFORM_RASPBERRYPI
-		typedef u16 TIndex;
-#elif defined ION_PLATFORM_DREAMCAST
+#elif defined ION_PLATFORM_DREAMCAST || defined ION_PLATFORM_RASPBERRYPI
 		typedef u16 TIndex;
 #endif
 
 		class IndexBuffer
 		{
 		public:
-			void Add(TIndex index) { m_indices.push_back(index); }
-			void Add(TIndex face0, TIndex face1, TIndex face2)
-			{
-				m_indices.push_back(face0);
-				m_indices.push_back(face1);
-				m_indices.push_back(face2);
-			}
+			IndexBuffer();
 
-			TIndex Get(int index) const { return m_indices[index]; }
+			void Add(TIndex index);
+			void Add(TIndex face0, TIndex face1, TIndex face2);
 
-			int GetSize() const { return m_indices.size(); }
-			const TIndex* GetAddress() const { return &m_indices[0]; }
+			TIndex Get(int index) const;
+
+			int GetSize() const;
+			const TIndex* GetAddress() const;
+
+			void Clear();
+			void Reserve(int size);
 
 		private:
 			std::vector<TIndex> m_indices;

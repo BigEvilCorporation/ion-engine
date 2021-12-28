@@ -32,6 +32,11 @@ namespace ion
 			return m_matrix;
 		}
 
+		void Entity::SetTransform(Matrix4& matrix)
+		{
+			m_matrix = matrix;
+		}
+
 		Vector3 Entity::GetPosition() const
 		{
 			return m_matrix.GetTranslation();
@@ -42,9 +47,9 @@ namespace ion
 			m_matrix = transform;
 		}
 
-		void Entity::SetPosition(const Vector3& position)
+		void Entity::SetPosition(const Vector3& Position)
 		{
-			m_matrix.SetTranslation(position);
+			m_matrix.SetTranslation(Position);
 		}
 
 		void Entity::SetOrientation(const Quaternion& orientation)
@@ -56,10 +61,10 @@ namespace ion
 			m_matrix.SetTranslation(translation);
 		}
 
-		void Entity::SetLookAt(const Vector3& position)
+		void Entity::SetLookAt(const Vector3& Position)
 		{
 			Quaternion orientation;
-			orientation.FromLookAt(m_matrix.GetTranslation(), position, ion::Vector3(0.0f, 0.0f, -1.0f));
+			orientation.FromLookAt(m_matrix.GetTranslation(), Position, ion::Vector3(0.0f, 0.0f, -1.0f));
 			SetOrientation(orientation);
 		}
 
@@ -72,7 +77,7 @@ namespace ion
 		{
 			Quaternion quat;
 
-			if(transformSpace == eLocal)
+			if(transformSpace == TransformSpace::Local)
 			{
 				quat.FromAxis(pitch, m_matrix.GetRight());
 			}
@@ -88,7 +93,7 @@ namespace ion
 		{
 			Quaternion quat;
 
-			if(transformSpace == eLocal)
+			if(transformSpace == TransformSpace::Local)
 			{
 				quat.FromAxis(yaw, m_matrix.GetUp());
 			}
@@ -104,7 +109,7 @@ namespace ion
 		{
 			Quaternion quat;
 
-			if(transformSpace == eLocal)
+			if(transformSpace == TransformSpace::Local)
 			{
 				quat.FromAxis(roll, m_matrix.GetForward());
 			}

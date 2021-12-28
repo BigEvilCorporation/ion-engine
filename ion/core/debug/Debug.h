@@ -38,10 +38,10 @@ namespace ion
 		class LogStream
 		{
 		public:
-			enum Type
+			enum class Type
 			{
-				eLog,
-				eError
+				Log,
+				Error
 			};
 
 			LogStream(Type type) { m_type = type; }

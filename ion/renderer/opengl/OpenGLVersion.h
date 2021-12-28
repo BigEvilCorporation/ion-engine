@@ -1,0 +1,12 @@
+#pragma once
+
+#if defined ION_RENDERER_FIXED
+#define OPENGL_MAJOR_VERSION 1
+#define OPENGL_MINOR_VERSION 1
+#elif defined ION_SHADER_LANG_CG
+#define OPENGL_MAJOR_VERSION 3
+#define OPENGL_MINOR_VERSION 0
+#elif defined ION_SHADER_LANG_GLSL
+#define OPENGL_MAJOR_VERSION 4
+#define OPENGL_MINOR_VERSION 5
+#endif

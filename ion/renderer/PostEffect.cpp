@@ -5,6 +5,8 @@
 // Description:	Post effect base class
 ///////////////////////////////////////////////////
 
+#if 0
+
 #include "PostEffect.h"
 #include "core/Debug.h"
 
@@ -129,3 +131,5 @@ namespace ion
 		}
 	}
 }
+
+#endif

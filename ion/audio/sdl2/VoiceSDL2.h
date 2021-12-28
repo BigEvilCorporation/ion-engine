@@ -21,6 +21,7 @@ namespace ion
 			virtual void Resume();
 
 			virtual u32 GetBufferedBytes();
+			virtual u32 GetConsumedBytes();
 			virtual u64 GetPositionSamples();
 			virtual double GetPositionSeconds();
 
@@ -36,6 +37,8 @@ namespace ion
 			virtual ~VoiceSDL2();
 
 			virtual void Update();
+
+			static const int s_numInitialBuffers = 2;
 
 		private:
 			static const int s_starvedBufferSize = 1024;

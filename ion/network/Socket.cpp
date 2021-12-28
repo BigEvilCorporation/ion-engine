@@ -12,8 +12,6 @@
 // Description:	Network socket base
 ///////////////////////////////////////////////////
 
-#pragma once
-
 #include "Socket.h"
 
 namespace ion

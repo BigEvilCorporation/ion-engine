@@ -14,7 +14,6 @@ namespace ion
 		Font::Font()
 		{
 			m_fontAtlasMaterial = nullptr;
-			m_fontAtlasTexture = nullptr;
 			m_imFont = nullptr;
 		}
 
@@ -26,12 +25,16 @@ namespace ion
 				m_fontAtlasMaterial = nullptr;
 			}
 
-			if (m_fontAtlasTexture)
-			{
-				delete m_fontAtlasTexture;
-				m_fontAtlasTexture = nullptr;
-			}
+			m_fontAtlasTexture.Clear();
 		}
+
+#if defined ION_RENDERER_SHADER
+		void Font::SetShader(ion::io::ResourceHandle<ion::render::Shader> shader)
+		{
+			if(m_fontAtlasMaterial)
+				m_fontAtlasMaterial->SetShader(shader);
+		}
+#endif
 
 		bool Font::LoadTTF(const std::string filename, int size, ImGuiContext* imGuiContext)
 		{
@@ -43,7 +46,7 @@ namespace ion
 			ImGuiIO& io = ImGui::GetIO();
 
 			//Load TTF
-			m_imFont = io.Fonts->AddFontFromFileTTF(filename.c_str(), size, nullptr, io.Fonts->GetGlyphRangesDefault());
+			m_imFont = io.Fonts->AddFontFromFileTTF(filename.c_str(), (float)size, nullptr, io.Fonts->GetGlyphRangesDefault());
 
 			if (m_imFont)
 			{
@@ -54,11 +57,7 @@ namespace ion
 					m_fontAtlasMaterial = nullptr;
 				}
 
-				if (m_fontAtlasTexture)
-				{
-					delete m_fontAtlasTexture;
-					m_fontAtlasTexture = nullptr;
-				}
+				m_fontAtlasTexture.Clear();
 
 				u8* fontAtlasData;
 				int fontAtlasWidth;
@@ -66,9 +65,12 @@ namespace ion
 				io.Fonts->GetTexDataAsRGBA32(&fontAtlasData, &fontAtlasWidth, &fontAtlasHeight);
 
 				m_fontAtlasTexture = render::Texture::Create(fontAtlasWidth, fontAtlasHeight, render::Texture::Format::RGBA, render::Texture::Format::RGBA, render::Texture::BitsPerPixel::BPP24, false, false, fontAtlasData);
+				m_fontAtlasTexture->SetMinifyFilter(ion::render::Texture::Filter::Linear);
+				m_fontAtlasTexture->SetMagnifyFilter(ion::render::Texture::Filter::Linear);
+
 				m_fontAtlasMaterial = new render::Material();
 				m_fontAtlasMaterial->AddDiffuseMap(m_fontAtlasTexture);
-				m_fontAtlasMaterial->SetDiffuseColour(ion::Colour(0.3f, 0.3f, 0.3f, 1.0f));
+				m_fontAtlasMaterial->SetDiffuseColour(ion::Colour(1.0f, 1.0f, 1.0f, 1.0f));
 
 				io.Fonts->SetTexID(m_fontAtlasMaterial);
 

@@ -101,7 +101,7 @@ int stream_tribyte(uint8_t ** buffer, const uint32_t data)
 	uint8_t temp[3] = { data >> 16, data >> 8, data & 0xFF };
 	*(*buffer)++ = temp[0];
 	*(*buffer)++ = temp[1];
-	*(*buffer)++ = temp[3];
+	*(*buffer)++ = temp[2];
 	return 3;
 }
 

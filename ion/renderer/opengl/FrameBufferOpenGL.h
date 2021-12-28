@@ -20,7 +20,9 @@ namespace ion
 			virtual void ReadPixels(int x, int y, int width, int height, Texture::Format format, Texture::BitsPerPixel bitsPerPixel, u8* data);
 
 		private:
+#if defined ION_PLATFORM_WINDOWS
 			GLuint m_glFrameBuffer;
+#endif
 		};
 	}
 }

@@ -5,6 +5,8 @@
 // Description:	Spot/directional light source
 ///////////////////////////////////////////////////
 
+#if 0
+
 #pragma once
 
 #include "core/maths/Vector.h"
@@ -64,3 +66,5 @@ namespace ion
 		};
 	}
 }
+
+#endif

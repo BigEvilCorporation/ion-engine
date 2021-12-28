@@ -8,9 +8,9 @@ namespace ion
 	{
 		Source::Source(FeedType feedType)
 		{
-			mStreamDesc = NULL;
-			mFeedType = feedType;
-			mLockCount = 0;
+			m_streamDesc = nullptr;
+			m_feedType = feedType;
+			m_lockCount = 0;
 		}
 
 		Source::~Source()
@@ -19,23 +19,23 @@ namespace ion
 
 		void Source::Lock()
 		{
-			thread::atomic::Increment(mLockCount);
+			thread::atomic::Increment(m_lockCount);
 		}
 
 		void Source::Unlock()
 		{
-			debug::Assert(mLockCount > 0, "Source::Unlock() - Source not locked");
-			thread::atomic::Decrement(mLockCount);
+			debug::Assert(m_lockCount > 0, "Source::Unlock() - Source not locked");
+			thread::atomic::Decrement(m_lockCount);
 		}
 
 		const StreamDesc* Source::GetStreamDesc() const
 		{
-			return mStreamDesc;
+			return m_streamDesc;
 		}
 
 		Source::FeedType Source::GetFeedType() const
 		{
-			return mFeedType;
+			return m_feedType;
 		}
 	}
 }

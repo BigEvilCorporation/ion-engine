@@ -45,13 +45,13 @@ namespace ion
 				mKeyboardDevice->SetDataFormat(&c_dfDIKeyboard);
 				mKeyboardDevice->Acquire();
 			}
+#endif
 
-			for(int i = 0; i < (int)Keycode::COUNT; i++)
+			for (int i = 0; i < (int)Keycode::COUNT; i++)
 			{
 				mCurrKeyStates[i] = false;
 				mPrevKeyStates[i] = false;
-			}
-#endif
+		}
 		}
 
 		Keyboard::~Keyboard()
@@ -73,6 +73,17 @@ namespace ion
 		void Keyboard::UnregisterHandler(KeyboardHandler& handler)
 		{
 			m_handlers.erase(std::find(m_handlers.begin(), m_handlers.end(), &handler));
+		}
+
+		bool Keyboard::AnyKeyDown() const
+		{
+			for (int i = 0; i < (int)Keycode::COUNT; i++)
+			{
+				if (mCurrKeyStates[i])
+					return true;
+			}
+
+			return false;
 		}
 		
 		bool Keyboard::KeyDown(Keycode key) const
@@ -155,15 +166,15 @@ namespace ion
 
 			switch(coopLevel)
 			{
-			case Background:
+			case CoopLevel::Background:
 				windowsCoopLevel = DISCL_BACKGROUND | DISCL_NONEXCLUSIVE;
 				break;
 
-			case Foreground:
+			case CoopLevel::Foreground:
 				windowsCoopLevel = DISCL_FOREGROUND | DISCL_NONEXCLUSIVE;
 				break;
 
-			case Exclusive:
+			case CoopLevel::Exclusive:
 				windowsCoopLevel = DISCL_EXCLUSIVE | DISCL_FOREGROUND;
 				break;
 			}

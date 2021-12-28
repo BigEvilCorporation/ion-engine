@@ -16,9 +16,24 @@
 
 #include "core/Platform.h"
 #include "core/Types.h"
+#include "core/debug/Debug.h"
 #include "core/thread/CriticalSection.h"
 #include "core/thread/Atomic.h"
 #include <vector>
+
+#if defined ION_PLATFORM_WINDOWS
+#include "core/platform/windows/thread/LocalStorageWindows.h"
+#elif defined ION_PLATFORM_LINUX
+#include "core/platform/linux/thread/LocalStorageLinux.h"
+#elif defined ION_PLATFORM_MACOSX
+#include "core/platform/macosx/thread/LocalStorageMacOSX.h"
+#elif defined ION_PLATFORM_DREAMCAST
+#include "core/platform/dreamcast/thread/LocalStorageDreamcast.h"
+#elif defined ION_PLATFORM_SWITCH
+#include "core/platform/nx/thread/LocalStorageSwitch.h"
+#elif defined ION_PLATFORM_ANDROID
+#include "core/platform/android/thread/LocalStorageAndroid.h"
+#endif
 
 namespace ion
 {
@@ -46,11 +61,7 @@ namespace ion
 			void Store(void* ptr);
 			void* Retrieve();
 
-			#if defined ION_PLATFORM_WINDOWS
-			DWORD m_TLSContext;
-			#elif defined ION_PLATFORM_LINUX || defined ION_PLATFORM_MACOSX || defined ION_PLATFORM_DREAMCAST
-			pthread_key_t m_TLSContext;
-			#endif
+			LocalStorageImpl m_impl;
 
 			T m_data[MAX_SIZE];
 			u32 m_nextIdx;
@@ -66,53 +77,26 @@ namespace ion
 		template <typename T, int MAX_SIZE> LocalStorage<T, MAX_SIZE>::LocalStorage()
 		{
 			m_nextIdx = 0;
-
-#if defined ION_PLATFORM_WINDOWS
-			m_TLSContext = TlsAlloc();
-			debug::Assert(m_TLSContext != TLS_OUT_OF_INDEXES, "Could not create TLS - out of indices");
-#elif defined ION_PLATFORM_LINUX || defined ION_PLATFORM_MACOSX || defined ION_PLATFORM_DREAMCAST
-			pthread_key_create(&m_TLSContext, NULL);
-#else
-			debug::Error("LocalStorage::LocalStorage() - Not implemented on this platform");
-#endif
 		}
 
 		template <typename T, int MAX_SIZE> LocalStorage<T, MAX_SIZE>::~LocalStorage()
 		{
-#if defined ION_PLATFORM_WINDOWS
-			TlsFree(m_TLSContext);
-#elif defined ION_PLATFORM_LINUX || defined ION_PLATFORM_MACOSX || defined ION_PLATFORM_DREAMCAST
-			pthread_key_delete(m_TLSContext);
-#endif
+
 		}
 
 		template <typename T, int MAX_SIZE> bool LocalStorage<T, MAX_SIZE>::IsAllocated() const
 		{
-#if defined ION_PLATFORM_WINDOWS
-			return TlsGetValue(m_TLSContext) != nullptr;
-#elif defined ION_PLATFORM_LINUX || defined ION_PLATFORM_MACOSX || defined ION_PLATFORM_DREAMCAST
-			return pthread_getspecific(m_TLSContext) != nullptr;
-#endif
+			return m_impl.IsAllocated();
 		}
 
 		template <typename T, int MAX_SIZE> void LocalStorage<T, MAX_SIZE>::Store(void* ptr)
 		{
-#if defined ION_PLATFORM_WINDOWS
-			TlsSetValue(m_TLSContext, ptr);
-#elif defined ION_PLATFORM_LINUX || defined ION_PLATFORM_MACOSX || defined ION_PLATFORM_DREAMCAST
-			pthread_setspecific(m_TLSContext, ptr);
-#endif
+			m_impl.Store(ptr);
 		}
 
 		template <typename T, int MAX_SIZE> void* LocalStorage<T, MAX_SIZE>::Retrieve()
 		{
-#if defined ION_PLATFORM_WINDOWS
-			return TlsGetValue(m_TLSContext);
-#elif defined ION_PLATFORM_LINUX || defined ION_PLATFORM_MACOSX || defined ION_PLATFORM_DREAMCAST
-			return pthread_getspecific(m_TLSContext);
-#else
-			return NULL;
-#endif
+			return m_impl.Retrieve();
 		}
 
 		template <typename T, int MAX_SIZE> void LocalStorage<T, MAX_SIZE>::Allocate()

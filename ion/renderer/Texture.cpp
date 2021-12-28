@@ -21,9 +21,9 @@ namespace ion
 		u32 Texture::s_textureMemoryUsed = 0;
 
 		Texture::Texture()
+			: m_width(0)
+			, m_height(0)
 		{
-			m_width = 0;
-			m_height = 0;
 		}
 
 		Texture::Texture(u32 width, u32 height)
@@ -42,9 +42,14 @@ namespace ion
 
 		}
 
-		void Texture::SetImageFilename(const std::string& filename)
+		void Texture::SetSerialiseData(const std::string& filename, std::vector<u8>& data, u32 width, u32 height, Format sourceFormat, BitsPerPixel bpp)
 		{
 			m_imageFilename = filename;
+			m_imageData = data;
+			m_width = width;
+			m_height = height;
+			m_sourceFormat = sourceFormat;
+			m_bitsPerPixel = bpp;
 		}
 
 		u32 Texture::GetWidth() const
@@ -65,10 +70,16 @@ namespace ion
 		void Texture::Serialise(io::Archive& archive)
 		{
 			archive.Serialise(m_imageFilename);
+			archive.Serialise(m_imageData);
+			archive.Serialise(m_width);
+			archive.Serialise(m_height);
+			archive.Serialise((int&)m_sourceFormat);
+			archive.Serialise((int&)m_bitsPerPixel);
 
 			if(archive.GetDirection() == io::Archive::Direction::In)
 			{
-				Load();
+				// TODO: serialise mipmaps and pixelbuffer
+				Load(m_width, m_height, m_sourceFormat, Format::RGBA, m_bitsPerPixel, false, false, m_imageData.data());
 			}
 		}
 	}

@@ -16,9 +16,8 @@
 
 #include "core/Types.h"
 #include "maths/Vector.h"
-#include "io/Archive.h"
+#include "core/io/Archive.h"
 #include "renderer/Colour.h"
-
 #include <string>
 #include <vector>
 
@@ -72,9 +71,7 @@ namespace ion
 			u32 GetHeight() const;
 			BitsPerPixel GetBitsPerPixel() const;
 
-			virtual bool Load(const std::string& filename) = 0;
 			virtual bool Load(u32 width, u32 height, Format sourceFormat, Format destFormat, BitsPerPixel bitsPerPixel, bool generateMipmaps, bool generatePixelBuffer, const u8* data) { return false; }
-			void SetImageFilename(const std::string& filename);
 
 			//Indexed textures
 			virtual void SetColourPalette(int paletteIndex) = 0;
@@ -83,13 +80,14 @@ namespace ion
 			virtual void SetMagnifyFilter(Filter filter) = 0;
 			virtual void SetWrapping(Wrapping wrapping) = 0;
 
-			virtual void SetPixel(const ion::Vector2i& position, const Colour& colour) = 0;
-			virtual void SetPixels(Format sourceFormat, bool synchronised, u8* data) = 0;
-			virtual void GetPixels(const ion::Vector2i& position, const ion::Vector2i& size, Format format, BitsPerPixel bitsPerPixel, u8* data) const = 0;
+			virtual void SetPixel(const ion::Vector2i& Position, const Colour& colour) = 0;
+			virtual void SetPixels(Format sourceFormat, bool synchronised, const u8* data) = 0;
+			virtual void GetPixels(const ion::Vector2i& Position, const ion::Vector2i& size, Format format, BitsPerPixel bitsPerPixel, u8* data) const = 0;
 			virtual u8* LockPixelBuffer() = 0;
 			virtual void UnlockPixelBuffer() = 0;
 
 			//Serialise
+			void SetSerialiseData(const std::string& filename, std::vector<u8>& data, u32 width, u32 height, Format sourceFormat, BitsPerPixel bpp);
 			static void RegisterSerialiseType(io::Archive& archive);
 			void Serialise(io::Archive& archive);
 
@@ -107,9 +105,12 @@ namespace ion
 			u32 m_width;
 			u32 m_height;
 			u32 m_pixelSize;
+			Format m_sourceFormat;
+			Format m_destFormat;
 			BitsPerPixel m_bitsPerPixel;
 
 			std::string m_imageFilename;
+			std::vector<u8> m_imageData;
 
 			//Memory stats
 			static u32 s_textureMemoryUsed;

@@ -21,30 +21,37 @@ namespace ion
 			Generic = Xbox360,
 			DualShock3,
 			SEGAMegaDrive,
+			SwitchPro,
+			JoyconDual,
+			JoyconHandheld,
+			JoyconLeft,
+			JoyconRight,
 
 			Count
 		};
 
 		enum class GamepadButtons : int
 		{
-			DPAD_UP,
-			DPAD_DOWN,
-			DPAD_LEFT,
-			DPAD_RIGHT,
+			DPAD_UP				= (1 << 0),
+			DPAD_DOWN			= (1 << 1),
+			DPAD_LEFT			= (1 << 2),
+			DPAD_RIGHT			= (1 << 3),
 
-			BUTTON_A,
-			BUTTON_B,
-			BUTTON_X,
-			BUTTON_Y,
+			BUTTON_A			= (1 << 4),
+			BUTTON_B			= (1 << 5),
+			BUTTON_X			= (1 << 6),
+			BUTTON_Y			= (1 << 7),
 
-			START,
+			START				= (1 << 8),
 			SELECT,
 
-			LEFT_SHOULDER,
-			RIGHT_SHOULDER,
+			LEFT_BUMPER			= (1 << 9),
+			RIGHT_BUMPER		= (1 << 10),
+			LEFT_TRIGGER		= (1 << 11),
+			RIGHT_TRIGGER		= (1 << 12),
 
-			LEFT_STICK_CLICK,
-			RIGHT_STICK_CLICK,
+			LEFT_STICK_CLICK	= (1 << 13),
+			RIGHT_STICK_CLICK	= (1 << 14),
 
 			COUNT
 		};
@@ -119,14 +126,10 @@ namespace ion
 		class Gamepad
 		{
 		public:
-			Gamepad();
-			~Gamepad();
-
-			//Update input/connection state
-			void Update();
-			
 			//Test if connected
 			bool IsConnected() const;
+
+			GamepadType GetGamepadType() const;
 
 			ion::Vector2 GetLeftStick() const;
 			ion::Vector2 GetRightStick() const;
@@ -134,6 +137,8 @@ namespace ion
 			bool ButtonDown(GamepadButtons button) const;
 			bool ButtonPressedThisFrame(GamepadButtons button) const;
 			bool ButtonReleasedThisFrame(GamepadButtons button) const;
+			bool AnyButtonDown() const;
+			bool AnyStickInput() const;
 
 			void SetDeadZone(float deadZone);
 			float GetDeadZone() const;
@@ -141,20 +146,22 @@ namespace ion
 			void SetOuterZone(float outerZone);
 			float GetOuterZone() const;
 
-			static const int s_maxControllers = 4;
+			//Force poll, if immediate state needed
+			void Poll();
+
+		protected:
+			friend class GamepadManager;
+			friend class GamepadManagerSwitch;
+			Gamepad();
+			~Gamepad();
+			void SetImplementation(GamepadImpl* implementation);
 
 		private:
-			void FindAndRegisterController();
-			void UnregisterController();
 			bool CheckButton(GamepadButtons button) const;
 			bool CheckPrevButton(GamepadButtons button) const;
 
-			int m_controllerIndex;
 			float m_deadZone;
 			float m_outerZone;
-
-			static const int s_invalidIndex = -1;
-			static bool s_registeredControllers[s_maxControllers];
 
 			GamepadImpl* m_implementation;
 		};
@@ -165,6 +172,7 @@ namespace ion
 			virtual ~GamepadImpl() {}
 			virtual void Poll() = 0;
 			virtual bool IsConnected() const = 0;
+			virtual GamepadType GetGamepadType() const = 0;
 			virtual int ToPlatformButton(GamepadButtons button) const = 0;
 			virtual ion::Vector2 GetLeftStick() const = 0;
 			virtual ion::Vector2 GetRightStick() const = 0;

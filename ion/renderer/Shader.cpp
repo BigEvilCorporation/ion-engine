@@ -28,29 +28,36 @@ namespace ion
 
 		}
 
-		void Shader::SetProgram(const std::string& name, const std::string& programCode, const std::string& entryPoint, ProgramType programType)
+		void Shader::SetProgram(const std::string& language, const std::string& programCode, const std::string& entryPoint, ProgramType programType)
 		{
-			m_name = name;
-			m_programCode = programCode;
-			m_entryPoint = entryPoint;
-			m_programType = programType;
+			m_programs[language][(int)programType].m_entryPoint = entryPoint;
+			m_programs[language][(int)programType].m_programCode = programCode;
+		}
+
+		Shader::Program* Shader::GetProgram(const std::string& language, ProgramType programType)
+		{
+			std::map<std::string, std::map<int, Program>>::iterator languageIt = m_programs.find(language);
+			if (languageIt != m_programs.end())
+			{
+				std::map<int, Program>::iterator typeIt = languageIt->second.find((int)programType);
+				if (typeIt != languageIt->second.end())
+				{
+					return &typeIt->second;
+				}
+			}
+
+			return nullptr;
 		}
 
 		void Shader::Serialise(io::Archive& archive)
 		{
-			archive.Serialise(m_name, "name");
-			archive.Serialise(m_programCode, "programCode");
-			archive.Serialise(m_entryPoint, "entryPoint");
-			archive.Serialise((u32&)m_programType, "programType");
+			archive.Serialise(m_programs, "programs");
 
 			if(archive.GetDirection() == io::Archive::Direction::In)
 			{
 				if(archive.GetResourceManager())
 				{
-					if (!Compile())
-					{
-						ion::debug::log << "Failed to compile shader " << m_name << ion::debug::end;
-					}
+					Compile();
 				}
 			}
 		}

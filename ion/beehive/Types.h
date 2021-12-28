@@ -10,6 +10,7 @@
 
 typedef u32 GameObjectTypeId;
 typedef u32 GameObjectId;
+typedef ion::UUID64 GameObjectArchetypeId;
 typedef ion::UUID64 MapId;
 typedef ion::UUID64 CollisionMapId;
 typedef ion::UUID64 ActorId;
@@ -21,6 +22,7 @@ static const MapId InvalidMapId = 0;
 static const CollisionMapId InvalidCollisionMapId = 0;
 static const GameObjectTypeId InvalidGameObjectTypeId = 0;
 static const GameObjectId InvalidGameObjectId = 0;
+static const GameObjectArchetypeId InvalidGameObjectArchetypeId = 0;
 static const ActorId InvalidActorId = 0;
 static const SpriteSheetId InvalidSpriteSheetId = 0;
 static const AnimationId InvalidAnimationId = 0;

@@ -12,6 +12,8 @@
 // Description:	Font loading and text rendering
 ///////////////////////////////////////////////////
 
+#if ION_GUI_SUPPORTS_FREETYPE
+
 #pragma once
 
 #include "core/Types.h"
@@ -37,3 +39,5 @@ namespace ion
 		};
 	}
 }
+
+#endif

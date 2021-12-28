@@ -1,6 +1,0 @@
-rule C.Toolchain.gcc.android-release {
-    C.Flags * : CC C++ M MM : -g -O2 ;
-
-    C.Toolchain.Helper.ReleaseSettings ;
-}
-

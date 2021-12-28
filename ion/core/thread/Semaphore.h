@@ -17,6 +17,20 @@
 #include "core/Platform.h"
 #include "core/Types.h"
 
+#if defined ION_PLATFORM_WINDOWS
+#include "core/platform/windows/thread/SemaphoreWindows.h"
+#elif defined ION_PLATFORM_LINUX
+#include "core/platform/linux/thread/SemaphoreLinux.h"
+#elif defined ION_PLATFORM_MACOSX
+#include "core/platform/macosx/thread/SemaphoreMacOSX.h"
+#elif defined ION_PLATFORM_DREAMCAST
+#include "core/platform/dreamcast/thread/SemaphoreDreamcast.h"
+#elif defined ION_PLATFORM_SWITCH
+#include "core/platform/nx/thread/SemaphoreSwitch.h"
+#elif defined ION_PLATFORM_ANDROID
+#include "core/platform/android/thread/SemaphoreAndroid.h"
+#endif
+
 namespace ion
 {
 	namespace thread
@@ -31,13 +45,7 @@ namespace ion
 			void Wait();
 
 		private:
-			#if defined ION_PLATFORM_WINDOWS
-			HANDLE m_semaphoreHndl;
-            #elif defined ION_PLATFORM_LINUX
-            sem_t m_semaphoreHndl;
-            #elif defined ION_PLATFORM_MACOSX
-            dispatch_semaphore_t m_semaphoreHndl;
-			#endif
+			SemaphoreImpl m_impl;
 		};
 	}
 }

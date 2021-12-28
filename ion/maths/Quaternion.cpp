@@ -11,6 +11,8 @@
 
 namespace ion
 {
+	const Quaternion Quaternion::Identity;
+
 	Quaternion::Quaternion()
 	{
 		x = 0.0f;
@@ -170,9 +172,9 @@ namespace ion
 		z *= scale;
 	}
 
-	void Quaternion::FromLookAt(const Vector3& position, const Vector3& target, const Vector3& forward)
+	void Quaternion::FromLookAt(const Vector3& Position, const Vector3& target, const Vector3& forward)
 	{
-		Vector3 forwardVector = target - position;
+		Vector3 forwardVector = target - Position;
 
 		float dot = forward.Dot(forwardVector);
 
@@ -194,7 +196,7 @@ namespace ion
 
 	Matrix4 Quaternion::ToMatrix() const
 	{
-		float matrix[16];
+		Matrix4::Float44 matrix;
 
 		// First row
 		matrix[ 0] = 1.0f - 2.0f * ( y * y + z * z );

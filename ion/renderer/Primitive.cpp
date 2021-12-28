@@ -28,8 +28,8 @@ namespace ion
 
 		}
 
-		Primitive::Primitive(VertexBuffer::Pattern pattern, const std::vector<VertexBuffer::Element>& layout)
-			: m_vertexBuffer(pattern, layout)
+		Primitive::Primitive(VertexBuffer::Pattern pattern, const std::vector<VertexBuffer::Element>& layout, VertexBuffer::PackType packType)
+			: m_vertexBuffer(pattern, layout, packType)
 		{
 
 		}
@@ -53,40 +53,42 @@ namespace ion
 		}
 
 		LineSegments::LineSegments(const std::vector<Vector3>& points)
-			: Primitive(VertexBuffer::eLines)
+			: Primitive(VertexBuffer::Pattern::Lines)
 		{
 			for(int i = 0; i < points.size(); i++)
 			{
 				m_vertexBuffer.AddVertex(points[i], Vector3(0.0f, 0.0f, 1.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(0.0f, 1.0f));
 			}
+
+			m_vertexBuffer.CompileBuffer();
 		}
 
 		LineStrip::LineStrip(const std::vector<Vector3>& points)
-			: Primitive(VertexBuffer::eLineStrip)
+			: Primitive(VertexBuffer::Pattern::LineStrip)
 		{
 			for(int i = 0; i < points.size(); i++)
 			{
 				m_vertexBuffer.AddVertex(points[i], Vector3(0.0f, 0.0f, 1.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(0.0f, 1.0f));
 			}
+
+			m_vertexBuffer.CompileBuffer();
 		}
 
-		Quad::Quad(Axis axis, const Vector2& halfExtents, VertexBuffer::Preset preset)
-			: Primitive(VertexBuffer::eTriangles, preset)
+		Quad::Quad(Axis axis, const Vector2& halfExtents, const Vector3& offset, VertexBuffer::Preset preset)
+			: Primitive(VertexBuffer::Pattern::Triangles, preset)
 		{
-			Build(axis, halfExtents);
+			Build(axis, halfExtents, offset);
 		}
 
-		Quad::Quad(Axis axis, const Vector2& halfExtents, const std::vector<VertexBuffer::Element>& layout)
-			: Primitive(VertexBuffer::eTriangles, layout)
+		Quad::Quad(Axis axis, const Vector2& halfExtents, const Vector3& offset, const std::vector<VertexBuffer::Element>& layout)
+			: Primitive(VertexBuffer::Pattern::Triangles, layout)
 		{
-			Build(axis, halfExtents);
+			Build(axis, halfExtents, offset);
 		}
 
-		void Quad::Build(Axis axis, const Vector2& halfExtents)
+		void Quad::Build(Axis axis, const Vector2& halfExtents, const Vector3& offset)
 		{
-			Vector3 offset(0.0f, 0.0f, 0.0f);
-
-			if(axis == xy)
+			if(axis == Axis::xy)
 			{
 				m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y + halfExtents.y, 0.0f), Vector3(0.0f, 0.0f, 1.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(0.0f, 0.0f));
 				m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y - halfExtents.y, 0.0f), Vector3(0.0f, 0.0f, 1.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(0.0f, 1.0f));
@@ -96,7 +98,7 @@ namespace ion
 				m_indexBuffer.Add(0, 1, 2);
 				m_indexBuffer.Add(0, 2, 3);
 			}
-			else if(axis == xz)
+			else if(axis == Axis::xz)
 			{
 				m_vertexBuffer.AddVertex(Vector3(offset.x + -halfExtents.x, offset.y, offset.z + -halfExtents.y), Vector3(0.0f, 1.0f, 0.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(0.0f, 0.0f));
 				m_vertexBuffer.AddVertex(Vector3(offset.x + -halfExtents.x, offset.y, offset.z +  halfExtents.y), Vector3(0.0f, 1.0f, 0.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(0.0f, 1.0f));
@@ -106,10 +108,12 @@ namespace ion
 				m_indexBuffer.Add(0, 1, 2);
 				m_indexBuffer.Add(2, 3, 0);
 			}
-			else if(axis == yz)
+			else if(axis == Axis::yz)
 			{
 
 			}
+
+			m_vertexBuffer.CompileBuffer(&m_indexBuffer);
 		}
 
 		void Quad::SetTexCoords(const TexCoord coords[4])
@@ -122,9 +126,9 @@ namespace ion
 		}
 
 		LineQuad::LineQuad(Axis axis, const Vector2& halfExtents, const Vector2 offset)
-			: Primitive(VertexBuffer::eLines)
+			: Primitive(VertexBuffer::Pattern::Lines)
 		{
-			if(axis == xy)
+			if(axis == Axis::xy)
 			{
 				m_vertexBuffer.AddVertex(Vector3(-halfExtents.x + offset.x, -halfExtents.y + offset.y, 0.0f), Vector3(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord());
 				m_vertexBuffer.AddVertex(Vector3( halfExtents.x + offset.x, -halfExtents.y + offset.y, 0.0f), Vector3(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord());
@@ -138,15 +142,17 @@ namespace ion
 				m_vertexBuffer.AddVertex(Vector3(-halfExtents.x + offset.x,  halfExtents.y + offset.y, 0.0f), Vector3(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord());
 				m_vertexBuffer.AddVertex(Vector3(-halfExtents.x + offset.x, -halfExtents.y + offset.y, 0.0f), Vector3(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord());
 			}
+
+			m_vertexBuffer.CompileBuffer();
 		}
 
 		Grid::Grid(Axis axis, const Vector2& halfExtents, int widthCells, int heightCells)
-			: Primitive(VertexBuffer::eLines)
+			: Primitive(VertexBuffer::Pattern::Lines)
 		{
 			Vector2 cellSize((halfExtents.x * 2.0f) / (float)widthCells, (halfExtents.y * 2.0f) / (float)heightCells);
 			Vector2 gridSize(halfExtents * 2.0f);
 
-			if(axis == xy)
+			if(axis == Axis::xy)
 			{
 				for(int x = 0; x < widthCells+1; x++)
 				{
@@ -160,14 +166,16 @@ namespace ion
 					m_vertexBuffer.AddVertex(Vector3(gridSize.x - halfExtents.x, (cellSize.y * y) - halfExtents.y, 0.0f), Vector3(), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord());
 				}
 			}
+
+			m_vertexBuffer.CompileBuffer();
 		}
 
 		Chessboard::Chessboard(Axis axis, const Vector2& halfExtents, int widthCells, int heightCells, bool uniqueVerts)
-			: Primitive(VertexBuffer::eTriangles)
+			: Primitive(VertexBuffer::Pattern::Triangles)
 		{
 			Vector2 cellSize((halfExtents.x * 2.0f) / (float)widthCells, (halfExtents.y * 2.0f) / (float)heightCells);
 
-			if(axis == xy)
+			if(axis == Axis::xy)
 			{
 				int vertexCount = 0;
 				for(int y = 0; y < heightCells; y++)
@@ -195,6 +203,8 @@ namespace ion
 					}
 				}
 			}
+
+			m_vertexBuffer.CompileBuffer(&m_indexBuffer);
 		}
 
 		void Chessboard::SetTexCoords(int cellIndex, TexCoord coords[4], float z)
@@ -208,7 +218,7 @@ namespace ion
 		}
 
 		Box::Box(const Vector3& halfExtents, const Vector3& offset)
-			: Primitive(VertexBuffer::eTriangles)
+			: Primitive(VertexBuffer::Pattern::Triangles)
 		{
 			//Top
 			m_vertexBuffer.AddVertex(Vector3(offset.x - halfExtents.x, offset.y + halfExtents.y, offset.z + halfExtents.z), Vector3(0.0f, 1.0f, 0.0f), Colour(1.0f, 1.0f, 1.0f, 1.0f), TexCoord(0.0f, 1.0f));
@@ -268,10 +278,12 @@ namespace ion
 			{
 				m_indexBuffer.Add(i, i + 1, i + 2);
 			}
+
+			m_vertexBuffer.CompileBuffer(&m_indexBuffer);
 		}
 
 		Sphere::Sphere(float radius, int rings, int segments)
-			: Primitive(VertexBuffer::eTriangles)
+			: Primitive(VertexBuffer::Pattern::Triangles)
 		{
 			float deltaRingAngle = (maths::PI / rings);
 			float deltaSegAngle = (2.0f * maths::PI / segments);
@@ -297,10 +309,12 @@ namespace ion
 					}
 				}
 			}
+
+			m_vertexBuffer.CompileBuffer(&m_indexBuffer);
 		}
 
 		Cylinder::Cylinder(float radius, float height, int steps, const Vector3& offset)
-			: Primitive(VertexBuffer::eTriangles)
+			: Primitive(VertexBuffer::Pattern::Triangles)
 		{
 			float halfHeight = height * 0.5f;
 			float a = 0.0f;
@@ -329,6 +343,8 @@ namespace ion
 				m_indexBuffer.Add(i*2, steps, (i+1)*2);
 				m_indexBuffer.Add((i+1)*2+1, steps+1, i*2+1);
 			}
+
+			m_vertexBuffer.CompileBuffer(&m_indexBuffer);
 		}
 	}
 }

@@ -19,22 +19,29 @@
 
 #include <string>
 
+#if defined ION_PLATFORM_WINDOWS
+#include "core/platform/windows/thread/ThreadWindows.h"
+#elif defined ION_PLATFORM_LINUX
+#include "core/platform/linux/thread/ThreadLinux.h"
+#elif defined ION_PLATFORM_MACOSX
+#include "core/platform/macosx/thread/ThreadMacOSX.h"
+#elif defined ION_PLATFORM_DREAMCAST
+#include "core/platform/dreamcast/thread/ThreadDreamcast.h"
+#elif defined ION_PLATFORM_SWITCH
+#include "core/platform/nx/thread/ThreadSwitch.h"
+#elif defined ION_PLATFORM_ANDROID
+#include "core/platform/android/thread/ThreadAndroid.h"
+#endif
+
 namespace ion
 {
 	namespace thread
 	{
-#if defined ION_PLATFORM_WINDOWS
-		typedef unsigned long ThreadId;
-#else
-		typedef u64 ThreadId;
-#endif
-
 		ThreadId GetCurrentThreadId();
 
 		class Thread
 		{
 		public:
-
 			enum class Priority
 			{
 				Low,
@@ -43,34 +50,22 @@ namespace ion
 				Critical
 			};
 
-			Thread(const char* name = NULL);
+			Thread(const std::string& name);
 			virtual ~Thread();
 
 			void Run();
 			void Join();
 			void Yield();
 			void SetPriority(Priority priority);
-			
+			void SetCoreAffinity(u32 affinityMask);
 			u32 GetId() const;
 
 		protected:
 			virtual void Entry() = 0;
 
 		private:
-			#if defined ION_PLATFORM_WINDOWS
-			static unsigned long WINAPI ThreadFunction(void* params);
-			#elif defined ION_PLATFORM_LINUX || defined ION_PLATFORM_MACOSX || defined ION_PLATFORM_DREAMCAST
-			static void* ThreadFunction(void* params);
-			#endif
-
-			ThreadId m_threadId;
-			std::string m_name;
-
-			#if defined ION_PLATFORM_WINDOWS
-			HANDLE m_threadHndl;
-			#elif defined ION_PLATFORM_LINUX || defined ION_PLATFORM_MACOSX || defined ION_PLATFORM_DREAMCAST
-			pthread_t m_threadHndl;
-			#endif
+			friend class ThreadImpl;
+			ThreadImpl m_impl;
 		};
 	}
 }

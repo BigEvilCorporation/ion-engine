@@ -24,7 +24,7 @@ namespace ion
 		{
 		public:
 			//Render perspectives
-			enum PerspectiveMode { ePerspective3D, eOrtho2DNormalised, eOrtho2DAbsolute };
+			enum class PerspectiveMode { Perspective3D, Ortho2DNormalised, Ortho2DAbsolute };
 
 			Viewport(int width, int height, PerspectiveMode perspectiveMode);
 			virtual ~Viewport();

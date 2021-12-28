@@ -26,7 +26,7 @@ namespace ion
 			m_spriteSheetGridSizeX = spriteGridSizeX;
 			m_spriteSheetGridSizeY = spriteGridSizeY;
 			m_currentFrame = 0;
-			m_quadPrimitive = new Quad(Quad::xy, Vector2(1.0f, 1.0f));
+			m_quadPrimitive = new Quad(Quad::Axis::xy, Vector2(1.0f, 1.0f));
 			m_spriteSheet = resourceManager.GetResource<Texture>(sprite);
 
 #if defined ION_RENDERER_SHADER
@@ -43,7 +43,7 @@ namespace ion
 			m_spriteSheetGridSizeX = spriteGridSizeX;
 			m_spriteSheetGridSizeY = spriteGridSizeY;
 			m_currentFrame = 0;
-			m_quadPrimitive = new Quad(Quad::xy, Vector2(1.0f, 1.0f));
+			m_quadPrimitive = new Quad(Quad::Axis::xy, Vector2(1.0f, 1.0f));
 			m_spriteSheet = sprite;
 
 #if defined ION_RENDERER_SHADER
@@ -93,7 +93,7 @@ namespace ion
 
 					Matrix4 drawMatrix;
 
-					if (m_renderType == eRender2D)
+					if (m_renderType == RenderType::Render2D)
 					{
 						Vector3 position = Vector3(GetTransform().GetTranslation().x, GetTransform().GetTranslation().y, -m_drawDepth);
 						Vector3 scale = Vector3(m_size.x, m_size.y, 1.0f);

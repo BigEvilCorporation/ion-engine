@@ -8,6 +8,7 @@
 */
 
 #include "maths/Matrix.h"
+#include "core/memory/Memory.h"
 
 namespace ion
 {
@@ -16,29 +17,43 @@ namespace ion
 		SetIdentity();
 	}
 
-	Matrix4::Matrix4(float* float16)
+	Matrix4::Matrix4(Float44& matrix44)
 	{
-		for(int i = 0; i < 16; i++)
-		{
-			m_matrix[i] = float16[i];
-		}
+		m_matrix = matrix44;
 	}
 
-	Matrix4::Matrix4(const Matrix4 & mat)
+	Matrix4::Matrix4(Float33& matrix33)
 	{
-		for(int i = 0; i < 16; i++)
-		{
-			m_matrix[i] = mat.m_matrix[i];
-		}
+		m_matrix[0] = matrix33[0];
+		m_matrix[1] = matrix33[1];
+		m_matrix[2] = matrix33[2];
+		m_matrix[3] = 0.0f;
+
+		m_matrix[4] = matrix33[3];
+		m_matrix[5] = matrix33[4];
+		m_matrix[6] = matrix33[5];
+		m_matrix[7] = 0.0f;
+
+		m_matrix[8] = matrix33[6];
+		m_matrix[9] = matrix33[7];
+		m_matrix[10] = matrix33[8];
+		m_matrix[11] = 0.0f;
+
+		m_matrix[12] = 0.0f;
+		m_matrix[13] = 0.0f;
+		m_matrix[14] = 0.0f;
+		m_matrix[15] = 1.0f;
 	}
 
-	Matrix4::Matrix4(const Vector3& position, const Vector3& up, const Vector3& forward)
+	Matrix4::Matrix4(const Matrix4& mat)
 	{
-		Vector3 axisZ = forward - position;
-		axisZ.Normalise();
+		m_matrix = mat.m_matrix;
+	}
 
-		Vector3 axisX = up.Cross(axisZ);
-		axisX.Normalise();
+	Matrix4::Matrix4(const Vector3& Position, const Vector3& up, const Vector3& forward)
+	{
+		Vector3 axisZ = (forward - Position).Normalise();
+		Vector3 axisX = up.Cross(axisZ).Normalise();
 
 		Vector3 axisY = axisZ.Cross(axisX);
 		m_matrix[0] = axisX.x;
@@ -56,9 +71,9 @@ namespace ion
 		m_matrix[10] = axisZ.z;
 		m_matrix[11] = 0;
 
-		m_matrix[12] = -axisX.Dot(position);
-		m_matrix[13] = -axisY.Dot(position);
-		m_matrix[14] = -axisZ.Dot(position);
+		m_matrix[12] = -axisX.Dot(Position);
+		m_matrix[13] = -axisY.Dot(Position);
+		m_matrix[14] = -axisZ.Dot(Position);
 		m_matrix[15] = 1.0f;
 	}
 
@@ -73,29 +88,32 @@ namespace ion
 		m_matrix[14] = -(farPlane + nearPlane) / (farPlane - nearPlane);
 	}
 
-	Matrix4::Matrix4(float aspect, float fovy, float nearPlane, float farPlane)
+	Matrix4::Matrix4(float aspect, float fov, float nearPlane, float farPlane)
 	{
-		float h = nearPlane * maths::Tan(maths::DegreesToRadians(fovy));
-		float fmn = farPlane - nearPlane;
+		float scale = maths::Tan(fov * 0.5f * maths::PI_DIV_180) * nearPlane;
+		float left = -(aspect * scale);
+		float right = (aspect * scale);
+		float top = scale;
+		float bottom = -scale;
 
-		m_matrix[0] = h * aspect;
+		m_matrix[0] = 2.0f * nearPlane / (right - left);
 		m_matrix[1] = 0.0f;
 		m_matrix[2] = 0.0f;
 		m_matrix[3] = 0.0f;
 
 		m_matrix[4] = 0.0f;
-		m_matrix[5] = h;
+		m_matrix[5] = 2.0f * nearPlane / (top - bottom);
 		m_matrix[6] = 0.0f;
 		m_matrix[7] = 0.0f;
 
-		m_matrix[8] = 0.0f;
-		m_matrix[9] = 0.0f;
-		m_matrix[10] = (farPlane + nearPlane) / fmn;
-		m_matrix[11] = 1.0f;
+		m_matrix[8] = (right + left) / (right - left);
+		m_matrix[9] = (top + bottom) / (top - bottom);
+		m_matrix[10] = -(farPlane + nearPlane) / (farPlane - nearPlane);
+		m_matrix[11] = -1.0f;
 
 		m_matrix[12] = 0.0f;
 		m_matrix[13] = 0.0f;
-		m_matrix[14] = (2 * nearPlane*farPlane) / fmn;
+		m_matrix[14] = -2.0f * farPlane * nearPlane / (farPlane - nearPlane);
 		m_matrix[15] = 0.0f;
 	}
 
@@ -199,7 +217,9 @@ namespace ion
 
 	Vector3 Matrix4::GetScale() const
 	{
-		return Vector3(GetRight().GetLength(), GetUp().GetLength(), GetForward().GetLength());
+		return Vector3(	Vector3(Get(0, 0), Get(0, 1), Get(0, 2)).GetLength(),
+						Vector3(Get(1, 0), Get(1, 1), Get(1, 2)).GetLength(),
+						Vector3(Get(2, 0), Get(2, 1), Get(2, 2)).GetLength());
 	}
 
 	Vector3 Matrix4::GetForward() const
@@ -374,7 +394,7 @@ namespace ion
 
 	Matrix4 Matrix4::operator *(float scalar) const
 	{
-		float result[16];
+		Float44 result;
 
 		for(int i = 0; i < 16; i++)
 		{
@@ -386,8 +406,8 @@ namespace ion
 
 	Matrix4 Matrix4::operator +(const Matrix4& mat) const
 	{
-		float result[16];
-		const float* input = mat.GetAsFloatArray();
+		Float44 result;
+		const Float44 input = mat.GetAsFloatArray();
 
 		for(int i = 0; i < 16; i++)
 		{
@@ -399,8 +419,8 @@ namespace ion
 
 	Matrix4 Matrix4::operator -(const Matrix4& mat) const
 	{
-		float result[16];
-		const float* input = mat.GetAsFloatArray();
+		Float44 result;
+		const Float44 input = mat.GetAsFloatArray();
 
 		for(int i = 0; i < 16; i++)
 		{
@@ -410,12 +430,12 @@ namespace ion
 		return Matrix4(result);
 	}
 
-	float * Matrix4::GetAsFloatArray()
+	Matrix4::Float44& Matrix4::GetAsFloatArray()
 	{
 		return m_matrix;
 	}
 
-	const float * Matrix4::GetAsFloatArray() const
+	const Matrix4::Float44 Matrix4::GetAsFloatArray() const
 	{
 		return m_matrix;
 	}

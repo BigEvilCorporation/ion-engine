@@ -15,8 +15,8 @@
 #pragma once
 
 #include "core/Types.h"
-#include "io/ResourceHandle.h"
-#include "io/ResourceManager.h"
+#include "resource/ResourceHandle.h"
+#include "resource/ResourceManager.h"
 #include "renderer/Colour.h"
 #include "renderer/Animation.h"
 #include "renderer/Camera.h"
@@ -36,7 +36,7 @@ namespace ion
 		class Sprite : public Entity
 		{
 		public:
-			enum RenderType { eRender2D, eRender3D };
+			enum class RenderType { Render2D, Render3D };
 
 			Sprite(RenderType renderType, const Vector2& size, float drawDepth, int spriteGridSizeX, int spriteGridSizeY, const std::string& sprite, io::ResourceManager& resourceManager);
 			Sprite(RenderType renderType, const Vector2& size, float drawDepth, int spriteGridSizeX, int spriteGridSizeY, const io::ResourceHandle<Texture>& sprite, io::ResourceManager& resourceManager);

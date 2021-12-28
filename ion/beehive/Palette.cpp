@@ -113,6 +113,12 @@ void Palette::MarkUsed(int colourIdx)
 	m_usedColours |= (1 << colourIdx);
 }
 
+void Palette::MarkUnused(int colourIdx)
+{
+	ion::debug::Assert(colourIdx < coloursPerPalette, "Palette::MarkUnused() - Out of range");
+	m_usedColours &= ~(1 << colourIdx);
+}
+
 int Palette::AddColour(const Colour& colour)
 {
 	int index = -1;
@@ -138,6 +144,13 @@ void Palette::SetColour(int colourIdx, const Colour& colour)
 	ion::debug::Assert(colourIdx < coloursPerPalette, "Palette::SetColour() - Out of range");
 	MarkUsed(colourIdx);
 	m_colours[colourIdx] = colour;
+}
+
+void Palette::InvalidateColour(int colourIdx)
+{
+	ion::debug::Assert(colourIdx < coloursPerPalette, "Palette::InvalidateColour() - Out of range");
+	MarkUnused(colourIdx);
+	m_colours[colourIdx] = Colour(0, 0, 0);
 }
 
 const Colour& Palette::GetColour(int colourIdx) const

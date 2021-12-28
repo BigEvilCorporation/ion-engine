@@ -12,7 +12,7 @@
 #include "maths/Maths.h"
 #include "maths/Vector.h"
 #include "maths/Matrix.h"
-#include "io/Archive.h"
+#include "core/io/Archive.h"
 
 namespace ion
 {
@@ -21,6 +21,8 @@ namespace ion
 	public:
 
 		float x, y, z, w;
+
+		static const Quaternion Identity;
 
 		Quaternion();
 		Quaternion(float X, float Y, float Z, float W);
@@ -39,7 +41,7 @@ namespace ion
 		void FromAxis(float radian, const Vector3& axis);
 		void FromEuler(const Vector3& euler);
 		void FromMatrix(const Matrix4& Matrix);
-		void FromLookAt(const Vector3& position, const Vector3& target, const Vector3& forward);
+		void FromLookAt(const Vector3& Position, const Vector3& target, const Vector3& forward);
 
 		Matrix4 ToMatrix() const;
 		Vector3 ToEuler() const;

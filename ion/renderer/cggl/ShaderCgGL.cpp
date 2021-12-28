@@ -12,11 +12,12 @@
 // Description:	Cg shader implementation
 ///////////////////////////////////////////////////
 
-#pragma once
+#if defined ION_RENDER_SUPPORTS_CGGL
 
 #include "core/debug/Debug.h"
-#include "io/File.h"
-#include "io/Archive.h"
+#include "core/string/String.h"
+#include "core/io/File.h"
+#include "core/io/Archive.h"
 #include "renderer/opengl/TextureOpenGL.h"
 #include "renderer/opengl/RendererOpenGL.h"
 #include "renderer/cggl/ShaderCgGL.h"
@@ -25,10 +26,11 @@ namespace ion
 {
 	namespace render
 	{
-		CGcontext ShaderManagerCgGL::sCgContext = 0;
-		int ShaderManagerCgGL::sContextRefCount = 0;
-		CGprofile ShaderManagerCgGL::sCgProfileVertex;
-		CGprofile ShaderManagerCgGL::sCgProfilePixel;
+		CGcontext ShaderManagerCgGL::s_cgContext = 0;
+		int ShaderManagerCgGL::s_contextRefCount = 0;
+		CGprofile ShaderManagerCgGL::s_cgProfileVertex;
+		CGprofile ShaderManagerCgGL::s_cgProfilePixel;
+		const std::string ShaderCgGL::s_languageName = "nvidiaCg";
 
 		ShaderManager* ShaderManager::Create()
 		{
@@ -39,51 +41,51 @@ namespace ion
 		{
 			OpenGLContextStackLock lock;
 
-			if(!sContextRefCount)
+			if(!s_contextRefCount)
 			{
 				//Set error handler
-				cgSetErrorHandler(ErrorCallback, NULL);
+				cgSetErrorHandler(CgErrorCallback, NULL);
 
-				sCgContext = cgCreateContext();
+				s_cgContext = cgCreateContext();
 
 				//Case sensitive semantics
 				cgSetSemanticCasePolicy(CG_UNCHANGED_CASE_POLICY);
 
 				//Set managed texture params (automatically binds/unbinds textures)
-				cgGLSetManageTextureParameters(sCgContext, true);
+				cgGLSetManageTextureParameters(s_cgContext, true);
 
 				//Get profiles for current GL context
-				sCgProfileVertex = cgGLGetLatestProfile(CG_GL_VERTEX);
-				sCgProfilePixel = cgGLGetLatestProfile(CG_GL_FRAGMENT);
+				s_cgProfileVertex = cgGLGetLatestProfile(CG_GL_VERTEX);
+				s_cgProfilePixel = cgGLGetLatestProfile(CG_GL_FRAGMENT);
 
 				//Set optimal options for current GL context
-				cgGLSetOptimalOptions(sCgProfileVertex);
-				cgGLSetOptimalOptions(sCgProfilePixel);
+				cgGLSetOptimalOptions(s_cgProfileVertex);
+				cgGLSetOptimalOptions(s_cgProfilePixel);
 			}
 
-			sContextRefCount++;
+			s_contextRefCount++;
 		}
 
 		ShaderManagerCgGL::~ShaderManagerCgGL()
 		{
 			OpenGLContextStackLock lock;
 
-			sContextRefCount--;
+			s_contextRefCount--;
 
-			if(!sContextRefCount)
+			if(!s_contextRefCount)
 			{
-				cgDestroyContext(sCgContext);
+				cgDestroyContext(s_cgContext);
 			}
 		}
 
-		void ShaderManagerCgGL::ErrorCallback(CGcontext context, CGerror error, void* appdata)
+		void ShaderManagerCgGL::CgErrorCallback(CGcontext context, CGerror error, void* appdata)
 		{
 			std::string errorStr = cgGetErrorString(error);
 
 			if(error == CG_COMPILER_ERROR)
 			{
 				errorStr += " : ";
-				errorStr += cgGetLastListing(sCgContext);
+				errorStr += cgGetLastListing(s_cgContext);
 			}
 
 			debug::Error(errorStr.c_str());
@@ -96,23 +98,22 @@ namespace ion
 
 		void Shader::RegisterSerialiseType(io::Archive& archive)
 		{
-			archive.RegisterPointerTypeStrict<Shader, ShaderCgGL>();
+			archive.RegisterPointerTypeStrict<Shader, ShaderCgGL>("ion::render::Shader");
 		}
 
 		ShaderCgGL::ShaderCgGL()
 		{
-			m_cgProgram = 0;
-			m_cgProgramLoaded = false;
 			m_bindCount = 0;
+			m_loaded = false;
 		}
 
 		ShaderCgGL::~ShaderCgGL()
 		{
 			OpenGLContextStackLock lock;
 
-			if(m_cgProgram)
+			for (int i = 0; i < m_cgPrograms.size(); i++)
 			{
-				cgDestroyProgram(m_cgProgram);
+				cgDestroyProgram(m_cgPrograms[i].program);
 			}
 		}
 
@@ -120,36 +121,58 @@ namespace ion
 		{
 			OpenGLContextStackLock lock;
 
-			CGprofile cgProfile;
-			if(m_programType == eVertex)
-				cgProfile = ShaderManagerCgGL::sCgProfileVertex;
-			else if(m_programType == eFragment)
-				cgProfile = ShaderManagerCgGL::sCgProfilePixel;
+			for (int i = 0; i < (int)ProgramType::COUNT; i++)
+			{
+				if (Program* program = GetProgram(ion::string::ToLower(s_languageName), (ProgramType)i))
+				{
+					CGprofile cgProfile = CG_PROFILE_UNKNOWN;
 
-			//Compile program
-			m_cgProgram = cgCreateProgram(ShaderManagerCgGL::sCgContext, CG_SOURCE, m_programCode.c_str(), cgProfile, m_entryPoint.c_str(), NULL);
+					switch ((ProgramType)i)
+					{
+					case ProgramType::Vertex:
+						cgProfile = ShaderManagerCgGL::s_cgProfileVertex;
+						break;
+					case ProgramType::Fragment:
+						cgProfile = ShaderManagerCgGL::s_cgProfilePixel;
+						break;
+					default:
+						ion::debug::Error("ShaderCgGL::Compile() - Program type unsupported");
+					}
 
-			return m_cgProgram != 0;
+					//Compile program
+					CGprogram cgProgram = cgCreateProgram(ShaderManagerCgGL::s_cgContext, CG_SOURCE, program->m_programCode.c_str(), cgProfile, program->m_entryPoint.c_str(), NULL);
+
+					if (program)
+					{
+						m_cgPrograms.push_back(NvCgProgram());
+						m_cgPrograms.back().program = cgProgram;
+						m_cgPrograms.back().profile = cgProfile;
+					}
+				}
+			}
+
+			return m_cgPrograms.size() != 0;
 		}
 
 		void ShaderCgGL::Bind()
 		{
 			if (m_bindCount == 0)
 			{
-				CGprofile cgProfile;
-				if (m_programType == eVertex)
-					cgProfile = ShaderManagerCgGL::sCgProfileVertex;
-				else if (m_programType == eFragment)
-					cgProfile = ShaderManagerCgGL::sCgProfilePixel;
-
-				if (!m_cgProgramLoaded)
+				if (!m_loaded)
 				{
-					cgGLLoadProgram(m_cgProgram);
-					m_cgProgramLoaded = true;
+					for (int i = 0; i < m_cgPrograms.size(); i++)
+					{
+						cgGLLoadProgram(m_cgPrograms[i].program);
+					}
+
+					m_loaded = true;
 				}
 
-				cgGLEnableProfile(cgProfile);
-				cgGLBindProgram(m_cgProgram);
+				for (int i = 0; i < m_cgPrograms.size(); i++)
+				{
+					cgGLEnableProfile(m_cgPrograms[i].profile);
+					cgGLBindProgram(m_cgPrograms[i].program);
+				}
 			}
 
 			m_bindCount++;
@@ -162,14 +185,14 @@ namespace ion
 
 			if (m_bindCount == 0)
 			{
-				CGprofile cgProfile;
-				if (m_programType == eVertex)
-					cgProfile = ShaderManagerCgGL::sCgProfileVertex;
-				else if (m_programType == eFragment)
-					cgProfile = ShaderManagerCgGL::sCgProfilePixel;
+				for (int i = 0; i < m_cgPrograms.size(); i++)
+				{
+					cgGLUnbindProgram(m_cgPrograms[i].profile);
+					cgGLDisableProfile(m_cgPrograms[i].profile);
+				}
 
-				cgGLUnbindProgram(cgProfile);
-				cgGLDisableProfile(cgProfile);
+				glDisable(GL_TEXTURE_2D);
+				glBindTexture(GL_TEXTURE_2D, 0);
 			}
 		}
 
@@ -177,63 +200,96 @@ namespace ion
 		{
 			ShaderParamDelegateCg* paramDelegate = NULL;
 
-			CGparameter param = cgGetNamedParameter(m_cgProgram, paramName.c_str());
-			if(param)
+			for (int i = 0; i < m_cgPrograms.size(); i++)
 			{
-				paramDelegate = new ShaderParamDelegateCg(param);
+				CGparameter param = cgGetNamedParameter(m_cgPrograms[i].program, paramName.c_str());
+				if (param)
+				{
+					if(!paramDelegate)
+						paramDelegate = new ShaderParamDelegateCg();
+
+					paramDelegate->m_cgParams.push_back(param);
+				}
 			}
 
 			return paramDelegate;
 		}
 
-		ShaderCgGL::ShaderParamDelegateCg::ShaderParamDelegateCg(CGparameter cgParam)
-		{
-			m_cgParam = cgParam;
-		}
-
 		void ShaderCgGL::ShaderParamDelegateCg::Set(const int& value)
 		{
-			cgGLSetParameter1f(m_cgParam, (float)value);
+			for (int i = 0; i < m_cgParams.size(); i++)
+			{
+				cgGLSetParameter1f(m_cgParams[i], (float)value);
+			}
 		}
 
 		void ShaderCgGL::ShaderParamDelegateCg::Set(const float& value)
 		{
-			cgGLSetParameter1f(m_cgParam, value);
+			for (int i = 0; i < m_cgParams.size(); i++)
+			{
+				cgGLSetParameter1f(m_cgParams[i], value);
+			}
 		}
 
 		void ShaderCgGL::ShaderParamDelegateCg::Set(const Vector2& value)
 		{
-			cgGLSetParameter2fv(m_cgParam, (float*)&value);
+			for (int i = 0; i < m_cgParams.size(); i++)
+			{
+				cgGLSetParameter2fv(m_cgParams[i], (float*)&value);
+			}
 		}
 
 		void ShaderCgGL::ShaderParamDelegateCg::Set(const Vector3& value)
 		{
-			cgGLSetParameter3fv(m_cgParam, (float*)&value);
+			for (int i = 0; i < m_cgParams.size(); i++)
+			{
+				cgGLSetParameter3fv(m_cgParams[i], (float*)&value);
+			}
 		}
 
 		void ShaderCgGL::ShaderParamDelegateCg::Set(const Colour& value)
 		{
-			cgGLSetParameter4fv(m_cgParam, (float*)&value);
+			for (int i = 0; i < m_cgParams.size(); i++)
+			{
+				cgGLSetParameter4fv(m_cgParams[i], (float*)&value);
+			}
 		}
 
 		void ShaderCgGL::ShaderParamDelegateCg::Set(const Matrix4& value)
 		{
-			cgSetMatrixParameterfc(m_cgParam, (float*)&value);
+			for (int i = 0; i < m_cgParams.size(); i++)
+			{
+				cgSetMatrixParameterfc(m_cgParams[i], (float*)&value);
+			}
 		}
 
 		void ShaderCgGL::ShaderParamDelegateCg::Set(const Texture& value)
 		{
-			cgGLSetTextureParameter(m_cgParam, ((TextureOpenGL&)value).GetTextureId());
+			glEnable(GL_TEXTURE_2D);
+			glBindTexture(GL_TEXTURE_2D, ((TextureOpenGL&)value).GetTextureId());
+
+			for (int i = 0; i < m_cgParams.size(); i++)
+			{
+				cgGLSetTextureParameter(m_cgParams[i], ((TextureOpenGL&)value).GetTextureId());
+			}
 		}
 
 		void ShaderCgGL::ShaderParamDelegateCg::Set(const std::vector<float>& values)
 		{
-			cgGLSetParameterArray1f(m_cgParam, 0, values.size(), values.data());
+			for (int i = 0; i < m_cgParams.size(); i++)
+			{
+				cgGLSetParameterArray1f(m_cgParams[i], 0, (long)values.size(), values.data());
+			}
 		}
 
 		void ShaderCgGL::ShaderParamDelegateCg::Set(const std::vector<Colour>& values)
 		{
-			cgGLSetParameterArray4f(m_cgParam, 0, values.size(), (float*)values.data());
+			for (int i = 0; i < m_cgParams.size(); i++)
+			{
+				cgGLSetParameterArray4f(m_cgParams[i], 0, (long)values.size(), (float*)values.data());
+			}
 		}
 	}
 }
+
+#endif // ION_RENDER_SUPPORTS_CGGL

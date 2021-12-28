@@ -14,15 +14,36 @@
 
 #include "core/debug/Debug.h"
 #include "core/memory/Memory.h"
+#include "core/string/String.h"
 #include "renderer/opengl/TextureOpenGL.h"
 #include "renderer/opengl/RendererOpenGL.h"
 #include "renderer/opengl/OpenGLExtensions.h"
 #include "renderer/sdl/SDLInclude.h"
 
+#if ION_RENDER_SUPPORTS_PNG
+#include "core/io/Stream.h"
+#include <png.h>
+#endif
+
 namespace ion
 {
 	namespace render
 	{
+#if ION_RENDER_SUPPORTS_PNG
+		void MemoryReadPNG(png_structp png_ptr, png_bytep outBytes, png_size_t byteCountToRead)
+		{
+			ion::io::MemoryStream* stream = (ion::io::MemoryStream*)png_get_io_ptr(png_ptr);
+			stream->Read(outBytes, byteCountToRead);
+		}
+
+		void ErrorHandlerPNG(png_structp png_ptr, png_const_charp message)
+		{
+			bool* readError = (bool*)png_get_error_ptr(png_ptr);
+			*readError = true;
+			ion::debug::error << "libpng error: " << message << ion::debug::end;
+		}
+#endif
+
 		Texture* Texture::Create()
 		{
 			return new TextureOpenGL();
@@ -40,7 +61,7 @@ namespace ion
 
 		void Texture::RegisterSerialiseType(io::Archive& archive)
 		{
-			archive.RegisterPointerTypeStrict<Texture, TextureOpenGL>();
+			archive.RegisterPointerTypeStrict<Texture, TextureOpenGL>("ion::render::Texture");
 		}
 
 		TextureOpenGL::TextureOpenGL()
@@ -108,18 +129,18 @@ namespace ion
 
 			if (generatePixelBuffer)
 			{
-#if defined ION_PLATFORM_WINDOWS
+#if defined ION_GL_SUPPORT_PIXEL_BUFFER_OBJECT
 				//If supported
-				const bool pboSupported =	(OpenGLExt::glMapBufferRange != nullptr)
-										&& (OpenGLExt::glGenBuffers != nullptr)
-										&& (OpenGLExt::glBufferStorage != nullptr)
-										&& (OpenGLExt::glBindBuffer != nullptr);
+				const bool pboSupported =	(opengl::extensions->glMapBufferRange != nullptr)
+										&& (opengl::extensions->glGenBuffers != nullptr)
+										&& (opengl::extensions->glBufferStorage != nullptr)
+										&& (opengl::extensions->glBindBuffer != nullptr);
 
 				if (pboSupported)
 				{
 					//Generate pixel buffer
-					debug::Assert(OpenGLExt::glGenBuffers, "Cannot create pixel buffer without glGenBuffersARB extension");
-					OpenGLExt::glGenBuffers(1, &m_glPixelBufferId);
+					debug::Assert(opengl::extensions->glGenBuffers != nullptr, "Cannot create pixel buffer without glGenBuffersARB extension");
+					opengl::extensions->glGenBuffers(1, &m_glPixelBufferId);
 				}
 #endif
 			}
@@ -136,6 +157,84 @@ namespace ion
 		bool TextureOpenGL::Load()
 		{
 			OpenGLContextStackLock lock;
+
+			//TODO: Image loaders as plugins
+
+#if ION_RENDER_SUPPORTS_PNG
+			if (ion::string::EndsWith(ion::string::ToLower(m_imageFilename), ".png"))
+			{
+				//Read file
+				ion::io::File pngFile(m_imageFilename, ion::io::File::OpenMode::Read);
+				if (pngFile.IsOpen())
+				{
+					s64 pngSize = pngFile.GetSize();
+					png_byte* pngData = new png_byte[pngSize];
+					pngFile.Read(pngData, pngSize);
+
+					//Create new PNG reader
+					bool readError = false;
+					png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, &readError, ErrorHandlerPNG, NULL);
+					png_infop info_ptr = png_create_info_struct(png_ptr);
+					if (png_ptr && info_ptr)
+					{
+						//Setup stream reader
+						ion::io::MemoryStream stream(pngData, pngSize);
+						png_set_read_fn(png_ptr, &stream, MemoryReadPNG);
+
+						//Read PNG data
+						png_read_png(png_ptr, info_ptr, PNG_TRANSFORM_STRIP_16 | PNG_TRANSFORM_PACKING | PNG_TRANSFORM_EXPAND, NULL);
+						if (!readError)
+						{
+							//Extract image metadata
+							int colourType = -1;
+							int bitsPerChannel = 0;
+							Format sourceFormat = Format::RGB;
+							png_uint_32 retval = png_get_IHDR(png_ptr, info_ptr, &m_width, &m_height, &bitsPerChannel, &colourType, NULL, NULL, NULL);
+
+							switch (colourType)
+							{
+							case PNG_COLOR_TYPE_RGB:
+								sourceFormat = Format::RGB;
+								m_bitsPerPixel = (BitsPerPixel)(bitsPerChannel * 3);
+								break;
+							case PNG_COLOR_TYPE_RGB_ALPHA:
+								sourceFormat = Format::RGBA;
+								m_bitsPerPixel = (BitsPerPixel)(bitsPerChannel * 4);
+								break;
+							}
+
+							//Alloc image data
+							u32 bytesPerRow = png_get_rowbytes(png_ptr, info_ptr);
+							u8* imageData = new u8[bytesPerRow * m_height];
+
+							//Copy data
+							png_bytepp row_pointers = png_get_rows(png_ptr, info_ptr);
+							if (row_pointers)
+							{
+								for (int i = 0; i < m_height; i++)
+								{
+									ion::memory::MemCopy(imageData + (bytesPerRow * i), row_pointers[i], bytesPerRow);
+								}
+
+								//Create OpenGL texture
+								Load(m_width, m_height, sourceFormat, Format::RGBA, m_bitsPerPixel, true, false, imageData);
+							}
+
+							delete[] imageData;
+						}
+
+						png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
+					}
+
+					delete[] pngData;
+
+					if (m_glTextureId != 0)
+					{
+						return true;
+					}
+				}
+			}
+#endif
 
 #if defined ION_RENDER_SUPPORTS_SDL2IMAGE
 			//Load image onto a new SDL surface
@@ -183,12 +282,6 @@ namespace ion
 			return m_glTextureId != 0;
 		}
 
-		bool TextureOpenGL::Load(const std::string& filename)
-		{
-			SetImageFilename(filename);
-			return Load();
-		}
-
 		bool TextureOpenGL::Load(u32 width, u32 height, Format sourceFormat, Format destFormat, BitsPerPixel bitsPerPixel, bool generateMipmaps, bool generatePixelBuffer, const u8* data)
 		{
 			OpenGLContextStackLock lock;
@@ -205,7 +298,7 @@ namespace ion
 			int glByteFormat = 0;
 			int glColourFormat = 0;
 			int pixelSize = 0;
-			GetOpenGLMode(destFormat, bitsPerPixel, m_glFormat, glByteFormat, glColourFormat, pixelSize);
+			GetOpenGLMode(sourceFormat, bitsPerPixel, m_glFormatSrc, glByteFormat, glColourFormat, pixelSize);
 			m_bitsPerPixel = bitsPerPixel;
 			m_pixelSize = pixelSize;
 
@@ -225,30 +318,31 @@ namespace ion
 				u8* temp = twiddled;
 				ConvertTwiddled(data, temp, width, 0, 0, width);
 				data = twiddled;
+				converted = true;
 			}
 #endif
-
-			//Generate mipmaps
-#if !defined ION_RENDERER_OPENGLES
-#if defined ION_RENDERER_KGL && defined ION_RENDER_SUPPORTS_GLUT
-			if(generateMipmaps)
-			{
-				gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGB, width, height, m_glFormat, 0, data);
-			}
-#else
-			glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, generateMipmaps ? GL_TRUE : GL_FALSE);
-#endif
-#endif //ION_RENDERER_OPENGLES
 
 			//Set default filters
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-#if defined ION_RENDERER_KGL
+#if !defined ION_RENDERER_KGL
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-#else
+#endif
+
+			//Generate mipmaps
+#if defined ION_RENDERER_OPENGL_ES
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, generateMipmaps ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
+#elif defined ION_RENDERER_KGL
+			//TODO
+#elif defined ION_RENDERER_FIXED
+			glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, generateMipmaps ? GL_TRUE : GL_FALSE);
+#elif defined ION_RENDERER_SHADER
+			if (generateMipmaps && opengl::extensions->glGenerateMipmap != nullptr)
+			{
+				opengl::extensions->glGenerateMipmap(GL_TEXTURE_2D);
+			}
 #endif
 
 			//Set size
@@ -256,20 +350,20 @@ namespace ion
 			m_height = height;
 
 			//Copy all pixels in surface to GL texture
-			glTexImage2D(GL_TEXTURE_2D, 0, glColourFormat, width, height, 0, m_glFormat, glByteFormat, data);
+			glTexImage2D(GL_TEXTURE_2D, 0, glColourFormat, width, height, 0, m_glFormatSrc, glByteFormat, data);
 			RendererOpenGL::CheckGLError("TextureOpenGL::Load");
 
 			if (m_glPixelBufferId)
 			{
-#if defined ION_PLATFORM_WINDOWS
+#if defined ION_GL_SUPPORT_PIXEL_BUFFER_OBJECT
 				//Bind the pixel buffer
-				OpenGLExt::glBindBuffer(GL_PIXEL_UNPACK_BUFFER_EXT, m_glPixelBufferId);
+				opengl::extensions->glBindBuffer(GL_PIXEL_UNPACK_BUFFER_EXT, m_glPixelBufferId);
 
 				//Create data container
-				OpenGLExt::glBufferStorage(GL_PIXEL_UNPACK_BUFFER_EXT, width * height * pixelSize, 0, GL_DYNAMIC_STORAGE_BIT | GL_MAP_READ_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+				opengl::extensions->glBufferStorage(GL_PIXEL_UNPACK_BUFFER_EXT, width * height * pixelSize, 0, GL_DYNAMIC_STORAGE_BIT | GL_MAP_READ_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
 
 				//Map buffer persistently
-				m_persistentBuffer = (u8*)OpenGLExt::glMapBufferRange(GL_PIXEL_UNPACK_BUFFER_EXT, 0, width * height * pixelSize, GL_MAP_READ_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+				m_persistentBuffer = (u8*)opengl::extensions->glMapBufferRange(GL_PIXEL_UNPACK_BUFFER_EXT, 0, width * height * pixelSize, GL_MAP_READ_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
 
 				//Copy pixels
 				if (data)
@@ -278,7 +372,7 @@ namespace ion
 				}
 
 				//Unbind pixel buffer
-				OpenGLExt::glBindBuffer(GL_PIXEL_UNPACK_BUFFER_EXT, 0);
+				opengl::extensions->glBindBuffer(GL_PIXEL_UNPACK_BUFFER_EXT, 0);
 
 				//Create GPU sync fence
 				m_glSyncObject = CreateFence();
@@ -309,6 +403,7 @@ namespace ion
 			if(m_glTextureId)
 			{
 				glDeleteTextures(1, &m_glTextureId);
+				RendererOpenGL::CheckGLError("TextureOpenGL::Unload");
 				m_glTextureId = 0;
 
 				//Update stats
@@ -317,19 +412,20 @@ namespace ion
 
 			if (m_glPixelBufferId)
 			{
-#if defined ION_PLATFORM_WINDOWS
+#if defined ION_GL_SUPPORT_PIXEL_BUFFER_OBJECT
 				//Destroy fence
 				DestroyFence(m_glSyncObject);
 
 				//Unmap
 #if 0
-				if (!OpenGLExt::glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER_EXT))
+				if (!opengl::extensions->glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER_EXT))
 				{
 					debug::error << "TextureOpenGL::Unload() - Could not unmap PBO" << debug::end;
 				}
 #endif
 
-				OpenGLExt::glDeleteBuffers(1, &m_glPixelBufferId);
+				opengl::extensions->glDeleteBuffers(1, &m_glPixelBufferId);
+				RendererOpenGL::CheckGLError("TextureOpenGL::Unload");
 				m_glPixelBufferId = 0;
 #endif
 			}
@@ -360,7 +456,7 @@ namespace ion
 #endif
 		}
 
-		void TextureOpenGL::SetPixels(Format sourceFormat, bool synchronised, u8* data)
+		void TextureOpenGL::SetPixels(Format sourceFormat, bool synchronised, const u8* data)
 		{
 			OpenGLContextStackLock lock;
 
@@ -370,13 +466,12 @@ namespace ion
 			GLint glColourFormat;
 			int pixelSize = 0;
 			GetOpenGLMode(sourceFormat, m_bitsPerPixel, glMode, glByteFormat, glColourFormat, pixelSize);
-			int textureSizeBytes = m_width * m_height * pixelSize;
 
 			if (m_glPixelBufferId)
 			{
-#if defined ION_PLATFORM_WINDOWS
+#if defined ION_GL_SUPPORT_PIXEL_BUFFER_OBJECT
 				//Bind pixel buffer
-				OpenGLExt::glBindBuffer(GL_PIXEL_UNPACK_BUFFER_EXT, m_glPixelBufferId);
+				opengl::extensions->glBindBuffer(GL_PIXEL_UNPACK_BUFFER_EXT, m_glPixelBufferId);
 
 				//Bind texture
 				glBindTexture(GL_TEXTURE_2D, m_glTextureId);
@@ -385,7 +480,7 @@ namespace ion
 				u8* pixelBufferData = nullptr;
 				if (synchronised)
 				{
-					pixelBufferData = (unsigned char*)OpenGLExt::glMapBuffer(GL_PIXEL_UNPACK_BUFFER_EXT, GL_WRITE_ONLY);
+					pixelBufferData = (unsigned char*)opengl::extensions->glMapBuffer(GL_PIXEL_UNPACK_BUFFER_EXT, GL_WRITE_ONLY);
 				}
 				else
 				{
@@ -403,7 +498,7 @@ namespace ion
 				glBindTexture(GL_TEXTURE_2D, 0);
 
 				//Unbind buffer
-				OpenGLExt::glBindBuffer(GL_PIXEL_UNPACK_BUFFER_EXT, 0);
+				opengl::extensions->glBindBuffer(GL_PIXEL_UNPACK_BUFFER_EXT, 0);
 #endif
 			}
 			else
@@ -422,7 +517,7 @@ namespace ion
 		{
 			OpenGLContextStackLock lock;
 
-#if !defined ION_RENDERER_KGL && !defined ION_RENDERER_OPENGLES
+#if !defined ION_RENDERER_KGL && !defined ION_RENDERER_OPENGL_ES
 			const u32 bytesPerPixel = (u32)bitsPerPixel / 8;
 			const u32 bufferSize = size.x * size.y * bytesPerPixel;
 			u8* buffer = new u8[bufferSize];
@@ -459,7 +554,7 @@ namespace ion
 
 			ion::debug::Assert(m_glPixelBufferId, "TextureOpenGL::LockPixelBuffer() - Not a PBO");
 
-#if defined ION_PLATFORM_WINDOWS
+#if defined ION_GL_SUPPORT_PIXEL_BUFFER_OBJECT
 			if (m_persistentBuffer)
 			{
 				GLint glMode;
@@ -469,7 +564,7 @@ namespace ion
 				GetOpenGLMode(Format::RGB, m_bitsPerPixel, glMode, glByteFormat, glColourFormat, pixelSize);
 
 				//Bind pixel buffer
-				OpenGLExt::glBindBuffer(GL_PIXEL_UNPACK_BUFFER_EXT, m_glPixelBufferId);
+				opengl::extensions->glBindBuffer(GL_PIXEL_UNPACK_BUFFER_EXT, m_glPixelBufferId);
 
 				//Bind texture
 				glBindTexture(GL_TEXTURE_2D, m_glTextureId);
@@ -481,14 +576,14 @@ namespace ion
 				glBindTexture(GL_TEXTURE_2D, 0);
 
 				//Unbind buffer
-				OpenGLExt::glBindBuffer(GL_PIXEL_UNPACK_BUFFER_EXT, 0);
+				opengl::extensions->glBindBuffer(GL_PIXEL_UNPACK_BUFFER_EXT, 0);
 
 				return m_persistentBuffer;
 			}
 			else
 			{
 				//Get buffer data ptr
-				return (u8*)OpenGLExt::glMapBuffer(GL_PIXEL_UNPACK_BUFFER_EXT, GL_READ_WRITE);
+				return (u8*)opengl::extensions->glMapBuffer(GL_PIXEL_UNPACK_BUFFER_EXT, GL_READ_WRITE);
 			}
 #else
 			return nullptr;
@@ -501,7 +596,7 @@ namespace ion
 
 			ion::debug::Assert(m_glPixelBufferId, "TextureOpenGL::UnlockPixelBuffer() - Not a PBO");
 
-#if defined ION_PLATFORM_WINDOWS
+#if defined ION_GL_SUPPORT_PIXEL_BUFFER_OBJECT
 			GLint glMode;
 			GLint glByteFormat;
 			GLint glColourFormat;
@@ -509,7 +604,7 @@ namespace ion
 			GetOpenGLMode(Format::RGB, m_bitsPerPixel, glMode, glByteFormat, glColourFormat, pixelSize);
 
 			//Bind pixel buffer
-			OpenGLExt::glBindBuffer(GL_PIXEL_UNPACK_BUFFER_EXT, m_glPixelBufferId);
+			opengl::extensions->glBindBuffer(GL_PIXEL_UNPACK_BUFFER_EXT, m_glPixelBufferId);
 
 			//Bind texture
 			glBindTexture(GL_TEXTURE_2D, m_glTextureId);
@@ -521,7 +616,7 @@ namespace ion
 			glBindTexture(GL_TEXTURE_2D, 0);
 
 			//Unbind buffer
-			OpenGLExt::glBindBuffer(GL_PIXEL_UNPACK_BUFFER_EXT, 0);
+			opengl::extensions->glBindBuffer(GL_PIXEL_UNPACK_BUFFER_EXT, 0);
 #endif
 		}
 
@@ -592,24 +687,24 @@ namespace ion
 			switch(wrapping)
 			{
 			case Wrapping::Clamp:
-#if defined ION_RENDERER_OPENGLES
+#if OPENGL_MAJOR_VERSION >= 4
 				wrapMode = GL_CLAMP_TO_EDGE;
 #else
 				wrapMode = GL_CLAMP;
 #endif
 				break;
 			case Wrapping::Repeat:
-#if defined ION_RENDERER_OPENGLES
+#if defined ION_PLATFORM_RASPBERRYPI
 				wrapMode = GL_MIRRORED_REPEAT;
 #else
 				wrapMode = GL_REPEAT;
 #endif
 				break;
-#if !defined ION_RENDERER_KGL
 			case Wrapping::Mirror:
+#if !defined ION_RENDERER_KGL && !defined ION_RENDERER_OPENGL_ES
 				wrapMode = GL_MIRRORED_REPEAT;
-				break;
 #endif
+				break;
 			}
 
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapMode);
@@ -628,7 +723,7 @@ namespace ion
 			m_paletteIdx = paletteIndex;
 
 			glBindTexture(GL_TEXTURE_2D, m_glTextureId);
-			glColorBank(GL_TEXTURE_2D, GL_COLOR_TABLE + paletteIndex);
+			//glColorBankEXT(GL_TEXTURE_2D, GL_COLOR_TABLE + paletteIndex);
 			glBindTexture(GL_TEXTURE_2D, 0);
 #endif
 		}
@@ -638,7 +733,7 @@ namespace ion
 		{
 			OpenGLContextStackLock lock;
 
-			return OpenGLExt::glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+			return opengl::extensions->glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 		}
 
 		void TextureOpenGL::WaitFence(GLsync& sync)
@@ -648,7 +743,7 @@ namespace ion
 			bool waiting = true;
 			while (waiting)
 			{
-				GLenum waitReturn = OpenGLExt::glClientWaitSync(sync, GL_SYNC_FLUSH_COMMANDS_BIT, 1);
+				GLenum waitReturn = opengl::extensions->glClientWaitSync(sync, GL_SYNC_FLUSH_COMMANDS_BIT, 1);
 				waiting = (waitReturn != GL_ALREADY_SIGNALED && waitReturn != GL_CONDITION_SATISFIED);
 			}
 		}
@@ -657,7 +752,7 @@ namespace ion
 		{
 			OpenGLContextStackLock lock;
 
-			OpenGLExt::glDeleteSync(fence);
+			opengl::extensions->glDeleteSync(fence);
 		}
 #endif
 
@@ -685,7 +780,7 @@ namespace ion
 			{
 				switch (format)
 				{
-#if !defined ION_RENDERER_KGL
+#if !defined ION_RENDERER_KGL && !defined ION_RENDERER_OPENGL_ES
 				case Format::R:
 					mode = GL_RED;
 					byteFormat = GL_UNSIGNED_BYTE;
@@ -705,12 +800,14 @@ namespace ion
 					pixelSize = 1;
 					break;
 #endif
+#if defined ION_RENDERER_KGL
 				case Format::RGBA_Indexed:
 					mode = GL_COLOR_INDEX;
-					byteFormat = GL_UNSIGNED_BYTE;
-					colourFormat = GL_COLOR_INDEX;
+					byteFormat = GL_UNSIGNED_BYTE_TWID_KOS;
+					colourFormat = GL_COLOR_INDEX8_EXT;
 					pixelSize = 1;
 					break;
+#endif
 				default:
 					ion::debug::Error("Unsupported texture data format");
 					break;
@@ -762,12 +859,14 @@ namespace ion
 					colourFormat = GL_RGBA;
 					pixelSize = 4;
 					break;
+#if !defined ION_RENDERER_OPENGL_ES
 				case Format::RGBA_DXT5:
 					mode = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
 					byteFormat = GL_UNSIGNED_BYTE;
 					colourFormat = GL_RGBA;
 					pixelSize = 4;
 					break;
+#endif
 #endif
 				default:
 					ion::debug::Error("Unsupported texture data format");
@@ -779,7 +878,7 @@ namespace ion
 			{
 				switch (format)
 				{
-#if !defined ION_RENDERER_KGL
+#if !defined ION_RENDERER_KGL && !defined ION_RENDERER_OPENGL_ES
 				case Format::RGB:
 					mode = GL_RGB;
 					byteFormat = GL_UNSIGNED_INT_10_10_10_2;

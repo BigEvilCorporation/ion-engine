@@ -12,8 +12,7 @@
 // Description:	Threading and synchronisation
 ///////////////////////////////////////////////////
 
-#include "core/thread/Event.h"
-#include "core/debug/Debug.h"
+#include "Event.h"
 
 namespace ion
 {
@@ -21,32 +20,20 @@ namespace ion
 	{
 		Event::Event()
 		{
-			#if defined ION_PLATFORM_WINDOWS
-			m_threadEventHndl = CreateEvent(NULL, FALSE, FALSE, NULL);
-            #else
-            debug::Error("Event::Event() - Not implemented on this platform");
-			#endif
 		}
 
 		Event::~Event()
 		{
-			#if defined ION_PLATFORM_WINDOWS
-			CloseHandle(m_threadEventHndl);
-			#endif
 		}
 
 		void Event::Signal()
 		{
-			#if defined ION_PLATFORM_WINDOWS
-			SetEvent(m_threadEventHndl);
-			#endif
+			m_impl.Signal();
 		}
 
 		void Event::Wait()
 		{
-			#if defined ION_PLATFORM_WINDOWS
-			WaitForSingleObject(m_threadEventHndl, INFINITE);
-			#endif
+			m_impl.Wait();
 		}
 	}
 }

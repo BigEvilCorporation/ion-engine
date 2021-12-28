@@ -1,5 +1,8 @@
 #include <core/Types.h>
+#include <core/thread/CriticalSection.h>
 #include <audio/Callback.h>
+
+#include <vector>
 
 namespace ion
 {
@@ -7,13 +10,14 @@ namespace ion
 	{
 		class Buffer;
 		class Source;
+		class Effect;
 
 		class Voice : public SourceCallback
 		{
 			friend class Engine;
 
 		public:
-			enum State
+			enum class State
 			{
 				Playing,
 				Paused,
@@ -26,7 +30,9 @@ namespace ion
 			virtual void Pause() = 0;
 			virtual void Resume() = 0;
 
+			virtual u32 GetQueuedBuffers() = 0;
 			virtual u32 GetBufferedBytes() = 0;
+			virtual u32 GetConsumedBytes() = 0;
 			virtual u64 GetPositionSamples() = 0;
 			virtual double GetPositionSeconds() = 0;
 
@@ -39,18 +45,35 @@ namespace ion
 			float GetVolume() const;
 			float GetPitch() const;
 
+			//Effects
+			template <typename T> T* CreateEffect();
+			void DestroyEffect(Effect& effect);
+
 		protected:
 			Voice(Source& source, bool loop);
 			virtual ~Voice();
 
-			virtual void Update() = 0;
+			virtual void Update(float deltaTime);
 
-			Source& mSource;
-			State mState;
-			bool mLoop;
+			Source& m_source;
+			State m_state;
+			bool m_loop;
 
 			float m_volume;
 			float m_pitch;
+
+			ion::thread::CriticalSection m_effectsListCritSec;
+
+			std::vector<Effect*> m_effects;
 		};
+
+		template <typename T> T* Voice::CreateEffect()
+		{
+			T* effect = new T();
+			m_effectsListCritSec.Begin();
+			m_effects.push_back(effect);
+			m_effectsListCritSec.End();
+			return effect;
+		}
 	}
 }

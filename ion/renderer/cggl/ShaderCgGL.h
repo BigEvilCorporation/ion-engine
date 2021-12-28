@@ -14,11 +14,11 @@
 
 #pragma once
 
+#if defined ION_RENDER_SUPPORTS_CGGL
+
 #include "renderer/Shader.h"
 
-#include <GL/glew.h>
-#include <Cg/cg.h>
-#include <Cg/cgGL.h>
+#include "OpenGL/OpenGLInclude.h"
 
 #include <Windows.h>
 #include <WinDef.h>
@@ -34,14 +34,14 @@ namespace ion
 			ShaderManagerCgGL();
 			virtual ~ShaderManagerCgGL();
 
-			static CGcontext sCgContext;
-			static int sContextRefCount;
+			static CGcontext s_cgContext;
+			static int s_contextRefCount;
 
-			static CGprofile sCgProfileVertex;
-			static CGprofile sCgProfilePixel;
+			static CGprofile s_cgProfileVertex;
+			static CGprofile s_cgProfilePixel;
 
 		private:
-			static void ErrorCallback(CGcontext context, CGerror error, void* appdata);
+			static void CgErrorCallback(CGcontext context, CGerror error, void* appdata);
 		};
 
 		class ShaderCgGL : public Shader
@@ -57,13 +57,13 @@ namespace ion
 			virtual void Bind();
 			virtual void Unbind();
 
+			static const std::string s_languageName;
+
 		protected:
 
 			class ShaderParamDelegateCg : public ShaderParamDelegate
 			{
 			public:
-				ShaderParamDelegateCg(CGparameter cgParam);
-
 				virtual void Set(const int& value);
 				virtual void Set(const float& value);
 				virtual void Set(const Vector2& value);
@@ -75,15 +75,22 @@ namespace ion
 				virtual void Set(const std::vector<float>& values);
 				virtual void Set(const std::vector<Colour>& values);
 
-				CGparameter m_cgParam;
+				std::vector<CGparameter> m_cgParams;
 			};
 
 			virtual ShaderParamDelegate* CreateShaderParamDelegate(const std::string& paramName);
 
-			CGprogram m_cgProgram;
-			bool m_cgProgramLoaded;
+			struct NvCgProgram
+			{
+				CGprogram program;
+				CGprofile profile;
+			};
 
+			std::vector<NvCgProgram> m_cgPrograms;
+			bool m_loaded;
 			int m_bindCount;
 		};
 	}
 }
+
+#endif // ION_RENDER_SUPPORTS_CGGL

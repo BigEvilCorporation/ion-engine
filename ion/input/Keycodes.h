@@ -7,6 +7,12 @@
 
 #pragma once
 
+#if defined ION_PLATFORM_WINDOWS
+#ifdef DELETE
+#undef DELETE
+#endif
+#endif
+
 namespace ion
 {
     namespace input

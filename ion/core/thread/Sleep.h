@@ -21,15 +21,6 @@ namespace ion
 {
 	namespace thread
 	{
-		static void Sleep(u32 milliseconds)
-		{
-			#if defined ION_PLATFORM_WINDOWS
-			::Sleep(milliseconds);
-            #elif defined ION_PLATFORM_LINUX || defined ION_PLATFORM_MACOSX
-            usleep(milliseconds * 1000);
-			#elif defined ION_PLATFORM_DREAMCAST
-			thd_sleep(milliseconds);
-			#endif
-		}
+		void Sleep(u32 milliseconds);
 	}
 }

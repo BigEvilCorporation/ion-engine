@@ -5,7 +5,7 @@
 ///////////////////////////////////////////////////////
 
 #include "PlatformConfig.h"
-#include <ion/io/Archive.h>
+#include <ion/core/io/Archive.h>
 
 void PlatformConfig::Serialise(ion::io::Archive& archive)
 {

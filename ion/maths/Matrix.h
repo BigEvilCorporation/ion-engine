@@ -11,20 +11,24 @@
 
 #include "maths/Maths.h"
 #include "maths/Vector.h"
-#include "io/Archive.h"
+#include "core/io/Archive.h"
+#include "core/containers/FixedArray.h"
 
 namespace ion
 {
 	class Matrix4
 	{
 	public:
+		typedef FixedArray<float, 16> Float44;
+		typedef FixedArray<float, 9> Float33;
 
 		Matrix4();
-		Matrix4(float* float16);
+		Matrix4(Float44& matrix44);
+		Matrix4(Float33& matrix33);
 		Matrix4(const Matrix4& mat);
-		Matrix4(const Vector3& position, const Vector3& up, const Vector3& forward);
+		Matrix4(const Vector3& Position, const Vector3& up, const Vector3& forward);
 		Matrix4(float left, float right, float bottom, float top, float nearPlane, float farPlane);
-		Matrix4(float aspect, float fovy, float nearPlane, float farPlane);
+		Matrix4(float aspect, float fov, float nearPlane, float farPlane);
 		~Matrix4();
 
 		void SetIdentity();
@@ -57,8 +61,8 @@ namespace ion
 		Matrix4 operator +(const Matrix4& mat) const;
 		Matrix4 operator -(const Matrix4& mat) const;
 
-		float* GetAsFloatArray();
-		const float* GetAsFloatArray() const;
+		Float44& GetAsFloatArray();
+		const Float44 GetAsFloatArray() const;
 		float operator[] (int index) const;
 
 		float Get(const int col, const int row) const;
@@ -70,7 +74,7 @@ namespace ion
 	protected:
 
 		//The 4x4 matrix
-		float m_matrix[16];
+		Float44 m_matrix;
 	};
 }
 

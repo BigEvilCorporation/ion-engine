@@ -10,6 +10,8 @@ namespace ion
 		class StreamDesc
 		{
 		public:
+			StreamDesc() {}
+
 			virtual DataFormat GetEncodedFormat() const = 0;
 			virtual DataFormat GetDecodedFormat() const = 0;
 

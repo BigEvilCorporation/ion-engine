@@ -7,19 +7,23 @@
 
 #include "Window.h"
 
+#include <ion/core/utils/STL.h>
 #include <ion/dependencies/imgui/imgui.h>
 
 namespace ion
 {
 	namespace gui
 	{
-		Window::Window(const std::string& title, const Vector2i& position, const Vector2i& size)
-			: Widget(position, size)
+		Window::Window(const std::string& title, const Vector2i& Position, const Vector2i& size)
+			: Widget(Position, size)
 			, m_title(title)
 		{
 			m_allowResize = true;
 			m_allowMove = true;
 			m_allowRollup = true;
+			m_allowScroll = true;
+			m_showTitle = true;
+			m_showBorder = true;
 			m_rolledUp = false;
 			m_font = nullptr;
 			m_backgroundAlpha = 1.0f;
@@ -33,6 +37,16 @@ namespace ion
 		void Window::AddWidget(Widget& widget)
 		{
 			m_widgets.push_back(&widget);
+		}
+
+		void Window::InsertWidget(Widget& widget, u32 index)
+		{
+			m_widgets.insert(m_widgets.begin() + index, &widget);
+		}
+
+		void Window::RemoveWidget(Widget& widget)
+		{
+			ion::utils::stl::FindAndRemove(m_widgets, &widget);
 		}
 
 		void Window::AllowResize(bool allow)
@@ -50,9 +64,24 @@ namespace ion
 			m_allowRollup = allow;
 		}
 
+		void Window::AllowScroll(bool allow)
+		{
+			m_allowScroll = allow;
+		}
+
 		void Window::RollUp(bool rolled)
 		{
 			m_rolledUp = rolled;
+		}
+
+		void Window::ShowTitle(bool show)
+		{
+			m_showTitle = show;
+		}
+
+		void Window::ShowBorder(bool show)
+		{
+			m_showBorder = show;
 		}
 
 		void Window::SetFont(Font& font)
@@ -87,9 +116,15 @@ namespace ion
 					flags |= ImGuiWindowFlags_NoMove;
 				if (!m_allowRollup)
 					flags |= ImGuiWindowFlags_NoCollapse;
+				if (!m_allowScroll)
+					flags |= ImGuiWindowFlags_NoScrollbar;
+				if (!m_showTitle)
+					flags |= ImGuiWindowFlags_NoTitleBar;
+				if (!m_showBorder)
+					ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 
-				//Apply initial position/size
-				ImGui::SetNextWindowSize(ImVec2(m_size.x, m_size.y), m_allowResize ? ImGuiCond_FirstUseEver : 0);
+				//Apply initial Position/size
+				ImGui::SetNextWindowSize(ImVec2((float)m_size.x, (float)m_size.y), m_allowResize ? ImGuiCond_FirstUseEver : 0);
 
 				//Apply collapse state
 				ImGui::SetNextWindowCollapsed(m_rolledUp, m_allowRollup ? ImGuiCond_FirstUseEver : 0);
@@ -101,7 +136,7 @@ namespace ion
 				}
 				else
 				{
-					ImGui::SetNextWindowPos(ImVec2(m_position.x, m_position.y), m_allowMove ? ImGuiCond_FirstUseEver : 0);
+					ImGui::SetNextWindowPos(ImVec2((float)m_position.x, (float)m_position.y), m_allowMove ? ImGuiCond_FirstUseEver : 0);
 				}
 
 				//Apply styling
@@ -116,17 +151,17 @@ namespace ion
 				//Begin window
 				ImGui::Begin(m_hashName.c_str(), NULL, flags);
 
-				//Poll new position/size
+				//Poll new Position/size
 				if (m_allowMove)
 				{
-					m_position.x = ImGui::GetWindowPos().x;
-					m_position.y = ImGui::GetWindowPos().y;
+					m_position.x = (int)ImGui::GetWindowPos().x;
+					m_position.y = (int)ImGui::GetWindowPos().y;
 				}
 
 				if (m_allowResize && !ImGui::IsWindowCollapsed())
 				{
-					m_size.x = ImGui::GetWindowWidth();
-					m_size.y = ImGui::GetWindowHeight();
+					m_size.x = (int)ImGui::GetWindowWidth();
+					m_size.y = (int)ImGui::GetWindowHeight();
 				}
 
 				if (m_allowRollup)
@@ -135,9 +170,10 @@ namespace ion
 				}
 
 				//Update widgets
-				for (int i = 0; i < m_widgets.size(); i++)
+				std::vector<ion::gui::Widget*> widgets = m_widgets;
+				for (int i = 0; i < widgets.size(); i++)
 				{
-					m_widgets[i]->Update(deltaTime);
+					widgets[i]->Update(deltaTime);
 				}
 
 				//End window
@@ -146,6 +182,11 @@ namespace ion
 				if (m_font)
 				{
 					ImGui::PopFont();
+				}
+
+				if (!m_showBorder)
+				{
+					ImGui::PopStyleVar();
 				}
 			}
 		}

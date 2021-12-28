@@ -9,117 +9,25 @@
 
 #include <core/debug/Debug.h>
 
-#if defined ION_INPUT_XINPUT
-#include "xinput/GamepadXInput.h"
-#endif
-
-#if defined ION_INPUT_SDL
-#include "sdl/GamepadSDL.h"
-#endif
-
-#if defined ION_INPUT_MAPLE
-#include "dreamcast/GamepadMaple.h"
-#endif
-
-#if defined ION_INPUT_STEAM
-#include "steam/GamepadSteam.h"
-#endif
-
 namespace ion
 {
 	namespace input
 	{
-		bool Gamepad::s_registeredControllers[s_maxControllers] = { false };
-
 		Gamepad::Gamepad()
 		{
 			m_implementation = nullptr;
 			m_deadZone = 0.2f;
 			m_outerZone = 0.9f;
-			
-			FindAndRegisterController();
 		}
 
 		Gamepad::~Gamepad()
 		{
-			UnregisterController();
+
 		}
 
-		void Gamepad::FindAndRegisterController()
+		void Gamepad::SetImplementation(GamepadImpl* implementation)
 		{
-			//Find a free, connected controller
-			m_controllerIndex = s_invalidIndex;
-
-			for(int i = 0; i < s_maxControllers && !m_implementation; i++)
-			{
-				if(!s_registeredControllers[i])
-				{
-#if defined ION_INPUT_STEAM
-					if (!m_implementation)
-					{
-						m_implementation = GamepadSteam::FindAvailableController(i);
-					}
-#endif
-
-#if defined ION_INPUT_XINPUT
-					if (!m_implementation)
-					{
-						m_implementation = GamepadXInput::FindAvailableController(i);
-					}
-#endif
-
-#if defined ION_INPUT_SDL
-					if (!m_implementation)
-					{
-						m_implementation = GamepadSDL::FindAvailableController(i);
-					}
-#endif
-
-#if defined ION_INPUT_MAPLE
-					if (!m_implementation)
-					{
-						m_implementation = GamepadMaple::FindAvailableController(i);
-					}
-#endif
-
-					if (m_implementation)
-					{
-						m_controllerIndex = i;
-						s_registeredControllers[i] = true;
-					}
-				}
-			}
-		}
-
-		void Gamepad::UnregisterController()
-		{
-			if (m_controllerIndex != s_invalidIndex)
-			{
-				delete m_implementation;
-				m_implementation = nullptr;
-				s_registeredControllers[m_controllerIndex] = false;
-				m_controllerIndex = s_invalidIndex;
-			}
-		}
-
-		void Gamepad::Update()
-		{
-			if(m_implementation)
-			{
-				//Poll input
-				m_implementation->Poll();
-
-				//If disconnected, discard implementation
-				if (!m_implementation->IsConnected())
-				{
-					UnregisterController();
-				}
-			}
-			else
-			{
-				//Search for connected controller
-				FindAndRegisterController();
-			}
+			m_implementation = implementation;
 		}
 
 		bool Gamepad::IsConnected() const
@@ -131,6 +39,18 @@ namespace ion
 			else
 			{
 				return false;
+			}
+		}
+
+		GamepadType Gamepad::GetGamepadType() const
+		{
+			if (m_implementation)
+			{
+				return m_implementation->GetGamepadType();
+			}
+			else
+			{
+				return GamepadType::Generic;
 			}
 		}
 
@@ -205,6 +125,25 @@ namespace ion
 			return !CheckButton(button) && CheckPrevButton(button);
 		}
 
+		bool Gamepad::AnyButtonDown() const
+		{
+			for (int i = 0; i < (int)GamepadButtons::COUNT; i++)
+			{
+				if (CheckButton((GamepadButtons)i))
+					return true;
+			}
+
+			return false;
+		}
+
+		bool Gamepad::AnyStickInput() const
+		{
+			Vector2 left = GetLeftStick();
+			Vector2 right = GetRightStick();
+
+			return left.GetLengthSq() != 0.0f || right.GetLengthSq() != 0.0f;
+		}
+
 		void Gamepad::SetDeadZone(float deadZone)
 		{
 			m_deadZone = deadZone;
@@ -223,6 +162,12 @@ namespace ion
 		float Gamepad::GetOuterZone() const
 		{
 			return m_outerZone;
+		}
+
+		void Gamepad::Poll()
+		{
+			if (m_implementation)
+				m_implementation->Poll();
 		}
 	}
 }

@@ -11,7 +11,7 @@
 
 #pragma once
 
-#include <io/Archive.h>
+#include <ion/core/io/Archive.h>
 #include <string>
 #include <vector>
 #include <set>
@@ -28,11 +28,13 @@
 #include "CollisionMap.h"
 #include "TerrainTile.h"
 #include "TerrainTileset.h"
+#include "TerrainStamp.h"
 #include "GameObject.h"
 
 typedef std::map<MapId, Map> TMapMap;
 typedef std::map<CollisionMapId, CollisionMap> TCollisionMapMap;
 typedef std::map<StampId, Stamp> TStampMap;
+typedef std::map<TerrainStampId, TerrainStamp> TTerrainStampMap;
 typedef std::map<ActorId, Actor> TActorMap;
 typedef std::map<AnimationId, Animation> TAnimationMap;
 typedef std::map<GameObjectTypeId, GameObjectType> TGameObjectTypeMap;
@@ -45,17 +47,17 @@ class Project
 public:
 	enum BMPImportFlags
 	{
-		eBMPImportClearPalettes			= (1 << 0),
-		eBMPImportClearTiles			= (1 << 1),
-		eBMPImportClearMap				= (1 << 2),
-		eBMPImportDrawToMap				= (1 << 3),
-		eBMPImportToStamp				= (1 << 4),
-		eBMPImportReplaceStamp			= (1 << 5),
-		eBMPImportToSpriteSheet			= (1 << 6),
-		eBMPImportWholePalette			= (1 << 7),
-		eBMPImportInsertBGTile			= (1 << 8),
-		eBMPImportOnlyExistingStamps	= (1 << 9),
-		eBMPImportNoDuplicateTileCheck	= (1 << 10),
+		eTileImportClearPalettes		= (1 << 0),
+		eTileImportClearTiles			= (1 << 1),
+		eTileImportClearMap				= (1 << 2),
+		eTileImportDrawToMap			= (1 << 3),
+		eTileImportToStamp				= (1 << 4),
+		eTileImportReplaceStamp			= (1 << 5),
+		eTileImportToSpriteSheet		= (1 << 6),
+		eTileImportWholePalette			= (1 << 7),
+		eTileImportInsertBGTile			= (1 << 8),
+		eTileImportOnlyExistingStamps	= (1 << 9),
+		eTileImportNoDuplicateTileCheck	= (1 << 10),
 	};
 
 	enum class ExportFormat
@@ -66,6 +68,20 @@ public:
 		Beehive
 	};
 
+	enum class IncludeExportFlags
+	{
+		None,
+		DebugOnly,
+		ReleaseOnly
+	};
+
+	struct IncludeFile
+	{
+		std::string label;
+		std::string filename;
+		IncludeExportFlags flags;
+	};
+
 	Project(PlatformConfig& defaultPatformConfig);
 
 	//Load/save project
@@ -74,6 +90,7 @@ public:
 
 	//Get platform config
 	const PlatformConfig& GetPlatformConfig() const { return m_platformConfig; }
+	PlatformConfig& GetPlatformConfig() { return m_platformConfig; }
 
 	//Get/set name
 	const std::string& GetName() const { return m_name; }
@@ -87,6 +104,7 @@ public:
 
 	//Maps
 	MapId CreateMap();
+	MapId CreateMap(const Map& copyFrom);
 	MapId CreateMap(MapId mapId);
 	void DeleteMap(MapId mapId);
 	Map& GetMap(MapId mapId);
@@ -104,6 +122,7 @@ public:
 
 	//Collision maps
 	CollisionMapId CreateCollisionMap(CollisionMapId collisionMapId);
+	CollisionMapId CreateCollisionMap(CollisionMapId collisionMapId, const CollisionMap& copyFrom);
 	CollisionMapId CreateCollisionMap(CollisionMapId collisionMapId, int width, int height);
 	void DeleteCollisionMap(CollisionMapId collisionMapId);
 	CollisionMap& GetCollisionMap(CollisionMapId collisionMapId);
@@ -136,8 +155,9 @@ public:
 	void SetActivePaletteSlot(PaletteId paletteId, int slotIndex);
 	void ExportPaletteSlots(const std::string& filename, ExportFormat format);
 	void ImportPaletteSlots(const std::string& filename);
-	void SetBackgroundColour(u8 colourIdx);
-	void SwapPaletteEntries(u8 colourA, u8 colourB);
+	void SetBackgroundColour(u8 paletteId, u8 colourIdx);
+	void SwapPaletteEntries(u8 paletteId, u8 colourA, u8 colourB);
+	void MergePaletteEntries(u8 paletteId, u8 mergeFromIdx, u8 mergeToIdx);
 
 	//Tiles
 	void DeleteTile(TileId tileId);
@@ -152,11 +172,13 @@ public:
 	Actor* GetActor(ActorId actorId);
 	const Actor* GetActor(ActorId actorId) const;
 	Actor* FindActor(const std::string& name);
+	ActorId FindActorId(const std::string& name) const;
+	const TActorMap& GetActors() const;
 	const TActorMap::const_iterator ActorsBegin() const;
 	const TActorMap::const_iterator ActorsEnd() const;
 	int GetActorCount() const;
 	bool ExportActors(const std::string& filename, ExportFormat format);
-	bool ImportActors(const std::string& filename);
+	bool ImportActors(const std::string& filename, bool clearExisting);
 
 	//Animations
 	AnimationId CreateAnimation();
@@ -166,6 +188,8 @@ public:
 	const TAnimationMap::const_iterator AnimationsBegin() const;
 	const TAnimationMap::const_iterator AnimationsEnd() const;
 	int GetAnimationCount() const;
+	bool ExportAnimations(const std::string& filename);
+	bool ImportAnimations(const std::string& filename, bool clearExisting);
 
 	//Stamps
 	StampId AddStamp(int width, int height);
@@ -179,18 +203,34 @@ public:
 	const TStampMap::const_iterator StampsEnd() const;
 	int GetStampCount() const;
 	int CleanupStamps();
+	int CompactStampIds();
 	void SubstituteStamp(StampId stampToReplace, StampId substitution);
 	void SortStampTilesSequentially(Stamp* stamp);
+	void SetBackgroundStamp(StampId stampId) { m_backgroundStamp = stampId; }
+	StampId GetBackgroundStamp() const { return m_backgroundStamp; }
 
-	//Collision tiles
+	//Terrain tiles
 	void DeleteTerrainTile(TerrainTileId tileId);
 	void SwapTerrainTiles(TerrainTileId tileId1, TerrainTileId tileId2);
 	void SetDefaultTerrainTile(TerrainTileId tileId);
 	TerrainTileId GetDefaultTerrainTile() const { return m_defaultTerrainTile; }
 	int CleanupTerrainTiles(bool prompt);
 
+	//Terrain stamps
+	TerrainStampId AddTerrainStamp(int width, int height);
+	TerrainStampId AddTerrainStamp(TerrainStamp* terrainStamp);
+	void DeleteTerrainStamp(TerrainStampId terrainStampId);
+	TerrainStamp* GetTerrainStamp(TerrainStampId terrainStampId);
+	const TerrainStamp* GetTerrainStamp(TerrainStampId terrainStampId) const;
+	TerrainStampId FindDuplicateTerrainStamp(TerrainStamp* terrainStamp) const;
+	const TTerrainStampMap::const_iterator TerrainStampsBegin() const;
+	const TTerrainStampMap::const_iterator TerrainStampsEnd() const;
+	int GetTerrainStampCount() const;
+	int CleanupTerrainStamps();
+
 	//Terrain generation from bezier paths
-	bool GenerateTerrainFromBeziers(int granularity);
+	bool GenerateTerrainFromBeziers();
+	bool GenerateTerrainFromBeziers_HeightsOnly(int granularity);
 
 	//Terrain generation from graphic tiles
 	void GenerateTerrain(const std::vector<ion::Vector2i>& graphicTiles);
@@ -200,9 +240,10 @@ public:
 	void RemoveGameObjectType(GameObjectTypeId typeId);
 	GameObjectType* GetGameObjectType(GameObjectTypeId typeId);
 	const GameObjectType* GetGameObjectType(GameObjectTypeId typeId) const;
+	GameObjectType* FindGameObjectType(const std::string& name);
 	const TGameObjectTypeMap& GetGameObjectTypes() const;
 	bool ExportGameObjectTypes(const std::string& filename, ExportFormat format, bool minimal);
-	bool ImportGameObjectTypes(const std::string& filename);
+	bool ImportGameObjectTypes(const std::string& filename, bool clearExisting);
 
 	//Set current colour used for editing
 	void SetPaintColour(u8 colourIdx);
@@ -225,8 +266,9 @@ public:
 	StampId GetPaintStamp() const;
 
 	//Set current game object type for placing
-	void SetPaintGameObjectType(GameObjectTypeId typeId);
+	void SetPaintGameObjectType(GameObjectTypeId typeId, GameObjectArchetypeId archetypeId = InvalidGameObjectArchetypeId);
 	GameObjectTypeId GetPaintGameObjectType() const;
+	GameObjectArchetypeId GetPaintGameObjectArchetype() const;
 
 	//Grid
 	int GetGridSize() const { return m_gridSize; }
@@ -267,6 +309,9 @@ public:
 	bool ImportBitmap(const std::string& filename, u32 importFlags, u32 paletteBits, Stamp* stamp = NULL);
 
 	//Export
+	void WriteIncludeFile(const std::string& projectDir, const std::string& exportDir, const std::string& includeFilename, const std::vector<IncludeFile>& filenames, bool generateLabel) const;
+	void WriteFileHeader(std::stringstream& stream) const;
+
 	bool ExportPalettes(const std::string& filename, ExportFormat format);
 	bool ExportTiles(const std::string& filename, ExportFormat format);
 	bool ExportStampAnims(const std::string& filename, ExportFormat format) const;
@@ -358,14 +403,55 @@ public:
 	//Project settings
 	struct Settings
 	{
-		std::string gameObjectsExternalFile;
-		std::string spriteActorsExternalFile;
+		std::string Get(const std::string& key) const
+		{
+			const std::map<std::string, std::string>::const_iterator it = settings.find(key);
+			return (it == settings.end()) ? "" :  it->second;
+		}
+
+		void Set(const std::string& key, const std::string& value)
+		{
+			settings[key] = value;
+		}
 
 		void Serialise(ion::io::Archive& archive)
 		{
-			archive.Serialise(gameObjectsExternalFile, "gameObjectsExternalFile");
-			archive.Serialise(spriteActorsExternalFile, "spriteActorsExternalFile");
+			archive.Serialise(settings, "settings");
+
+			if (archive.GetDirection() == ion::io::Archive::Direction::In)
+			{
+				//Legacy
+				std::string engineRootDir;
+				std::string projectRootDir;
+				std::string gameObjectsExternalFile;
+				std::string spriteActorsExternalFile;
+				std::string sceneExportDir;
+				std::string spritesExportDir;
+				std::string spriteAnimsExportDir;
+				std::string spritePalettesExportDir;
+
+				archive.Serialise(engineRootDir, "engineRootDir");
+				archive.Serialise(projectRootDir, "projectRootDir");
+				archive.Serialise(sceneExportDir, "sceneExportDir");
+				archive.Serialise(spritesExportDir, "spritesExportDir");
+				archive.Serialise(spriteAnimsExportDir, "spriteAnimsExportDir");
+				archive.Serialise(spritePalettesExportDir, "spritePalettesExportDir");
+				archive.Serialise(gameObjectsExternalFile, "gameObjectsExternalFile");
+				archive.Serialise(spriteActorsExternalFile, "spriteActorsExternalFile");
+
+				if (engineRootDir.size()) { settings["engineRootDir"] = engineRootDir; }
+				if (projectRootDir.size()) { settings["projectRootDir"] = projectRootDir; }
+				if (gameObjectsExternalFile.size()) { settings["gameObjectsExternalFile"] = gameObjectsExternalFile; }
+				if (spriteActorsExternalFile.size()) { settings["spriteActorsExternalFile"] = spriteActorsExternalFile; }
+				if (sceneExportDir.size()) { settings["sceneExportDir"] = sceneExportDir; }
+				if (spritesExportDir.size()) { settings["spritesExportDir"] = spritesExportDir; }
+				if (spriteAnimsExportDir.size()) { settings["spriteAnimsExportDir"] = spriteAnimsExportDir; }
+				if (spritePalettesExportDir.size()) { settings["spritePalettesExportDir"] = spritePalettesExportDir; }
+			}
 		}
+
+	private:
+		std::map<std::string, std::string> settings;
 	};
 	
 	ExportFilenames m_exportFilenames;
@@ -376,8 +462,6 @@ private:
 	bool FindPalette(Colour* pixels, u32 useablePalettes, PaletteId& paletteId, PaletteId& closestPalette, int& closestColourCount) const;
 	bool ImportPalette(Colour* pixels, Palette& palette);
 	bool MergePalettes(Palette& dest, const Palette& source);
-
-	void WriteFileHeader(std::stringstream& stream) const;
 
 	//Collapse palette slots to palettes in use
 	void CollapsePaletteSlots();
@@ -401,8 +485,12 @@ private:
 	//Tileset
 	Tileset m_tileset;
 
-	//terrain tileset
+	//Terrain tileset
 	TerrainTileset m_terrainTileset;
+
+	//Terrain stamps
+	TTerrainStampMap m_terrainStamps;
+	TerrainStampId m_nextFreeTerrainStampId;
 
 	//Map
 	TMapMap m_maps;
@@ -447,9 +535,13 @@ private:
 
 	//Game object used for placing
 	GameObjectTypeId m_paintGameObjectType;
+	GameObjectArchetypeId m_paintGameObjectArchetype;
 
-	//Background tile (replaced InvalidTileId on export)
+	//Background tile (replaces InvalidTileId on export)
 	TileId m_backgroundTile;
+
+	//Background stamp (replaces InvalidStampId on export)
+	StampId m_backgroundStamp;
 
 	//Default collision tile (replaces InvalidTerrainTileId on export)
 	TerrainTileId m_defaultTerrainTile;

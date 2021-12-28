@@ -19,23 +19,24 @@ namespace ion
 		class Mouse
 		{
 		public:
-			enum Buttons { LB, RB, MB };
-			enum CoopLevel { Background, Foreground, Exclusive };
+			enum Buttons { LB, RB, MB, Count };
+			enum class CoopLevel { Background, Foreground, Exclusive };
 
 			Mouse();
 			~Mouse();
 
 			void Update();
 
-			bool ButtonDown(Buttons button);
+			bool ButtonDown(Buttons button) const;
+			bool AnyButtonDown() const;
 
-			s32 GetDeltaX();
-			s32 GetDeltaY();
-			s32 GetAbsoluteX();
-			s32 GetAbsoluteY();
+			s32 GetDeltaX() const;
+			s32 GetDeltaY() const;
+			s32 GetAbsoluteX() const;
+			s32 GetAbsoluteY() const;
 
-			s32 GetWheelDelta();
-			s32 GetWheelAbsolute();
+			s32 GetWheelDelta() const;
+			s32 GetWheelAbsolute() const;
 
 			void ShowCursor(bool enabled);
 

@@ -20,6 +20,9 @@ namespace ion
 {
 	namespace memory
 	{
+		u8* AllocAligned(u32 alignment, u64 size);
+		void FreeAligned(u8* ptr);
+
 		void MemSet(void* address, int value, u32 size);
 		void MemCopy(void* destination, const void* source, u32 size);
 	}

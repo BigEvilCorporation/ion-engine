@@ -73,10 +73,16 @@ public:
 	Animation();
 	Animation(AnimationId animId);
 
+	AnimationId GetId() const { return m_id; }
+
 	void SetName(const std::string& name);
 	const std::string& GetName() const;
 
-	AnimationId GetId() const { return m_id; }
+	const ion::Vector2i& GetAnchor() const { return m_anchor; }
+	void SetAnchor(const ion::Vector2i& anchor) { m_anchor = anchor; }
+
+	GameObjectTypeId GetPrefabId() const { return m_prefabId; }
+	void SetPrefabId(GameObjectTypeId prefabId) { m_prefabId = prefabId; }
 
 	void AddActor(GameObjectId actorId);
 	void RemoveActor(GameObjectId actorId);
@@ -93,5 +99,7 @@ public:
 private:
 	AnimationId m_id;
 	std::string m_name;
+	ion::Vector2i m_anchor;
+	GameObjectTypeId m_prefabId;
 	TAnimActorMap m_actors;
 };

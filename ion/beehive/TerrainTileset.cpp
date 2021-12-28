@@ -87,10 +87,16 @@ void TerrainTileset::RebuildHashMap()
 
 void TerrainTileset::CalculateHash(const TerrainTile& tile, u64& hash) const
 {
+	std::vector<u8> data;
+	std::vector<s8> widths;
 	std::vector<s8> heights;
+	tile.GetWidths(widths);
 	tile.GetHeights(heights);
+	data.resize(widths.size() * heights.size());
+	data.insert(data.end(), heights.begin(), heights.end());
+	data.insert(data.end(), widths.begin(), widths.end());
 
-	hash = ion::Hash64((u8*)heights.data(), heights.size());
+	hash = ion::Hash64((u8*)data.data(), data.size());
 }
 
 TerrainTileId TerrainTileset::FindDuplicate(const TerrainTile& tile) const
@@ -170,11 +176,11 @@ void TerrainTileset::Export(ion::io::File& file) const
 
 void TerrainTileset::ExportAngles(ion::io::File& file) const
 {
-	for (int i = 0; i < m_tiles.size(); i++)
-	{
-		float angle = m_tiles[i].CalculateAngle();
-		float degrees = angle * ion::maths::RADIANS_TO_DEGREES;
-		u8 angleByte = (u8)((degrees / 360.0f) * 255.0f);
-		file.Write(&angleByte, 1);
-	}
+	//for (int i = 0; i < m_tiles.size(); i++)
+	//{
+	//	float angle = m_tiles[i].GetAngle();
+	//	float degrees = angle * ion::maths::RADIANS_TO_DEGREES;
+	//	u8 angleByte = (u8)((degrees / 360.0f) * 255.0f);
+	//	file.Write(&angleByte, 1);
+	//}
 }

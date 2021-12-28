@@ -1,8 +1,6 @@
 #include <core/debug/Debug.h>
 #include <core/memory/Memory.h>
 
-#if defined ION_PLATFORM_WINDOWS
-
 #include "FileReaderWAV.h"
 
 namespace ion
@@ -20,7 +18,7 @@ namespace ion
 
 		bool FileReaderWAV::Open()
 		{
-			if(mFile.Open(mFilename.c_str(), io::File::eOpenRead))
+			if(m_file.Open(m_filename.c_str(), io::File::OpenMode::Read))
 			{
 				//Seek to 'RIFF' chunk
 				RIFFChunk chunk;
@@ -28,7 +26,7 @@ namespace ion
 				{
 					//Read file type
 					u32 fileType = 0;
-					mFile.Read(&fileType, 4);
+					m_file.Read(&fileType, 4);
 
 					//Read file header
 					if(ReadHeader())
@@ -50,29 +48,35 @@ namespace ion
 
 		void FileReaderWAV::Close()
 		{
-			mFile.Close();
+			if(m_file.IsOpen())
+				m_file.Close();
 		}
 
 		u32 FileReaderWAV::Read(char* data, u32 bytes)
 		{
-			u32 numBlocks = bytes / mHeader.GetBlockSize();
-			u32 blockAlignedReadSize = mHeader.GetBlockSize() * numBlocks;
-			return mFile.Read(data, blockAlignedReadSize);
+			u32 numBlocks = bytes / m_header.GetBlockSize();
+			u32 blockAlignedReadSize = m_header.GetBlockSize() * numBlocks;
+			return (u32)m_file.Read(data, blockAlignedReadSize);
+		}
+
+		u32 FileReaderWAV::GetPosition()
+		{
+			return (u32)m_file.GetPosition();
 		}
 
 		void FileReaderWAV::SeekRaw(u32 byte)
 		{
-			mFile.Seek(mHeader.mDataOffset + byte);
+			m_file.Seek(m_header.m_dataOffset + byte, ion::io::SeekMode::Start);
 		}
 
 		void FileReaderWAV::SeekSample(u32 sample)
 		{
-			SeekRaw(sample * (mHeader.GetBitsPerSample() / 8) * mHeader.GetNumChannels());
+			SeekRaw(sample * (m_header.GetBitsPerSample() / 8) * m_header.GetNumChannels());
 		}
 
 		void FileReaderWAV::SeekTime(float time)
 		{
-			SeekSample(time * mHeader.GetSampleRate());
+			SeekSample((u32)(time * m_header.GetSampleRate()));
 		}
 
 		bool FileReaderWAV::ReadHeader()
@@ -82,21 +86,21 @@ namespace ion
 			if(SeekChunk(MakeFourCC("fmt "), chunk))
 			{
 				//Read WAVEFORMATEX
-				debug::Assert(chunk.chunkSize <= sizeof(mHeader.mMSWAVHeader), "FileReaderWAV::ReadHeader() - Bad chunk size");
-				memory::MemSet(&mHeader.mMSWAVHeader, 0, sizeof(mHeader.mMSWAVHeader));
-				mFile.Read(&mHeader.mMSWAVHeader, chunk.chunkSize);
+				debug::Assert(chunk.chunkSize <= sizeof(m_header.m_waveHeader), "FileReaderWAV::ReadHeader() - Bad chunk size");
+				memory::MemSet(&m_header.m_waveHeader, 0, sizeof(m_header.m_waveHeader));
+				m_file.Read(&m_header.m_waveHeader, chunk.chunkSize);
 
 				//Endian flip
-				EndianFlipHeader(mHeader);
+				EndianFlipHeader(m_header);
 
 				//Seek to 'DATA' chunk
 				if(SeekChunk(MakeFourCC("data"), chunk))
 				{
 					//Set size
-					mHeader.mSize = chunk.chunkSize;
+					m_header.m_size = chunk.chunkSize;
 
 					//Set offset
-					mHeader.mDataOffset = mFile.GetPosition();
+					m_header.m_dataOffset = (u32)m_file.GetPosition();
 				}
 
 				return true;
@@ -111,14 +115,14 @@ namespace ion
 			bool endOfFile = false;
 			while(!found)
 			{
-				mFile.Read(&chunk, sizeof(RIFFChunk));
+				m_file.Read(&chunk, sizeof(RIFFChunk));
 				if(chunk.chunkId == fourCC)
 				{
 					found = true;
 				}
 				else
 				{
-					endOfFile = (mFile.Seek(chunk.chunkSize) == (mFile.GetSize() - 1));
+					endOfFile = (m_file.Seek(chunk.chunkSize) == (m_file.GetSize() - 1));
 				}
 			}
 
@@ -136,6 +140,3 @@ namespace ion
 		}
 	}
 }
-
-#endif
-

@@ -18,6 +18,8 @@
 #include "maths/Vector.h"
 #include "renderer/Types.h"
 
+#include <functional>
+
 namespace ion
 {
 	namespace render
@@ -35,6 +37,8 @@ namespace ion
 		public:
 			static Window* Create(const std::string& title, u32 clientAreaWidth, u32 clientAreaHeight, bool fullscreen);
 
+			typedef std::function<void(int displayIdx, const ion::Vector2i& resolution)> OnDisplayChanged;
+
 			Window(const std::string& title, u32 clientAreaWidth, u32 clientAreaHeight, bool fullscreen);
 			virtual ~Window() {}
 
@@ -51,6 +55,7 @@ namespace ion
 
 			virtual int GetDisplays(std::vector<Display>& displays) const = 0;
 			virtual int GetSupportedResolutions(std::vector<Vector2i>& resolutions, int displayIdx) const = 0;
+			virtual void RegisterDisplayChangedCallback(OnDisplayChanged const& onDisplayChanged) {}
 
 			float GetAspectRatio() const;
 

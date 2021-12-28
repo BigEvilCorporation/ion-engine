@@ -13,10 +13,13 @@
 
 #include "Tile.h"
 #include "Tileset.h"
+#include "TerrainTile.h"
 
 #include "Actor.h"
 #include "SpriteSheet.h"
 #include "SpriteAnimation.h"
+
+#include <ion/gamekit/Bezier.h>
 
 typedef u32 StampId;
 static const StampId InvalidStampId = 0;
@@ -33,6 +36,11 @@ class Project;
 class Stamp
 {
 public:
+	typedef u16 TTerrainTileDesc;
+
+	static const u16 s_collisionTileFlagMask = eCollisionTileFlagAll;
+	static const u16 s_collisionTileTerrainIdMask = eCollisionTileFlagNone;
+
 	Stamp();
 	Stamp(StampId stampId, const Stamp& rhs);
 	Stamp(StampId stampId, int width, int height);
@@ -40,15 +48,39 @@ public:
 	StampId GetId() const;
 	int GetWidth() const;
 	int GetHeight() const;
+	int GetNumTerrainLayers() const;
 
 	void Resize(int w, int h, bool shiftRight, bool shiftDown);
+	void SetNumTerrainLayers(int numLayers);
 
+	//Graphics tiles
 	void SetTile(int x, int y, TileId tile);
 	TileId GetTile(int x, int y) const;
 	int GetTileIndex(TileId tileId) const;
-
 	void SetTileFlags(int x, int y, u32 flags);
 	u32 GetTileFlags(int x, int y) const;
+
+	//Collision/terrain tiles
+	void SetTerrainTile(int x, int y, TerrainTileId tile, int layer = 0);
+	TerrainTileId GetTerrainTile(int x, int y, int layer = 0) const;
+	void SetCollisionTileFlags(int x, int y, u16 flags, int layer = 0);
+	u16 GetCollisionTileFlags(int x, int y, int layer = 0) const;
+
+	//Collision beziers
+	ion::gamekit::BezierPath* AddTerrainBezier();
+	void AddTerrainBezier(const ion::gamekit::BezierPath& bezier);
+	ion::gamekit::BezierPath* GetTerrainBezier(u32 index);
+	const ion::gamekit::BezierPath* GetTerrainBezier(u32 index) const;
+	const ion::gamekit::BezierPath* FindTerrainBezier(int x, int y, ion::Vector2i& topLeft) const;
+	int FindTerrainBeziers(int x, int y, int width, int height, std::vector<const ion::gamekit::BezierPath*>& beziers) const;
+	void SetTerrainBezierFlags(u32 index, u16 flags);
+	u16 GetTerrainBezierFlags(u32 index) const;
+	void SetTerrainBezierLayer(u32 index, u8 layer);
+	u8 GetTerrainBezierLayer(u32 index) const;
+	void SetTerrainBezierGenerateWidth(u32 index, bool generateWidth);
+	bool GetTerrainBezierGenerateWidth(u32 index) const;
+	void RemoveTerrainBezier(u32 index);
+	int GetNumTerrainBeziers() const;
 
 	void SetName(const std::string& name);
 	const std::string& GetName() const;
@@ -94,6 +126,7 @@ private:
 	struct TileDesc
 	{
 		TileDesc() { m_id = 0; m_flags = 0; }
+		TileDesc(TileId tileId) { m_id = tileId; m_flags = 0; }
 
 		void Serialise(ion::io::Archive& archive)
 		{
@@ -105,6 +138,24 @@ private:
 		u32 m_flags;
 	};
 
+	struct TerrainBezier
+	{
+		ion::gamekit::BezierPath bezier;
+		u16 terrainFlags;
+		u8 layer;
+		bool generateWidthData;
+
+		void Serialise(ion::io::Archive& archive)
+		{
+			archive.Serialise(bezier, "bezier");
+			archive.Serialise(terrainFlags, "flags");
+			archive.Serialise(layer, "layer");
+			archive.Serialise(generateWidthData, "generateWidthData");
+		}
+	};
+
 	std::vector<TileDesc> m_tiles;
+	std::vector<std::vector<TerrainTileId>> m_terrainLayers;
+	std::vector<TerrainBezier> m_terrainBeziers;
 	TStampAnimSheetMap m_stampAnimSheets;
 };

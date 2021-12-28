@@ -5,6 +5,8 @@
 // Description:	Scene node
 ///////////////////////////////////////////////////
 
+#if 0
+
 #pragma once
 
 #include "renderer/Entity.h"
@@ -37,3 +39,5 @@ namespace ion
 		};
 	}
 }
+
+#endif

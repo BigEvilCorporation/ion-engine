@@ -76,6 +76,32 @@ SpriteSheet* Actor::FindSpriteSheet(const std::string& name)
 	return NULL;
 }
 
+const SpriteSheet* Actor::FindSpriteSheet(const std::string& name) const
+{
+	for (TSpriteSheetMap::const_iterator it = m_spriteSheets.begin(), end = m_spriteSheets.end(); it != end; ++it)
+	{
+		if (ion::string::CompareNoCase(it->second.GetName(), name))
+		{
+			return &it->second;
+		}
+	}
+
+	return NULL;
+}
+
+SpriteSheetId Actor::FindSpriteSheetId(const std::string& name) const
+{
+	for (TSpriteSheetMap::const_iterator it = m_spriteSheets.begin(), end = m_spriteSheets.end(); it != end; ++it)
+	{
+		if (ion::string::CompareNoCase(it->second.GetName(), name))
+		{
+			return it->first;
+		}
+	}
+
+	return InvalidSpriteSheetId;
+}
+
 const TSpriteSheetMap::const_iterator Actor::SpriteSheetsBegin() const
 {
 	return m_spriteSheets.begin();
@@ -135,10 +161,7 @@ void Actor::Serialise(ion::io::Archive& archive)
 
 void Actor::ExportSpriteSheets(const PlatformConfig& config, std::stringstream& stream)
 {
-	u32 tileIndex = 0;
-	u32 frameIndex = 0;
-
-	stream << "actor_" << m_name << ":" << std::endl << std::endl;
+#if defined BEEHIVE_PLUGIN_LUMINARY
 
 	//Calc largest frame size
 	int largestWidthTiles = 0;
@@ -162,50 +185,76 @@ void Actor::ExportSpriteSheets(const PlatformConfig& config, std::stringstream& 
 			largestHeightTiles = vramHeightTiles;
 	}
 
-	stream << "actor_" << m_name << "_VRAM_size_b\t\tequ 0x" << HEX2(largestWidthTiles * largestHeightTiles * 32) << "\t; VRAM size to alloc (size of largest frame, bytes)" << std::endl;
-	stream << std::endl;
-
 	//Export sprite sheet structures
 	for (TSpriteSheetMap::iterator it = m_spriteSheets.begin(), end = m_spriteSheets.end(); it != end; ++it)
 	{
-		//	SpriteSheet_TileDataAddr			rs.l 1; Base address of tile data
-		//	SpriteSheet_DimensionsArrAddr		rs.l 1; Address of VDP dimentions per subsprite array
-		//	SpriteSheet_SubspriteOffsetArrAddr	rs.l 1; Address of position offsets per subsprite array
-		//	SpriteSheet_PaletteAddr				rs.l 1; Address of palette
-		//	SpriteSheet_WidthHeightTiles		rs.w 1; Sprite object width / height in tiles(0xWWHH)
-		//	SpriteSheet_SizeBytes				rs.w 1; VRAM size(bytes)
-		//	SpriteSheet_SizeTiles				rs.w 1; Sprite object single frame size in tiles
-		//	SpriteSheet_SizeSubsprites			rs.b 1; Sprite object single frame size in subsprites
-		//	SpriteSheet_PaletteId				rs.b 1; Palette ID
-		//	SpriteSheet_Priority				rs.b 1; Sprite draw priority(0 / 1)
-
 		std::stringstream label;
 		label << "actor_" << m_name << "_sheet_" << it->second.GetName();
 
-		stream << ";==============================================================" << std::endl;
-		stream << "; Actor: " << m_name << " Sprite: " << it->second.GetName() << std::endl;
-		stream << ";==============================================================" << std::endl;
-
-		stream << "actor_" << m_name << "_sprite_" << it->second.GetName() << ":" << std::endl;
-		stream << "\tdc.l spritesheet_" << m_name << "_" << it->second.GetName() << std::endl;
-		stream << "\tdc.l actor_" << m_name << "_sheet_" << it->second.GetName() << "_frame_0_subsprite_dimensions_bits" << std::endl;
-		stream << "\tdc.l actor_" << m_name << "_sheet_" << it->second.GetName() << "_frame_0_subsprite_pos_offsets" << std::endl;
-		stream << "\tdc.l palette_" << m_name << std::endl;
-		stream << "\tdc.w (actor_" << m_name << "_sheet_" << it->second.GetName() << "_width<<8)|"
-			<< "actor_" << m_name << "_sheet_" << it->second.GetName() << "_height" << std::endl;
-		stream << "\tdc.w actor_" << m_name << "_VRAM_size_b" << std::endl;
-		stream << "\tdc.w actor_" << m_name << "_sheet_" << it->second.GetName() << "_frame_0_size_t" << std::endl;
-		stream << "\tdc.w actor_" << m_name << "_sheet_" << it->second.GetName() << "_frame_0_size_subsprites" << std::endl;
-		stream << "\tdc.b 0x0" << std::endl;
-		stream << "\tdc.b 0x0" << std::endl;
-		stream << ";==============================================================" << std::endl;
-
+		stream << "actor_" << m_name << "_spritesheet_" << it->second.GetName() << ":" << std::endl;
+		stream << "\tdc.l actor_" << m_name << "_sheet_" << it->second.GetName() << "_frame_0_header\t; SpriteSheet_FirstFrame" << std::endl;
+		stream << "\tdc.w 0x" << HEX2(largestWidthTiles * largestHeightTiles) << "\t; SpriteSheet_VRAMSizeTiles" << std::endl;
 		stream << std::endl;
 	}
 
-	//Export sprite sheet size headers
-	for(TSpriteSheetMap::iterator it = m_spriteSheets.begin(), end = m_spriteSheets.end(); it != end; ++it)
+	//Export frame size/offsets tables
+	for(TSpriteSheetMap::const_iterator it = m_spriteSheets.begin(), end = m_spriteSheets.end(); it != end; ++it)
 	{
+		it->second.ExportSpriteFrameOffsetsTable(config, stream, m_name);
+	}
+
+	//Export sprite frame dimension tables
+	for(TSpriteSheetMap::const_iterator it = m_spriteSheets.begin(), end = m_spriteSheets.end(); it != end; ++it)
+	{
+		it->second.ExportSpriteFrameDimensions(config, stream, m_name);
+	}
+
+	stream << "spritesheets_" << m_name << "_tiledata:" << std::endl << std::endl;
+
+	//Export sprite sheet tile data
+	for(TSpriteSheetMap::const_iterator it = m_spriteSheets.begin(), end = m_spriteSheets.end(); it != end; ++it)
+	{
+		std::stringstream label;
+		label << "actor_" << m_name << "_sheet_" << it->second.GetName() << "_tiledata";
+
+		stream << label.str() << ":" << std::endl << std::endl;
+
+		it->second.ExportSpriteTiles(config, stream, m_name);
+
+		stream << std::endl << std::endl;
+	}
+
+#else
+
+	u32 tileIndex = 0;
+	u32 frameIndex = 0;
+
+	stream << "actor_" << m_name << ":" << std::endl << std::endl;
+
+	//Calc largest frame size
+	int largestWidthTiles = 0;
+	int largestHeightTiles = 0;
+
+	for (TSpriteSheetMap::iterator it = m_spriteSheets.begin(), end = m_spriteSheets.end(); it != end; ++it)
+	{
+		u32 vramWidthTiles = it->second.GetMaxWidthTiles(config.tileWidth);
+		u32 vramHeightTiles = it->second.GetMaxHeightTiles(config.tileHeight);
+
+		if (vramWidthTiles > largestWidthTiles)
+			largestWidthTiles = vramWidthTiles;
+
+		if (vramHeightTiles > largestHeightTiles)
+			largestHeightTiles = vramHeightTiles;
+	}
+
+	stream << "actor_" << m_name << "_VRAM_size_b\t\tequ 0x" << HEX2(largestWidthTiles * largestHeightTiles * 32) << "\t; VRAM size to alloc (size of largest frame, bytes)" << std::endl;
+
+	//Export sprite sheet size headers
+	for (TSpriteSheetMap::iterator it = m_spriteSheets.begin(), end = m_spriteSheets.end(); it != end; ++it)
+	{
+		//Crop all sprites
+		it->second.CropAllFrames(config.tileWidth, config.tileHeight);
+
 		u32 widthTiles = it->second.GetWidthTiles();
 		u32 heightTiles = it->second.GetHeightTiles();
 
@@ -223,13 +272,13 @@ void Actor::ExportSpriteSheets(const PlatformConfig& config, std::stringstream& 
 	}
 
 	//Export frame size/offsets tables
-	for(TSpriteSheetMap::const_iterator it = m_spriteSheets.begin(), end = m_spriteSheets.end(); it != end; ++it)
+	for (TSpriteSheetMap::const_iterator it = m_spriteSheets.begin(), end = m_spriteSheets.end(); it != end; ++it)
 	{
 		it->second.ExportSpriteFrameOffsetsTable(config, stream, m_name);
 	}
 
 	//Export sprite frame dimension tables
-	for(TSpriteSheetMap::const_iterator it = m_spriteSheets.begin(), end = m_spriteSheets.end(); it != end; ++it)
+	for (TSpriteSheetMap::const_iterator it = m_spriteSheets.begin(), end = m_spriteSheets.end(); it != end; ++it)
 	{
 		it->second.ExportSpriteFrameDimensions(config, stream, m_name);
 	}
@@ -237,7 +286,7 @@ void Actor::ExportSpriteSheets(const PlatformConfig& config, std::stringstream& 
 	stream << "spritesheets_" << m_name << ":" << std::endl << std::endl;
 
 	//Export sprite sheet tile data
-	for(TSpriteSheetMap::const_iterator it = m_spriteSheets.begin(), end = m_spriteSheets.end(); it != end; ++it)
+	for (TSpriteSheetMap::const_iterator it = m_spriteSheets.begin(), end = m_spriteSheets.end(); it != end; ++it)
 	{
 		std::stringstream label;
 		label << "spritesheet_" << m_name << "_" << it->second.GetName();
@@ -248,6 +297,8 @@ void Actor::ExportSpriteSheets(const PlatformConfig& config, std::stringstream& 
 
 		stream << std::endl << std::endl;
 	}
+
+#endif // BEEHIVE_PLUGIN_LUMINARY
 }
 
 void Actor::ExportSpriteSheets(const PlatformConfig& config, ion::io::File& file) const

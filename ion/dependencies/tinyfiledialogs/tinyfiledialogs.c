@@ -326,7 +326,7 @@ static void replaceSubStr ( char const * const aSource ,
 	char const * pOccurence ;
 	char const * p ;
 	char const * lNewSubStr = "" ;
-	int lOldSubLen = strlen ( aOldSubStr ) ;
+	int lOldSubLen = (int)strlen ( aOldSubStr ) ;
 	
 	if ( ! aSource )
 	{
@@ -396,7 +396,7 @@ static char const * ensureFilesExist( char * const aDestination ,
 	{
 		return NULL ;
 	}
-	lLen = strlen( aSourcePathsAndNames ) ;
+	lLen = (int)strlen( aSourcePathsAndNames ) ;
 	if ( ! lLen )
 	{
 		return NULL ;
@@ -405,7 +405,7 @@ static char const * ensureFilesExist( char * const aDestination ,
 	p = aSourcePathsAndNames ;
 	while ( (p2 = strchr(p, '|')) != NULL )
 	{
-		lLen = p2-p ;		
+		lLen = (int)(p2-p) ;
 		memmove(lDestination,p,lLen);
 		lDestination[lLen] = '\0';
 		if ( fileExists ( lDestination ) )
@@ -418,7 +418,7 @@ static char const * ensureFilesExist( char * const aDestination ,
 	}
 	if ( fileExists ( p ) )
 	{
-		lLen = strlen(p) ;		
+		lLen = (int)strlen(p) ;
 		memmove(lDestination,p,lLen);
 		lDestination[lLen] = '\0';
 	}
@@ -674,7 +674,7 @@ static void runSilentA(char const * const aString)
 
 	if ( aString )
 	{
-		lStringLen = strlen(aString);
+		lStringLen = (int)strlen(aString);
 	}
 	lArgs = (char *) malloc( MAX_PATH_OR_CMD + lStringLen );
 
@@ -731,7 +731,7 @@ static void runSilentW(wchar_t const * const aString)
 
 	if ( aString )
 	{
-		lStringLen = wcslen(aString);
+		lStringLen = (int)wcslen(aString);
 	}
 	lArgs = (wchar_t *) malloc( (MAX_PATH_OR_CMD + lStringLen) * sizeof(wchar_t) );
 
@@ -881,8 +881,8 @@ static char const * inputBoxWinGui(
 	int lMessageLen;
 	wchar_t * lDialogStringW;
 
-	lTitleLen =  aTitle ? strlen(aTitle) : 0 ;
-	lMessageLen =  aMessage ? strlen(aMessage) : 0 ;
+	lTitleLen =  aTitle ? (int)strlen(aTitle) : 0 ;
+	lMessageLen =  aMessage ? (int)strlen(aMessage) : 0 ;
 	lDialogString = (char *)malloc(3 * MAX_PATH_OR_CMD + lTitleLen + lMessageLen);
 
 	if (aDefaultInput)

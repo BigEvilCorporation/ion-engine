@@ -23,55 +23,8 @@ namespace ion
 {
 	namespace time
 	{
-		u64 GetSystemTicks()
-		{
-#if defined ION_PLATFORM_WINDOWS
-			LARGE_INTEGER ticks;
-			if (!QueryPerformanceCounter(&ticks))
-			{
-				debug::Error("ion::time::GetSystemTicks() - QueryPerformanceCounter() failed");
-			}
-			return (u64)ticks.QuadPart;
-#elif defined ION_PLATFORM_MACOSX
-			timeval time;
-			gettimeofday(&time, NULL);
-			return (time.tv_sec * 1000000) + time.tv_usec;
-#elif defined ION_PLATFORM_LINUX
-			timeval time;
-			gettimeofday(&time, NULL);
-			return (time.tv_sec * 1000000) + time.tv_usec;
-#elif defined ION_PLATFORM_RASPBERRYPI
-			timeval time;
-			gettimeofday(&time, NULL);
-			return (time.tv_sec * 1000000) + time.tv_usec;
-#elif defined ION_PLATFORM_DREAMCAST
-			return timer_us_gettime64();
-#endif
-		}
-
-		double TicksToSeconds(u64 ticks)
-		{
-#if defined ION_PLATFORM_WINDOWS
-			static double timerFrequency = 0.0;
-
-			if(timerFrequency == 0)
-			{
-				LARGE_INTEGER freq = {0};
-				QueryPerformanceFrequency(&freq);
-				timerFrequency = (double)freq.QuadPart;
-			}
-
-			return (double)ticks / timerFrequency;
-#elif defined ION_PLATFORM_MACOSX
-			return (double)ticks / 1000000.0f;
-#elif defined ION_PLATFORM_LINUX
-			return (double)ticks / 1000000.0f;
-#elif defined ION_PLATFORM_RASPBERRYPI
-			return (double)ticks / 1000000.0f;
-#elif defined ION_PLATFORM_DREAMCAST
-			return (double)ticks / 1000000.0f;
-#endif
-		}
+		u64 GetSystemTicks();
+		double TicksToSeconds(u64 ticks);
 
 		TimeStamp::TimeStamp()
 		{

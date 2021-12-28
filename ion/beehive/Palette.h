@@ -15,7 +15,7 @@
 #include <iomanip>
 #include <vector>
 #include <core/Types.h>
-#include <io/Archive.h>
+#include <ion/core/io/Archive.h>
 #include <renderer/Colour.h>
 
 struct Colour
@@ -63,6 +63,7 @@ public:
 
 	int AddColour(const Colour& colour);
 	void SetColour(int colourIdx, const Colour& colour);
+	void InvalidateColour(int colourIdx);
 	bool IsColourUsed(int colourIdx) const;
 	u16 GetUsedColourMask() const;
 
@@ -74,6 +75,7 @@ public:
 
 private:
 	void MarkUsed(int colourIdx);
+	void MarkUnused(int colourIdx);
 
 	std::vector<Colour> m_colours;
 	u16 m_usedColours;

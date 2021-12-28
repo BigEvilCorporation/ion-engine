@@ -5,6 +5,8 @@
 // Description:	Skeletal animation
 ///////////////////////////////////////////////////
 
+#if 0
+
 #include "renderer/Skeleton.h"
 #include "renderer/Mesh.h"
 #include "core/Debug.h"
@@ -244,3 +246,5 @@ namespace ion
 		}
 	}
 }
+
+#endif

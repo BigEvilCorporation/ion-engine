@@ -9,7 +9,7 @@
 // File:		UUID.h
 // Date:		2nd May 2016
 // Authors:		Matt Phillips
-// Description:	Uinique Identifier generation
+// Description:	Unique Identifier generation
 ///////////////////////////////////////////////////
 
 #pragma once

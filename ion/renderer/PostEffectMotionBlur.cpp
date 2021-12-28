@@ -5,6 +5,8 @@
 // Description:	Motion blur post effect
 ///////////////////////////////////////////////////
 
+#if 0
+
 #include "PostEffectMotionBlur.h"
 
 #if defined ION_RENDERER_OGRE3D
@@ -87,3 +89,5 @@ namespace ion
 		}
 	}
 }
+
+#endif

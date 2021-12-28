@@ -5,6 +5,8 @@
 // Description:	Skeletal animation
 ///////////////////////////////////////////////////
 
+#if 0
+
 #pragma once
 
 #include "core/Types.h"
@@ -134,3 +136,5 @@ namespace ion
 		};
 	}
 }
+
+#endif

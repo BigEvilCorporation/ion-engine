@@ -25,9 +25,9 @@ namespace ion
 			m_previousFrame = 0.0f;
 			m_playbackSpeed = 1.0f;
 
-			m_state = eStopped;
-			m_playbackBehaviour = eLoop;
-			m_playbackDirection = eForwards;
+			m_state = State::Stopped;
+			m_playbackBehaviour = PlaybackBehaviour::Loop;
+			m_playbackDirection = PlaybackDirection::Forwards;
 		}
 
 		Animation::~Animation()
@@ -36,12 +36,12 @@ namespace ion
 
 		void Animation::Update(float deltaTime)
 		{
-			if(m_state == ePlaying)
+			if(m_state == State::Playing)
 			{
 				//Cache previous frame
 				m_previousFrame = m_currentFrame;
 
-				if(m_playbackDirection == eForwards)
+				if(m_playbackDirection == PlaybackDirection::Forwards)
 				{
 					//Advance animation forwards
 					m_currentFrame += deltaTime * m_playbackSpeed;
@@ -49,7 +49,7 @@ namespace ion
 					//If gone past the length
 					if(m_currentFrame > m_length)
 					{
-						if(m_playbackBehaviour == eLoop)
+						if(m_playbackBehaviour == PlaybackBehaviour::Loop)
 						{
 							//Apply the final frame then loop
 							ApplyFrame(m_length);
@@ -63,7 +63,7 @@ namespace ion
 							m_currentFrame = m_length - 1.0f;
 
 							//Finished
-							SetState(eStopped);
+							SetState(State::Stopped);
 						}
 					}
 				}
@@ -75,7 +75,7 @@ namespace ion
 					//If gone past the start
 					if(m_currentFrame < 0.0f)
 					{
-						if(m_playbackBehaviour == eLoop)
+						if(m_playbackBehaviour == PlaybackBehaviour::Loop)
 						{
 							//Apply the first frame then loop
 							ApplyFrame(0.0f);
@@ -89,7 +89,7 @@ namespace ion
 							m_currentFrame = 0.0f;
 
 							//Finished
-							SetState(eStopped);
+							SetState(State::Stopped);
 						}
 					}
 				}
@@ -139,12 +139,12 @@ namespace ion
 			ApplyFrame(m_currentFrame);
 		}
 
-		void Animation::SetState(AnimationState state)
+		void Animation::SetState(State state)
 		{
 			m_state = state;
 		}
 
-		Animation::AnimationState Animation::GetState() const
+		Animation::State Animation::GetState() const
 		{
 			return m_state;
 		}

@@ -17,6 +17,20 @@
 #include "core/Platform.h"
 #include "core/Types.h"
 
+#if defined ION_PLATFORM_WINDOWS
+#include "core/platform/windows/thread/CriticalSectionWindows.h"
+#elif defined ION_PLATFORM_LINUX
+#include "core/platform/linux/thread/CriticalSectionLinux.h"
+#elif defined ION_PLATFORM_MACOSX
+#include "core/platform/macosx/thread/CriticalSectionMacOSX.h"
+#elif defined ION_PLATFORM_DREAMCAST
+#include "core/platform/dreamcast/thread/CriticalSectionDreamcast.h"
+#elif defined ION_PLATFORM_SWITCH
+#include "core/platform/nx/thread/CriticalSectionSwitch.h"
+#elif defined ION_PLATFORM_ANDROID
+#include "core/platform/android/thread/CriticalSectionAndroid.h"
+#endif
+
 namespace ion
 {
 	namespace thread
@@ -32,11 +46,7 @@ namespace ion
 			void End();
 			
 		private:
-			#if defined ION_PLATFORM_WINDOWS
-			CRITICAL_SECTION m_criticalSectionHndl;
-            #elif defined ION_PLATFORM_LINUX || defined ION_PLATFORM_MACOSX || defined ION_PLATFORM_DREAMCAST
-            pthread_mutex_t m_criticalSectionHndl;
-			#endif
+			CriticalSectionImpl m_impl;
 		};
 	}
 }

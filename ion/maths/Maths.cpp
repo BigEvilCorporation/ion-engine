@@ -31,6 +31,19 @@ namespace ion
 			return mod + ((mod >> 31) & divisor);
 		}
 
+		int WrapRange(int value, int rangeMin, int rangeMax)
+		{
+			if (value >= rangeMin && value < rangeMax)
+			{
+				return value;
+			}
+			else
+			{
+				int range = rangeMax - rangeMin;
+				return rangeMin + Wrap(value - rangeMin, range);
+			}
+		}
+
 		float RoundToNearest(float value, int nearest)
 		{
 			return floorf(value / nearest) * nearest;
@@ -38,7 +51,7 @@ namespace ion
 
 		float RoundUpToNearest(float value, int nearest)
 		{
-			float modulus = Fmod(value, nearest);
+			float modulus = Fmod(value, (float)nearest);
 			if(modulus == 0.0f)
 			{
 				return value;
@@ -49,7 +62,7 @@ namespace ion
 
 		float RoundDownToNearest(float value, int nearest)
 		{
-			return value - Fmod(value, nearest);
+			return value - Fmod(value, (float)nearest);
 		}
 
 		int NextPowerOfTwo(int x)
@@ -75,7 +88,7 @@ namespace ion
 
 		float Pow(float value, float power)
 		{
-			return pow(value, power);
+			return (float)pow(value, power);
 		}
 
 		float Floor(float value)
@@ -88,21 +101,14 @@ namespace ion
 			return ceilf(value);
 		}
 
-		float Clamp(float value, float min, float max)
-		{
-			float clamped = value;
-
-			if(value < min)
-				clamped = min;
-			else if(value > max)
-				clamped = max;
-
-			return clamped;
-		}
-
 		float Abs(float value)
 		{
-			return fabs(value);
+			return (float)fabs(value);
+		}
+
+		int Abs(int value)
+		{
+			return abs(value);
 		}
 
 		float Fmod(float value, float divisor)
@@ -110,7 +116,7 @@ namespace ion
 #if defined ION_PLATFORM_DREAMCAST
 			return value - divisor * floorf(value / divisor);
 #else
-			return fmod(value, divisor);
+			return (float)fmod(value, divisor);
 #endif
 		}
 
@@ -183,6 +189,11 @@ namespace ion
 			return Abs(value) < FLOAT_EPSILON;
 		}
 
+		bool CompareFloats(float val1, float val2)
+		{
+			return Abs(val1 - val2) < FLOAT_EPSILON;
+		}
+
 		float DegreesToRadians(float degrees)
 		{
 			return degrees * DEGREES_TO_RADIANS;
@@ -191,6 +202,11 @@ namespace ion
 		float RadiansToDegrees(float radians)
 		{
 			return radians * RADIANS_TO_DEGREES;
+		}
+
+		void RandSeed(int seed)
+		{
+			srand(seed);
 		}
 
 		int RandInt()

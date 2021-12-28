@@ -25,6 +25,19 @@ CollisionMap::CollisionMap()
 	Resize(defaultPlatformConfig.scrollPlaneWidthTiles, defaultPlatformConfig.scrollPlaneHeightTiles, false, false);
 }
 
+CollisionMap::CollisionMap(const CollisionMap& rhs)
+{
+	m_width = rhs.m_width;
+	m_height = rhs.m_height;
+	m_physicsWorldTopLeft = rhs.m_physicsWorldTopLeft;
+	m_physicsWorldSize = rhs.m_physicsWorldSize;
+	m_physicsWorldTopLeftBlocks = rhs.m_physicsWorldTopLeftBlocks;
+	m_physicsWorldSizeBlocks = rhs.m_physicsWorldSizeBlocks;
+	m_collisionTiles = rhs.m_collisionTiles;
+	m_blocks = rhs.m_blocks;
+	m_terrainBeziers = rhs.m_terrainBeziers;
+}
+
 CollisionMap::CollisionMap(const PlatformConfig& platformConfig)
 {
 	m_width = 0;
@@ -202,6 +215,30 @@ u16 CollisionMap::GetTerrainBezierFlags(u32 index) const
 {
 	ion::debug::Assert(index < m_terrainBeziers.size(), "CollisionMap::GetTerrainBezierFlags() - Out of range");
 	return m_terrainBeziers[index].terrainFlags;
+}
+
+void CollisionMap::SetTerrainBezierLayer(u32 index, u8 layer)
+{
+	ion::debug::Assert(index < m_terrainBeziers.size(), "CollisionMap::SetTerrainBezierLayer() - Out of range");
+	m_terrainBeziers[index].layer = layer;
+}
+
+u8 CollisionMap::GetTerrainBezierLayer(u32 index) const
+{
+	ion::debug::Assert(index < m_terrainBeziers.size(), "CollisionMap::GetTerrainBezierLayer() - Out of range");
+	return m_terrainBeziers[index].layer;
+}
+
+void CollisionMap::SetTerrainBezierGenerateWidth(u32 index, bool generateWidth)
+{
+	ion::debug::Assert(index < m_terrainBeziers.size(), "CollisionMap::SetTerrainBezierGenerateWidth() - Out of range");
+	m_terrainBeziers[index].generateWidthData = generateWidth;
+}
+
+bool CollisionMap::GetTerrainBezierGenerateWidth(u32 index) const
+{
+	ion::debug::Assert(index < m_terrainBeziers.size(), "CollisionMap::GetTerrainBezierGenerateWidth() - Out of range");
+	return m_terrainBeziers[index].generateWidthData;
 }
 
 const ion::gamekit::BezierPath* CollisionMap::FindTerrainBezier(int x, int y, ion::Vector2i& topLeft) const

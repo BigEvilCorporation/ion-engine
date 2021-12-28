@@ -18,8 +18,8 @@
 #include "maths/Matrix.h"
 #include "renderer/Colour.h"
 #include "renderer/Texture.h"
-#include "io/Archive.h"
-#include "io/ResourceHandle.h"
+#include "core/io/Archive.h"
+#include "resource/ResourceHandle.h"
 
 #if defined ION_RENDERER_SHADER
 #include "renderer/Shader.h"
@@ -36,48 +36,75 @@ namespace ion
 		{
 		public:
 
-			enum BlendMode
+			enum class BlendMode
 			{
-				eAdditive,
-				eModulative,
-				eReplace,
-				eTransparentAlpha,
-				eTransparentColour
+				Additive,
+				Modulative,
+				Replace,
+				TransparentAlpha,
+				TransparentColour
 			};
 
-			enum LightingMode
+			enum class LightingMode
 			{
-				eFlat,
-				eGouraud,
-				ePhong
+				Flat,
+				Gouraud,
+				Phong
 			};
 
-			enum CullMode
+			enum class CullMode
 			{
-				eNone,
-				eClockwise,
-				eCounterClockwise
+				None,
+				Clockwise,
+				CounterClockwise
 			};
 
-			enum ColourType
+			enum class ColourType
 			{
-				eAmbient,
-				eDiffuse,
-				eSpecular,
-				eEmissive
+				Ambient,
+				Diffuse,
+				Specular,
+				Emissive
 			};
+
+#if defined ION_RENDERER_SHADER
+			struct ShaderParams
+			{
+				struct MatrixParams
+				{
+					Shader::ParamHndl<Matrix4> world;
+					Shader::ParamHndl<Matrix4> view;
+					Shader::ParamHndl<Matrix4> worldView;
+					Shader::ParamHndl<Matrix4> worldViewProjection;
+					Shader::ParamHndl<Matrix4> normal;
+				} matrices;
+
+				struct ColourParams
+				{
+					Shader::ParamHndl<Colour> ambient;
+					Shader::ParamHndl<Colour> diffuse;
+					Shader::ParamHndl<Colour> specular;
+					Shader::ParamHndl<Colour> emissive;
+				} colours;
+
+				struct TextureParams
+				{
+					Shader::ParamHndl<Texture> diffuseMap;
+					Shader::ParamHndl<Texture> normalMap;
+					Shader::ParamHndl<Texture> specularMap;
+					Shader::ParamHndl<Texture> opacityMap;
+				} textures;
+			};
+#endif
 
 			Material();
 			~Material();
 
-			//Bind/unbind
-			void Bind(const Matrix4& worldMtx, const Matrix4& viewMtx, const Matrix4& projectionMtx);
-			void Unbind();
-
 			//Shaders
 #if defined ION_RENDERER_SHADER
-			void SetVertexShader(Shader* vertexShader);
-			void SetPixelShader(Shader* pixelShader);
+			void SetShader(io::ResourceHandle<Shader> shader);
+			io::ResourceHandle<Shader> GetShader() const;
+			ShaderParams& GetShaderParams();
 #endif
 
 			//Colour
@@ -92,16 +119,16 @@ namespace ion
 			const Colour& GetEmissiveColour() const;
 
 			//Texture maps
-			void AddDiffuseMap(Texture* diffuse);
-			void SetDiffuseMap(Texture* diffuse, int diffuseMapIdx);
-			void SetNormalMap(Texture* normal);
-			void SetSpecularMap(Texture* specular);
-			void SetOpacityMap(Texture* opacity);
+			void AddDiffuseMap(io::ResourceHandle<Texture>& diffuse);
+			void SetDiffuseMap(io::ResourceHandle<Texture>& diffuse, int diffuseMapIdx);
+			void SetNormalMap(io::ResourceHandle<Texture>& normal);
+			void SetSpecularMap(io::ResourceHandle<Texture>& specular);
+			void SetOpacityMap(io::ResourceHandle<Texture>& opacity);
 
-			Texture* GetDiffuseMap(int diffuseMapIdx) const;
-			Texture* GetNormalMap() const;
-			Texture* GetSpecularMap() const;
-			Texture* GetOpacityMap() const;
+			io::ResourceHandle<Texture> GetDiffuseMap(int diffuseMapIdx) const;
+			io::ResourceHandle<Texture> GetNormalMap() const;
+			io::ResourceHandle<Texture> GetSpecularMap() const;
+			io::ResourceHandle<Texture> GetOpacityMap() const;
 
 			int GetNumDiffuseMaps() const;
 
@@ -128,20 +155,15 @@ namespace ion
 			void Serialise(io::Archive& archive);
 
 		protected:
-
-#if defined ION_RENDERER_SHADER
-			void ApplyShaderParams(const Matrix4& worldMtx, const Matrix4& viewMtx, const Matrix4& projectionMtx);
-#endif
-
 			Colour m_ambientColour;
 			Colour m_diffuseColour;
 			Colour m_specularColour;
 			Colour m_emissiveColour;
 
-			std::vector<Texture*> m_diffuseMaps;
-			Texture* m_normalMap;
-			Texture* m_specularMap;
-			Texture* m_opacityMap;
+			std::vector<io::ResourceHandle<Texture>> m_diffuseMaps;
+			io::ResourceHandle<Texture> m_normalMap;
+			io::ResourceHandle<Texture> m_specularMap;
+			io::ResourceHandle<Texture> m_opacityMap;
 
 			bool m_lightingEnabled;
 			bool m_receiveShadows;
@@ -150,36 +172,8 @@ namespace ion
 			BlendMode m_blendMode;
 
 #if defined ION_RENDERER_SHADER
-			Shader* m_vertexShader;
-			Shader* m_pixelShader;
-
-			struct ShaderParams
-			{
-				struct MatrixParams
-				{
-					Shader::ParamHndl<Matrix4> m_world;
-					Shader::ParamHndl<Matrix4> m_worldViewProjection;
-				} m_matrices;
-
-				struct ColourParams
-				{
-					Shader::ParamHndl<Colour> m_ambient;
-					Shader::ParamHndl<Colour> m_diffuse;
-					Shader::ParamHndl<Colour> m_specular;
-					Shader::ParamHndl<Colour> m_emissive;
-				} m_colours;
-
-				struct TextureParams
-				{
-					Shader::ParamHndl<Texture> m_diffuseMap;
-					Shader::ParamHndl<Texture> m_normalMap;
-					Shader::ParamHndl<Texture> m_specularMap;
-					Shader::ParamHndl<Texture> m_opacityMap;
-				} m_textures;
-			};
-
-			ShaderParams m_vertexShaderParams;
-			ShaderParams m_pixelShaderParams;
+			io::ResourceHandle<Shader> m_shader;
+			ShaderParams m_shaderParams;
 #endif
 		};
 	}

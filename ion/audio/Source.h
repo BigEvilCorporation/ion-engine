@@ -1,5 +1,10 @@
+#pragma once
+
 #include <audio/Callback.h>
 #include <core/containers/Queue.h>
+
+#include <string>
+#include <functional>
 
 namespace ion
 {
@@ -13,17 +18,20 @@ namespace ion
 			static const int sMaxBufferQueueSize = 8;
 
 		public:
-			enum FeedType
+			enum class FeedType
 			{
 				SingleBuffer,
-				StreamingFeed
+				Streaming
 			};
+
+			typedef std::function<void(Source&,bool)> OnStreamOpened;
+			typedef std::function<void(Source&, bool)> OnStreamClosed;
 
 			Source(FeedType feedType);
 			virtual ~Source();
 
-			virtual bool OpenStream() = 0;
-			virtual void CloseStream() = 0;
+			virtual bool OpenStream(OnStreamOpened const& onOpened) = 0;
+			virtual void CloseStream(OnStreamClosed const& onClosed) = 0;
 
 			void Lock();
 			void Unlock();
@@ -34,9 +42,10 @@ namespace ion
 			virtual void RequestBuffer(SourceCallback& callback) = 0;
 
 		protected:
-			const StreamDesc* mStreamDesc;
-			FeedType mFeedType;
-			u32 mLockCount;
+			const StreamDesc* m_streamDesc;
+			FeedType m_feedType;
+			u32 m_lockCount;
+			std::string m_debugName;
 		};
 	}
 }

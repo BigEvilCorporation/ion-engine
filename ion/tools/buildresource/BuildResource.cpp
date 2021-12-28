@@ -7,159 +7,144 @@
 
 #pragma once
 
-#include "tools/buildresource/BuildResource.h"
 #include "core/containers/Queue.h"
 #include "core/debug/Debug.h"
+#include "core/string/String.h"
+#include "core/io/File.h"
+
+#include "tools/buildresource/BuildTexture.h"
+#include "tools/buildresource/BuildShader.h"
 
 #include <string>
 #include <vector>
 #include <locale>
 #include <algorithm>
+#include <iostream>
 
 const int sMaxTokens = 32;
 
-bool CheckToken(const ion::Queue<std::string, sMaxTokens>& tokens, const std::string& error)
+void ShowHelp()
+{
+	std::cout << "TODO: help" << std::endl;
+}
+
+bool PopToken(ion::Queue<std::string, sMaxTokens>& tokens, std::string& poppedToken, const std::string& error, bool lowerCase = false)
 {
 	if(tokens.IsEmpty())
 	{
-		std::string errorMsg = "Error: ";
-		errorMsg += error;
-		ion::debug::Error(errorMsg.c_str());
+		if (error.size() > 0)
+		{
+			ion::debug::error << error << ion::debug::end;
+			ShowHelp();
+		}
+		
+		return false;
 	}
 
-	return !tokens.IsEmpty();
+	poppedToken = tokens.Pop();
+
+	if(lowerCase)
+		std::transform(poppedToken.begin(), poppedToken.end(), poppedToken.begin(), ::tolower);
+
+	return true;
+}
+
+int ParseCmdTexture(ion::Queue<std::string, sMaxTokens>& tokens)
+{
+	std::string outputFilename;
+	std::string textureFile;
+
+	if (!PopToken(tokens, outputFilename, "Missing texture output filename"))
+		return -1;
+	if (!PopToken(tokens, textureFile, "Missing texture input filename"))
+		return -1;
+
+	int dot = textureFile.find_last_of('.') + 1;
+	int end = textureFile.size() - dot;
+	std::string fileExt = textureFile.substr(dot, end);
+	std::transform(fileExt.begin(), fileExt.end(), fileExt.begin(), ::tolower);
+
+	ion::build::TextureFiletype filetype = ion::build::TextureFiletype::BMP;
+
+	if(fileExt == "bmp")
+		filetype = ion::build::TextureFiletype::BMP;
+	else if(fileExt == "png")
+		filetype = ion::build::TextureFiletype::PNG;
+	
+	return ion::build::BuildTexture(outputFilename, textureFile, filetype);
+}
+
+int ParseCmdShader(ion::Queue<std::string, sMaxTokens>& tokens)
+{
+	std::vector<ion::build::ShaderProgram> shaderPrograms;
+	std::string outputFilename;
+	std::string programType;
+
+	if (!PopToken(tokens, outputFilename, "Missing shader output filename"))
+		return -1;
+
+	while (PopToken(tokens, programType, "", true))
+	{
+		if (programType == "vshader")
+		{
+			ion::build::ShaderProgram program;
+			program.programType = ion::render::Shader::ProgramType::Vertex;
+
+			if (!PopToken(tokens, program.language, "Missing vertex shader language"))
+				return -1;
+			if (!PopToken(tokens, program.sourceFilename, "Missing vertex shader source"))
+				return -1;
+			if (!PopToken(tokens, program.entrypoint, "Missing vertex shader entry point"))
+				return -1;
+
+			shaderPrograms.push_back(program);
+		}
+		else if (programType == "pshader")
+		{
+			ion::build::ShaderProgram program;
+			program.programType = ion::render::Shader::ProgramType::Fragment;
+
+			if (!PopToken(tokens, program.language, "Missing fragment shader language"))
+				return -1;
+			if (!PopToken(tokens, program.sourceFilename, "Missing fragment shader source"))
+				return -1;
+			if (!PopToken(tokens, program.entrypoint, "Missing fragment shader entry point"))
+				return -1;
+
+			shaderPrograms.push_back(program);
+		}
+		else
+		{
+			ion::debug::error << "Unrecognised program type " << programType << ion::debug::end;
+			return -1;
+		}
+	}
+
+	if (shaderPrograms.size())
+		return ion::build::BuildShader(outputFilename, shaderPrograms);
+
+	ion::debug::error << "No shaders built" << ion::debug::end;
+	return -1;
 }
 
 int main(int numargs, char** args)
 {
 	ion::Queue<std::string, sMaxTokens> tokens;
 
-	for(int i = 1; i < numargs; i++)
-	{
+	for (int i = 1; i < numargs; i++)
 		tokens.Push(std::string(args[i]));
-	}
 
-	if(CheckToken(tokens, "Missing resource type"))
-	{
-		std::locale locale;
-		std::string resourceType = tokens.Pop();
-		std::transform(resourceType.begin(), resourceType.end(), resourceType.begin(), ::tolower);
+	std::string resourceType ;
 
-		if(!std::strcmp(resourceType.c_str(), "texture"))
-		{
-			if(CheckToken(tokens, "Missing texture name"))
-			{
-				const std::string& name = tokens.Pop();
+	if (!PopToken(tokens, resourceType, "Missing resource type", true))
+		return -1;
 
-				if(CheckToken(tokens, "Missing texture filename"))
-				{
-					const std::string& textureFile = tokens.Pop();
-					ion::build::BuildTexture(name, textureFile);
-				}
-			}
-		}
-		else if(!std::strcmp(resourceType.c_str(), "vshader"))
-		{
-			if(CheckToken(tokens, "Missing vertex shader name"))
-			{
-				const std::string& name = tokens.Pop();
+	if (resourceType == "texture")
+		return ParseCmdTexture(tokens);
+	else if (resourceType == "shader")
+		return ParseCmdShader(tokens);
 
-				if(CheckToken(tokens, "Missing vertex shader binary"))
-				{
-					const std::string& shaderBinaryFile = tokens.Pop();
+	ion::debug::error << "Unrecognised resource type " << resourceType << ion::debug::end;
 
-					if(CheckToken(tokens, "Missing vertex shader entry point"))
-					{
-						const std::string& entrypoint = tokens.Pop();
-						ion::build::BuildShader(name, shaderBinaryFile, entrypoint, ion::render::Shader::eVertex);
-					}
-				}
-			}
-		}
-		else if (!std::strcmp(resourceType.c_str(), "pshader"))
-		{
-			if (CheckToken(tokens, "Missing vertex shader name"))
-			{
-				const std::string& name = tokens.Pop();
-
-				if (CheckToken(tokens, "Missing vertex shader binary"))
-				{
-					const std::string& shaderBinaryFile = tokens.Pop();
-
-					if (CheckToken(tokens, "Missing vertex shader entry point"))
-					{
-						const std::string& entrypoint = tokens.Pop();
-						ion::build::BuildShader(name, shaderBinaryFile, entrypoint, ion::render::Shader::eFragment);
-					}
-				}
-			}
-		}
-	}
-
-	ion::debug::Log("Done.");
-
-	return 0;
-}
-
-namespace ion
-{
-	namespace build
-	{
-		void BuildTexture(const std::string& name, const std::string& textureFile)
-		{
-			std::string filename = name;
-			filename += ".ion.texture";
-
-			ion::io::File file(filename, ion::io::File::eOpenWrite);
-			if(file.IsOpen())
-			{
-				ion::render::Texture* texture = ion::render::Texture::Create();
-				texture->SetImageFilename(textureFile);
-				ion::io::Archive archive(file, ion::io::Archive::eOut);
-				ion::render::Texture::RegisterSerialiseType(archive);
-				archive.Serialise(texture);
-				file.Close();
-
-				std::string message = "Written: ";
-				message += filename;
-				debug::Log(message.c_str());
-			}
-		}
-
-		void BuildShader(const std::string& name, const std::string& codeFile, const std::string& entrypoint, render::Shader::ProgramType programType)
-		{
-			std::string filename = name;
-			filename += ".ion.shader";
-
-			ion::io::File file(filename, ion::io::File::eOpenWrite);
-			if(file.IsOpen())
-			{
-				ion::io::File program(codeFile, ion::io::File::eOpenRead);
-				if (program.IsOpen())
-				{
-					std::string code;
-					code.resize(program.GetSize() + 1);
-					program.Read(&code[0], program.GetSize());
-
-					ion::render::Shader* shader = ion::render::Shader::Create();
-					shader->SetProgram(name, code, entrypoint, programType);
-					ion::io::Archive archive(file, ion::io::Archive::eOut);
-					ion::render::Shader::RegisterSerialiseType(archive);
-
-					//Serialise pointer to shader
-					archive.Serialise(shader);
-
-					file.Close();
-
-					std::string message = "Written: ";
-					message += filename;
-					debug::Log(message.c_str());
-				}
-				else
-				{
-					ion::debug::log << "Failed to open shader program " << codeFile << ion::debug::end;
-				}
-			}
-		}
-	}
+	return -1;
 }

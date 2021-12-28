@@ -102,6 +102,8 @@ void Animation::Serialise(ion::io::Archive& archive)
 
 	archive.Serialise(m_id, "id");
 	archive.Serialise(m_name, "name");
+	archive.Serialise(m_anchor, "anchor");
+	archive.Serialise(m_prefabId, "prefabId");
 	archive.Serialise(m_actors, "actors");
 }
 
@@ -136,7 +138,7 @@ const ion::Vector2i AnimTrackPosition::GetValue(float time) const
 
 	if(keyframeA && keyframeB)
 	{
-		if(GetBlendMode() == eSnap)
+		if(GetBlendMode() == BlendMode::Snap)
 		{
 			result = keyframeA->GetValue();
 		}

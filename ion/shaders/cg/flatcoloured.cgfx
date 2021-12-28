@@ -7,27 +7,27 @@ float4x4 gWorldViewProjectionMatrix;
 
 struct InputV
 {
-	float4 mPosition	: POSITION;
-	float4 mColour		: COLOR;
+	float4 position	: POSITION;
+	float4 colour	: COLOR;
 };
 
 struct OutputV
 {
-	float4 mPosition	: POSITION;
-	float4 mColour		: COLOR;
+	float4 position	: POSITION;
+	float4 colour	: COLOR;
 };
 
 OutputV VertexProgram(InputV input)
 {
 	OutputV output;
 
-	output.mPosition = mul(gWorldViewProjectionMatrix, input.mPosition);
-	output.mColour = gDiffuseColour;
+	output.position = mul(gWorldViewProjectionMatrix, input.position);
+	output.colour = gDiffuseColour;
 
 	return output;
 }
 
 float4 FragmentProgram(OutputV input) : COLOR
 {
-	return input.mColour;
+	return input.colour;
 };

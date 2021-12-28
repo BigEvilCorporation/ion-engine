@@ -17,17 +17,17 @@ namespace ion
 		{
 #if defined ION_PLATFORM_WINDOWS
 			//Generate GL framebuffer
-			OpenGLExt::glGenFramebuffers(1, &m_glFrameBuffer);
-			OpenGLExt::glBindFramebuffer(GL_FRAMEBUFFER, m_glFrameBuffer);
+			opengl::extensions->glGenFramebuffers(1, &m_glFrameBuffer);
+			opengl::extensions->glBindFramebuffer(GL_FRAMEBUFFER, m_glFrameBuffer);
 
 			//Bind texture to framebuffer
 			GLuint textureId = ((TextureOpenGL*)m_texture)->GetTextureId();
 			glBindTexture(GL_TEXTURE_2D, textureId);
-			OpenGLExt::glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureId, 0);
+			opengl::extensions->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureId, 0);
 			glBindTexture(GL_TEXTURE_2D, 0);
 
 			//Unbind framebuffer
-			OpenGLExt::glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			opengl::extensions->glBindFramebuffer(GL_FRAMEBUFFER, 0);
 #endif
 		}
 
@@ -39,14 +39,14 @@ namespace ion
 		void FrameBufferOpenGL::Bind()
 		{
 #if defined ION_PLATFORM_WINDOWS
-			OpenGLExt::glBindFramebuffer(GL_FRAMEBUFFER, m_glFrameBuffer);
+			opengl::extensions->glBindFramebuffer(GL_FRAMEBUFFER, m_glFrameBuffer);
 #endif
 		}
 
 		void FrameBufferOpenGL::UnBind()
 		{
 #if defined ION_PLATFORM_WINDOWS
-			OpenGLExt::glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			opengl::extensions->glBindFramebuffer(GL_FRAMEBUFFER, 0);
 #endif
 		}
 

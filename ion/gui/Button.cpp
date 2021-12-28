@@ -15,8 +15,8 @@ namespace ion
 	namespace gui
 	{
 		Button::Button(const std::string& text, std::function<void(const Button&)> const& onPressed)
-			: m_onPressed(onPressed)
-			, m_text(text)
+			: m_text(text)
+			, m_onPressed(onPressed)
 		{
 			m_textAlign = TextAlign::Centre;
 		}
@@ -45,9 +45,9 @@ namespace ion
 						ImGui::SetCursorPosX((ImGui::GetWindowWidth() / 2) - (m_size.x / 2));
 					}
 				}
-				else if(m_position.x != 0 && m_position.y != 0)
+				else if(m_position.x != -1 && m_position.y != -1)
 				{
-					ImGui::SetCursorPos(ImVec2(m_position.x, m_position.y));
+					ImGui::SetCursorPos(ImVec2((float)m_position.x, (float)m_position.y));
 				}
 
 				if (m_arrangement == Arrangement::Horizontal)
@@ -68,24 +68,30 @@ namespace ion
 					break;
 				}
 
+				bool enabled = m_enabled;
+
+				float alpha = ImGui::GetStyle().Alpha * m_alpha;
+
 				if (!m_enabled)
 				{
 					ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-					ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+					alpha *= 0.5f;
 				}
 
-				if (ImGui::Button(m_text.c_str(), ImVec2(m_size.x, m_size.y)))
+				ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
+
+				if (ImGui::Button(m_text.c_str(), ImVec2((float)m_size.x, (float)m_size.y)))
 				{
 					m_onPressed(*this);
 				}
 
-				if (!m_enabled)
+				if (!enabled)
 				{
 					ImGui::PopItemFlag();
-					ImGui::PopStyleVar();
 				}
 
-				ImGui::PopStyleVar();
+				ImGui::PopStyleVar(); // alpha
+				ImGui::PopStyleVar(); // align
 			}
 		}
 	}

@@ -1,4 +1,0 @@
-rule C.Toolchain.Helper.ReleaseSettings {
-    C.Defines * : NDEBUG ;
-}
-

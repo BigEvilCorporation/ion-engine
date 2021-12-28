@@ -21,7 +21,7 @@
 #include <ion/dependencies/slz/tool/main.h>
 #include <ion/dependencies/slz/tool/compress.h>
 #include <ion/dependencies/slz/tool/decompress.h>
-#include <ion/io/compression/CompressionRLE.h>
+#include <ion/resource/compression/CompressionRLE.h>
 
 #define HEX1(val) std::hex << std::setfill('0') << std::setw(1) << std::uppercase << (int)val
 #define HEX2(val) std::hex << std::setfill('0') << std::setw(2) << std::uppercase << (int)val
@@ -34,6 +34,7 @@ Map::Map()
 	m_name = "Unnamed";
 	m_width = 0;
 	m_height = 0;
+	m_bgMap = false;
 	m_nextFreeGameObjectId = 1;
 }
 
@@ -43,8 +44,23 @@ Map::Map(const PlatformConfig& platformConfig)
 	m_name = "Unnamed";
 	m_width = 0;
 	m_height = 0;
+	m_bgMap = false;
 	m_nextFreeGameObjectId = 1;
 	Resize(platformConfig.scrollPlaneWidthTiles, platformConfig.scrollPlaneHeightTiles, false, false);
+}
+
+Map::Map(const Map& rhs)
+{
+	m_platformConfig = rhs.m_platformConfig;
+	m_name = rhs.m_name + "_copy";
+	m_width = rhs.m_width;
+	m_height = rhs.m_height;
+	m_bgMap = rhs.m_bgMap;
+	m_tiles = rhs.m_tiles;
+	m_stamps = rhs.m_stamps;
+	m_gameObjects = rhs.m_gameObjects;
+	m_nextFreeGameObjectId = rhs.m_nextFreeGameObjectId;
+	m_blocks = rhs.m_blocks;
 }
 
 void Map::Clear()
@@ -67,6 +83,7 @@ void Map::Serialise(ion::io::Archive& archive)
 	archive.Serialise(m_name, "name");
 	archive.Serialise(m_width, "width");
 	archive.Serialise(m_height, "height");
+	archive.Serialise(m_bgMap, "bgMap");
 	archive.Serialise(m_tiles, "tiles");
 	archive.Serialise(m_stamps, "stamps");
 	archive.Serialise(m_gameObjects, "gameObjects");
@@ -275,6 +292,17 @@ void Map::FillTiles(TileId tileId, const std::vector<ion::Vector2i>& selection)
 
 void Map::SetStamp(int x, int y, const Stamp& stamp, u32 flipFlags)
 {
+	//Remove old stamp
+	// TODO: Stamps as fixed array, not map
+	for (TStampPosMap::iterator it = m_stamps.begin(), end = m_stamps.end(); it != end; ++it)
+	{
+		if (it->m_position.x == x && it->m_position.y == y)
+		{
+			m_stamps.erase(it);
+			break;
+		}
+	}
+
 	//Add to stamp map
 	m_stamps.push_back(StampMapEntry(stamp.GetId(), flipFlags, ion::Vector2i(x, y), ion::Vector2i(stamp.GetWidth(), stamp.GetHeight())));
 }
@@ -431,7 +459,7 @@ const TStampPosMap& Map::GetStamps() const
 	return m_stamps;
 }
 
-GameObjectId Map::PlaceGameObject(int x, int y, const GameObjectType& objectType)
+GameObjectId Map::PlaceGameObject(int x, int y, const GameObjectType& objectType, GameObjectArchetypeId archetypeId)
 {
 	TGameObjectPosMap::iterator it = m_gameObjects.find(objectType.GetId());
 	if(it == m_gameObjects.end())
@@ -442,11 +470,46 @@ GameObjectId Map::PlaceGameObject(int x, int y, const GameObjectType& objectType
 
 	GameObjectId objectId = m_nextFreeGameObjectId++;
 	GameObject gameObject(objectId, objectType.GetId(), ion::Vector2i(x * tileWidth, y * tileHeight));
+
+	if (const GameObjectArchetype* archetype = objectType.GetArchetype(archetypeId))
+	{
+		gameObject.ApplyArchetype(*archetype);
+	}
+
 	it->second.push_back(GameObjectMapEntry(gameObject, ion::Vector2i(x, y), ion::Vector2i(objectType.GetDimensions().x, objectType.GetDimensions().y)));
 	return objectId;
 }
 
-GameObjectId Map::PlaceGameObject(int x, int y, int width, int height, const GameObjectType& objectType)
+GameObjectId Map::PlaceGameObject(const GameObject& gameObject)
+{
+	TGameObjectPosMap::iterator it = m_gameObjects.find(gameObject.GetTypeId());
+	if (it == m_gameObjects.end())
+		it = m_gameObjects.insert(std::make_pair(gameObject.GetTypeId(), std::vector<GameObjectMapEntry>())).first;
+
+	ion::debug::Assert(std::find_if(it->second.begin(), it->second.end(), [&](const GameObjectMapEntry& rhs) { return rhs.m_gameObject.GetId() == gameObject.GetId(); }) == it->second.end(), "Map::PlaceGameObject() - Object already exists");
+
+	it->second.push_back(GameObjectMapEntry(gameObject, gameObject.GetPosition(), gameObject.GetDimensions()));
+	return gameObject.GetId();
+}
+
+GameObjectId Map::PlaceGameObject(int x, int y, const GameObjectType& objectType, const GameObject& original, const std::string& name)
+{
+	TGameObjectPosMap::iterator it = m_gameObjects.find(original.GetTypeId());
+	if (it == m_gameObjects.end())
+		it = m_gameObjects.insert(std::make_pair(original.GetTypeId(), std::vector<GameObjectMapEntry>())).first;
+
+	const int tileWidth = m_platformConfig->tileWidth;
+	const int tileHeight = m_platformConfig->tileHeight;
+
+	GameObjectId objectId = m_nextFreeGameObjectId++;
+	GameObject gameObject(objectId, original);
+	gameObject.SetPosition(ion::Vector2i(x, y));
+	gameObject.SetName(name);
+	it->second.push_back(GameObjectMapEntry(gameObject, ion::Vector2i(x, y), ion::Vector2i(objectType.GetDimensions().x, objectType.GetDimensions().y)));
+	return objectId;
+}
+
+GameObjectId Map::PlaceGameObject(int x, int y, int width, int height, const GameObjectType& objectType, GameObjectArchetypeId archetypeId)
 {
 	TGameObjectPosMap::iterator it = m_gameObjects.find(objectType.GetId());
 	if(it == m_gameObjects.end())
@@ -457,11 +520,17 @@ GameObjectId Map::PlaceGameObject(int x, int y, int width, int height, const Gam
 
 	GameObjectId objectId = m_nextFreeGameObjectId++;
 	GameObject gameObject(objectId, objectType.GetId(), ion::Vector2i(x * tileWidth, y * tileHeight), ion::Vector2i(width * tileWidth, height * tileHeight));
+
+	if (const GameObjectArchetype* archetype = objectType.GetArchetype(archetypeId))
+	{
+		gameObject.ApplyArchetype(*archetype);
+	}
+
 	it->second.push_back(GameObjectMapEntry(gameObject, ion::Vector2i(x, y), ion::Vector2i(objectType.GetDimensions().x, objectType.GetDimensions().y)));
 	return objectId;
 }
 
-GameObjectId Map::PlaceGameObject(int x, int y, const GameObject& object, const GameObjectType& objectType)
+GameObjectId Map::PlaceGameObject(int x, int y, const GameObject& object, const GameObjectType& objectType, GameObjectArchetypeId archetypeId)
 {
 	TGameObjectPosMap::iterator it = m_gameObjects.find(object.GetTypeId());
 	if(it == m_gameObjects.end())
@@ -471,41 +540,15 @@ GameObjectId Map::PlaceGameObject(int x, int y, const GameObject& object, const 
 	//const int tileHeight = m_platformConfig->tileHeight;
 
 	GameObjectId objectId = m_nextFreeGameObjectId++;
-	it->second.push_back(GameObjectMapEntry(GameObject(objectId, object), ion::Vector2i(x, y), ion::Vector2i(objectType.GetDimensions().x, objectType.GetDimensions().y)));
-	return objectId;
-}
+	GameObject gameObject(objectId, object);
 
-GameObjectId Map::FindGameObject(int x, int y, ion::Vector2i& topLeft) const
-{
-	GameObjectId gameObjectId = InvalidGameObjectId;
-	ion::Vector2i size;
-	ion::Vector2i bottomRight;
-
-	const int tileWidth = m_platformConfig->tileWidth;
-	const int tileHeight = m_platformConfig->tileHeight;
-
-	//Work backwards, find last placed game obj first
-	for(TGameObjectPosMap::const_iterator itMap = m_gameObjects.begin(), endMap = m_gameObjects.end(); itMap != endMap && !gameObjectId; ++itMap)
+	if (const GameObjectArchetype* archetype = objectType.GetArchetype(archetypeId))
 	{
-		for(std::vector<GameObjectMapEntry>::const_reverse_iterator itVec = itMap->second.rbegin(), endVec = itMap->second.rend(); itVec != endVec && !gameObjectId; ++itVec)
-		{
-			const int objWidth = (itVec->m_gameObject.GetDimensions().x > 0) ? itVec->m_gameObject.GetDimensions().x : itVec->m_size.x;
-			const int objHeight = (itVec->m_gameObject.GetDimensions().y > 0) ? itVec->m_gameObject.GetDimensions().y : itVec->m_size.y;
-
-			ion::Vector2i size(objWidth / tileWidth, objHeight / tileHeight);
-			topLeft.x = itVec->m_gameObject.GetPosition().x / tileWidth;
-			topLeft.y = itVec->m_gameObject.GetPosition().y / tileHeight;
-			ion::Vector2i bottomRight = topLeft + size;
-
-			if(x >= topLeft.x && y >= topLeft.y
-				&& x < bottomRight.x && y < bottomRight.y)
-			{
-				gameObjectId = itVec->m_gameObject.GetId();
-			}
-		}
+		gameObject.ApplyArchetype(*archetype);
 	}
 
-	return gameObjectId;
+	it->second.push_back(GameObjectMapEntry(gameObject, ion::Vector2i(x, y), ion::Vector2i(objectType.GetDimensions().x, objectType.GetDimensions().y)));
+	return objectId;
 }
 
 GameObject* Map::FindGameObject(const std::string& name)
@@ -522,35 +565,6 @@ GameObject* Map::FindGameObject(const std::string& name)
 	}
 
 	return NULL;
-}
-
-int Map::FindGameObjects(int x, int y, int width, int height, std::vector<const GameObjectMapEntry*>& gameObjects) const
-{
-	const int tileWidth = m_platformConfig->tileWidth;
-	const int tileHeight = m_platformConfig->tileHeight;
-
-	ion::Vector2i boundsMin(x * tileWidth, y * tileHeight);
-	ion::Vector2i boundsMax((x * tileWidth) + width, (y * tileHeight) + height);
-
-	for(TGameObjectPosMap::const_iterator it = m_gameObjects.begin(), end = m_gameObjects.end(); it != end; ++it)
-	{
-		const std::vector<GameObjectMapEntry>& gameObjectsOfType = it->second;
-
-		for(int i = 0; i < gameObjectsOfType.size(); i++)
-		{
-			const GameObjectMapEntry& gameObject = gameObjectsOfType[i];
-
-			const int objWidth = (gameObject.m_gameObject.GetDimensions().x > 0) ? gameObject.m_gameObject.GetDimensions().x : gameObject.m_size.x;
-			const int objHeight = (gameObject.m_gameObject.GetDimensions().y > 0) ? gameObject.m_gameObject.GetDimensions().y : gameObject.m_size.y;
-
-			if(ion::maths::BoxIntersectsBox(boundsMin, boundsMax, gameObject.m_gameObject.GetPosition(), gameObject.m_gameObject.GetPosition() + ion::Vector2i(objWidth, objHeight)))
-			{
-				gameObjects.push_back(&gameObject);
-			}
-		}
-	}
-
-	return gameObjects.size();
 }
 
 GameObject* Map::GetGameObject(GameObjectId gameObjectId)
@@ -604,7 +618,7 @@ void Map::RemoveGameObject(int x, int y)
 			const int width = (itVec->m_gameObject.GetDimensions().x > 0) ? itVec->m_gameObject.GetDimensions().x : itVec->m_size.x;
 			const int height = (itVec->m_gameObject.GetDimensions().y > 0) ? itVec->m_gameObject.GetDimensions().y : itVec->m_size.y;
 
-			ion::Vector2i size(width / tileWidth, height / tileHeight);
+			ion::Vector2i size(width, height);
 			if(size.x == 0)
 				size.x = 1;
 			if(size.y == 0)
@@ -623,6 +637,27 @@ void Map::RemoveGameObject(int x, int y)
 					m_gameObjects.erase(itMap);
 				}
 				
+				return;
+			}
+		}
+	}
+}
+
+void Map::RemoveGameObject(GameObjectId gameObjectId)
+{
+	for (TGameObjectPosMap::iterator itMap = m_gameObjects.begin(), endMap = m_gameObjects.end(); itMap != endMap; ++itMap)
+	{
+		for (std::vector<GameObjectMapEntry>::iterator itVec = itMap->second.begin(), endVec = itMap->second.end(); itVec != endVec; ++itVec)
+		{
+			if (itVec->m_gameObject.GetId() == gameObjectId)
+			{
+				itMap->second.erase(itVec);
+
+				if (itMap->second.size() == 0)
+				{
+					m_gameObjects.erase(itMap);
+				}
+
 				return;
 			}
 		}

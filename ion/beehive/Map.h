@@ -14,7 +14,7 @@
 #include <vector>
 #include <sstream>
 
-#include <io/Archive.h>
+#include <ion/core/io/Archive.h>
 #include <maths/Vector.h>
 
 #include "PlatformConfig.h"
@@ -118,6 +118,7 @@ public:
 
 	Map();
 	Map(const PlatformConfig& platformConfig);
+	Map(const Map& rhs);
 
 	void SetPlatformConfig(const PlatformConfig& platformConfig) { m_platformConfig = &platformConfig; }
 
@@ -136,6 +137,10 @@ public:
 	int GetHeightBlocks(int blockHeight) const;
 
 	void Resize(int w, int h, bool shiftRight, bool shiftDown);
+
+	//Background map
+	bool IsBackgroundMap() const { return m_bgMap; }
+	void SetBackgroundMap(bool bgMap) { m_bgMap = bgMap; }
 
 	//Set tile on map
 	void SetTile(int x, int y, TileId tile);
@@ -161,15 +166,16 @@ public:
 	const TStampPosMap& GetStamps() const;
 
 	//Place game object on map
-	GameObjectId PlaceGameObject(int x, int y, const GameObjectType& objectType);
-	GameObjectId PlaceGameObject(int x, int y, int width, int height, const GameObjectType& objectType);
-	GameObjectId PlaceGameObject(int x, int y, const GameObject& object, const GameObjectType& objectType);
-	GameObjectId FindGameObject(int x, int y, ion::Vector2i& topLeft) const;
+	GameObjectId PlaceGameObject(const GameObject& gameObject);
+	GameObjectId PlaceGameObject(int x, int y, const GameObjectType& objectType, GameObjectArchetypeId archetypeId);
+	GameObjectId PlaceGameObject(int x, int y, const GameObjectType& objectType, const GameObject& original, const std::string& name);
+	GameObjectId PlaceGameObject(int x, int y, int width, int height, const GameObjectType& objectType, GameObjectArchetypeId archetypeId);
+	GameObjectId PlaceGameObject(int x, int y, const GameObject& object, const GameObjectType& objectType, GameObjectArchetypeId archetypeId);
 	GameObject* FindGameObject(const std::string& name);
-	int FindGameObjects(int x, int y, int width, int height, std::vector<const GameObjectMapEntry*>& gameObjects) const;
 	GameObject* GetGameObject(GameObjectId gameObjectId);
 	void MoveGameObject(GameObjectId gameObjectId, int x, int y);
 	void RemoveGameObject(int x, int y);
+	void RemoveGameObject(GameObjectId gameObjectId);
 	const TGameObjectPosMap& GetGameObjects() const;
 	TGameObjectPosMap& GetGameObjects();
 
@@ -247,6 +253,7 @@ private:
 	std::string m_name;
 	int m_width;
 	int m_height;
+	bool m_bgMap;
 	std::vector<TileDesc> m_tiles;
 	TStampPosMap m_stamps;
 	TGameObjectPosMap m_gameObjects;

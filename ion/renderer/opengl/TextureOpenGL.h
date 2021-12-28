@@ -20,10 +20,6 @@
 
 #include <string>
 
-#if ION_PLATFORM_WINDOWS
-#define ION_GL_SUPPORT_FENCE
-#endif
-
 namespace ion
 {
 	namespace render
@@ -36,7 +32,6 @@ namespace ion
 			TextureOpenGL(u32 width, u32 height, Format sourceFormat, Format destFormat, BitsPerPixel bitsPerPixel, bool generateMipmaps, bool generatePixelBuffer, const u8* data);
 			virtual ~TextureOpenGL();
 
-			virtual bool Load(const std::string& filename);
 			virtual bool Load(u32 width, u32 height, Format sourceFormat, Format destFormat, BitsPerPixel bitsPerPixel, bool generateMipmaps, bool generatePixelBuffer, const u8* data);
 			GLuint GetTextureId() const;
 
@@ -47,9 +42,9 @@ namespace ion
 			virtual void SetMagnifyFilter(Filter filter);
 			virtual void SetWrapping(Wrapping wrapping);
 
-			virtual void SetPixel(const ion::Vector2i& position, const Colour& colour);
-			virtual void SetPixels(Format sourceFormat, bool synchronised, u8* data);
-			virtual void GetPixels(const ion::Vector2i& position, const ion::Vector2i& size, Format format, BitsPerPixel bitsPerPixel, u8* data) const;
+			virtual void SetPixel(const ion::Vector2i& Position, const Colour& colour);
+			virtual void SetPixels(Format sourceFormat, bool synchronised, const u8* data);
+			virtual void GetPixels(const ion::Vector2i& Position, const ion::Vector2i& size, Format format, BitsPerPixel bitsPerPixel, u8* data) const;
 			virtual u8* LockPixelBuffer();
 			virtual void UnlockPixelBuffer();
 
@@ -69,7 +64,7 @@ namespace ion
 
 			GLuint m_glTextureId;
 			GLuint m_glPixelBufferId;
-			int m_glFormat;
+			int m_glFormatSrc;
 
 			int m_paletteIdx;
 

@@ -128,12 +128,12 @@ namespace ion
 				m_stateStack.back()->OnResumeState();
 		}
 
-		bool StateManager::Update(float deltaTime, input::Keyboard* keyboard, input::Mouse* mouse, input::Gamepad* gamepad)
+		bool StateManager::Update(float deltaTime, input::Keyboard* keyboard, input::Mouse* mouse, const std::vector<input::Gamepad*>& gamepads)
 		{
 			if (m_stateStack.size() > 0)
 			{
 				m_renderingState = m_stateStack.back();
-				return m_stateStack.back()->Update(deltaTime, keyboard, mouse, gamepad);
+				return m_stateStack.back()->Update(deltaTime, keyboard, mouse, gamepads);
 			}
 			else
 			{

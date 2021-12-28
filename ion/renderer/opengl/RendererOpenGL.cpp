@@ -14,81 +14,46 @@
 
 #include "core/debug/Debug.h"
 #include "renderer/Colour.h"
+#include "renderer/Material.h"
 #include "renderer/Viewport.h"
 #include "renderer/VertexBuffer.h"
 #include "renderer/IndexBuffer.h"
 #include "renderer/Shader.h"
+#include "renderer/opengl/OpenGLVersion.h"
 #include "renderer/opengl/RendererOpenGL.h"
 #include "renderer/opengl/OpenGLExtensions.h"
-
-#define ION_RENDERER_LOG_WARNINGS 0
-#define ION_RENDERER_WARNING_AS_ERROR 0
 
 namespace ion
 {
 	namespace render
 	{
-#if defined DEBUG
-#if defined ION_PLATFORM_WINDOWS
-		void OnOpenGLError(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void *userParam)
-		{
-#if !ION_RENDERER_LOG_WARNINGS
-			if (type == GL_DEBUG_TYPE_ERROR || type == GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR)
-#endif
-			{
-#if !ION_RENDERER_WARNING_AS_ERROR
-				if (type == GL_DEBUG_TYPE_ERROR || type == GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR)
-#endif
-				{
-					debug::error
-						<< "==============================================================\n"
-						<< "OpenGL error: \n"
-						<< "==============================================================\n"
-						<< "GLenum source = " << source << "\n"
-						<< "GLenum type = " << type << "\n"
-						<< "GLuint id = " << id << "\n"
-						<< "GLenum severity = " << severity << "\n"
-						<< "GLsizei length = " << length << "\n"
-						<< "const GLchar* message = " << message << "\n"
-						<< "==============================================================\n"
-						<< debug::end;
-				}
-#if !ION_RENDERER_WARNING_AS_ERROR
-				else
-				{
-					debug::log
-						<< "==============================================================\n"
-						<< "OpenGL warning: \n"
-						<< "==============================================================\n"
-						<< "GLenum source = " << source << "\n"
-						<< "GLenum type = " << type << "\n"
-						<< "GLuint id = " << id << "\n"
-						<< "GLenum severity = " << severity << "\n"
-						<< "GLsizei length = " << length << "\n"
-						<< "const GLchar* message = " << message << "\n"
-						<< "==============================================================\n"
-						<< debug::end;
-				}
-#endif
-			}
-		}
-#endif
-#endif
-
-		RenderContext RendererOpenGL::s_globalContext = 0;
-		DeviceContext RendererOpenGL::s_globalDC = 0;
-		RenderContext RendererOpenGL::s_currentContext = 0;
-		DeviceContext RendererOpenGL::s_currentDC = 0;
+		DeviceContext RendererOpenGL::s_globalDC = DeviceContext();
+		thread::LocalStorage<DeviceContext, RendererOpenGL::s_maxThreadContexts> RendererOpenGL::s_currentDC;
 		thread::LocalStorage<RenderContext, RendererOpenGL::s_maxThreadContexts> RendererOpenGL::s_threadContexts;
-		thread::CriticalSection RendererOpenGL::s_contextCriticalSection;
-		u32 RendererOpenGL::s_contextLockStack = 0;
+		thread::LocalStorage<u32, RendererOpenGL::s_maxThreadContexts> RendererOpenGL::s_contextLockStack;
 
-		int RendererOpenGL::s_glVertexDataTypes[VertexBuffer::eDataTypeCount] =
+		int RendererOpenGL::s_glVertexDataTypes[(int)VertexBuffer::DataType::Count] =
 		{
 			GL_UNSIGNED_BYTE,
 			GL_UNSIGNED_SHORT,
+#if defined ION_RENDERER_OPENGL_ES
+			0,
+#else
 			GL_UNSIGNED_INT,
+#endif
 			GL_FLOAT
+		};
+
+		int RendererOpenGL::s_glVertexPatternTypes[(int)VertexBuffer::Pattern::Count] =
+		{
+			GL_LINES,
+			GL_LINE_STRIP,
+			GL_TRIANGLES,
+#if defined ION_RENDERER_OPENGL_ES
+			0,
+#else
+			GL_QUADS
+#endif
 		};
 
 		Renderer* Renderer::Create(DeviceContext globalDeviceContext)
@@ -104,55 +69,64 @@ namespace ion
 		RendererOpenGL::RendererOpenGL(DeviceContext globalDeviceContext)
 		{
 			//Can only have one global DC and context
-			debug::Assert(s_globalDC == NULL, "RendererOpenGL::RendererOpenGL() - Global context already exists, create a shared context instead");
-			debug::Assert(s_globalContext == NULL, "RendererOpenGL::RendererOpenGL() - Global context already exists, create a shared context instead");
+			debug::Assert(!s_globalDC, "RendererOpenGL::RendererOpenGL() - Global context already exists, create a shared context instead");
+
+			//Initialise platform specific GL lib
+			InitPlatformGL(globalDeviceContext);
 
 			//Intialise OpenGL extensions
-			OpenGLExt::LoadExtensions(globalDeviceContext);
+			opengl::LoadExtensions(globalDeviceContext);
 
 			//Using existing global DC
 			s_globalDC = globalDeviceContext;
 
 			//Create OpenGL context
-			s_globalContext = CreateContext(globalDeviceContext, 0);
+			RenderContext mainRenderContext = CreateContext(globalDeviceContext, 0);
 
 			//Set for this thread
-			s_threadContexts.SetData(s_globalContext);
+			s_threadContexts.SetData(mainRenderContext);
+			s_currentDC.SetData(s_globalDC);
+			s_contextLockStack.SetData(0);
 
 			//Create shared contexts for other threads, store in TLS
 			for (int i = 1; i < s_maxThreadContexts; i++)
 			{
-				RenderContext renderContext = CreateContext(s_globalDC, s_globalContext);
+				RenderContext renderContext = CreateContext(s_globalDC, mainRenderContext);
 				s_threadContexts.SetData(renderContext, i);
+				s_currentDC.SetData(s_globalDC, i);
+				s_contextLockStack.SetData(0, i);
 			}
 
 			//Init context
 			InitContext(globalDeviceContext);
 		}
 
-		RendererOpenGL::RendererOpenGL(DeviceContext globalDeviceContext, RenderContext renderContext)
+		RendererOpenGL::RendererOpenGL(DeviceContext globalDeviceContext, RenderContext mainRenderContext)
 		{
 			//Can only have one global DC and context
-			debug::Assert(s_globalDC == NULL, "RendererOpenGL::RendererOpenGL() - Global context already exists, create a shared context instead");
-			debug::Assert(s_globalContext == NULL, "RendererOpenGL::RendererOpenGL() - Global context already exists, create a shared context instead");
+			debug::Assert(!s_globalDC, "RendererOpenGL::RendererOpenGL() - Global context already exists, create a shared context instead");
+
+			//Initialise platform specific GL lib
+			InitPlatformGL(globalDeviceContext);
 
 			//Intialise OpenGL extensions
-			OpenGLExt::LoadExtensions(globalDeviceContext);
+			opengl::LoadExtensions(globalDeviceContext);
 
 			//Using existing global DC
 			s_globalDC = globalDeviceContext;
 
-			//Using existing GL context
-			s_globalContext = renderContext;
-
 			//Set for this thread
-			s_threadContexts.SetData(renderContext);
+			s_threadContexts.SetData(mainRenderContext);
+			s_currentDC.SetData(s_globalDC);
+			s_contextLockStack.SetData(0);
 
 			//Create shared contexts for other threads, store in TLS
 			for (int i = 1; i < s_maxThreadContexts; i++)
 			{
-				RenderContext renderContext = CreateContext(s_globalDC, s_globalContext);
+				RenderContext renderContext = CreateContext(s_globalDC, mainRenderContext);
 				s_threadContexts.SetData(renderContext, i);
+				s_currentDC.SetData(s_globalDC, i);
+				s_contextLockStack.SetData(0, i);
 			}
 
 			//Init context
@@ -166,61 +140,6 @@ namespace ion
 #endif
 		}
 
-		RenderContext RendererOpenGL::CreateContext(DeviceContext deviceContext, RenderContext sharedFrom)
-		{
-			//Create OpenGL context
-			RenderContext renderContext;
-
-#if defined ION_PLATFORM_WINDOWS
-			if (OpenGLExt::wglCreateContextAttribs)
-			{
-				int flags[] = 
-				{
-					WGL_CONTEXT_MAJOR_VERSION_ARB, 1,
-					WGL_CONTEXT_MINOR_VERSION_ARB, 0,
-#if defined DEBUG
-					WGL_CONTEXT_FLAGS_ARB,  WGL_CONTEXT_DEBUG_BIT_ARB,
-#endif
-					0
-				};
-
-				renderContext = OpenGLExt::wglCreateContextAttribs(deviceContext, sharedFrom, flags);
-			}
-			else
-			{
-				renderContext = wglCreateContext(deviceContext);
-
-				if (sharedFrom)
-				{
-					//Share with another context
-					wglShareLists(sharedFrom, renderContext);
-				}
-			}
-#elif defined ION_PLATFORM_MACOSX || defined ION_PLATFORM_LINUX || defined ION_PLATFORM_RASPBERRYPI
-            if(sharedFrom)
-            {
-                LockGLContext();
-                SDL_GL_SetAttribute(SDL_GL_SHARE_WITH_CURRENT_CONTEXT, 1);
-            }
-            
-			renderContext = SDL_GL_CreateContext(deviceContext);
-            
-            if(sharedFrom)
-            {
-                UnlockGLContext();
-            }
-#elif defined ION_PLATFORM_DREAMCAST
-			renderContext = 1;
-#endif
-
-            if(!renderContext)
-            {
-                debug::Error("Could not create OpenGL context");
-            }
-
-			return renderContext;
-		}
-
 		void RendererOpenGL::InitContext(DeviceContext deviceContext)
 		{
 			//Lock context
@@ -230,30 +149,9 @@ namespace ion
 			const GLubyte* vendor = (const GLubyte*)glGetString(GL_VENDOR);
 			const GLubyte* renderer = (const GLubyte*)glGetString(GL_RENDERER);
 			const GLubyte* version = (const GLubyte*)glGetString(GL_VERSION);
-			const GLubyte* extensions = (const GLubyte*)glGetString(GL_EXTENSIONS);
 			debug::log << "OpenGL vendor: " << (const char*)vendor << debug::end;
 			debug::log << "OpenGL device: " << (const char*)renderer << debug::end;
 			debug::log << "OpenGL version: " << (const char*)version << debug::end;
-			//debug::log << "OpenGL extensions: " << (const char*)extensions << debug::end;
-
-			//Set error callback
-#if defined DEBUG && defined ION_PLATFORM_WINDOWS && defined ION_PLATFORM_64BIT
-			if (OpenGLExt::glDebugMessageCallback)
-			{
-				glEnable(GL_DEBUG_OUTPUT);
-				OpenGLExt::glDebugMessageCallback(OnOpenGLError, nullptr);
-			}
-#endif
-
-#if defined ION_RENDERER_KGL
-			int ramBefore = debug::GetRAMUsed();
-
-			//Init KOS GL
-			glKosInit();
-
-			int ramAfter = debug::GetRAMUsed();
-			ion::debug::log << "Initialised KGL, used memory: " << ramAfter << " bytes (" << (float)ramAfter / (1024.0f*1024.0f) << "mb)" << debug::end;
-#endif
 
 			//Background colour
 			glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -262,7 +160,7 @@ namespace ion
 			glEnable(GL_DEPTH_TEST);
 
 			//Depth buffer setup
-			#if !defined ION_RENDERER_OPENGLES
+			#if !defined ION_RENDERER_OPENGL_ES
 			glClearDepth(1.0f);
 			#endif
 
@@ -275,14 +173,20 @@ namespace ion
 			glEnable(GL_CULL_FACE);
 
 			//Shading and perspective
+#if defined ION_RENDERER_OPENGL_CORE && defined ION_RENDERER_FIXED
 			glShadeModel(GL_SMOOTH);
 
-#if !defined ION_RENDERER_OPENGLES
 			glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 #endif
 
 			//Set default blending mode
 			glBlendFunc(GL_ONE, GL_ONE);
+
+			//Disable lighting
+#if defined ION_RENDERER_OPENGL_CORE && defined ION_RENDERER_FIXED
+			glDisable(GL_LIGHT0);
+			glDisable(GL_LIGHTING);
+#endif
 
 			//Check for OpenGL errors
 			if(!CheckGLError("RendererOpenGL::InitContext()"))
@@ -305,7 +209,7 @@ namespace ion
 
 		void RendererOpenGL::SetupViewport(const Viewport& viewport)
 		{
-			debug::Assert(s_contextLockStack > 0, "OpenGL context is not locked");
+			CheckGLContext();
 
 			int width = viewport.GetWidth();
 			int height = viewport.GetHeight();
@@ -317,10 +221,12 @@ namespace ion
 			glViewport(0, 0, width, height);
 
 			//Select projection matrix
+#if defined ION_RENDERER_OPENGL_CORE && defined ION_RENDERER_FIXED
 			glMatrixMode(GL_PROJECTION);
 
 			//Reset projection matrix
 			glLoadIdentity();
+#endif
 
 			//Calculate aspect ratio
 			float aspectRatio = (float)width / (float)height;
@@ -328,34 +234,42 @@ namespace ion
 			//Set perspective mode
 			switch(viewport.GetPerspectiveMode())
 			{
-				case Viewport::ePerspective3D:
+				case Viewport::PerspectiveMode::Perspective3D:
 				{
 					//TODO: Expose FOV and near/far
-					m_projectionMatrix = ion::Matrix4(45.0f, aspectRatio, 0.1f, 1000.0f);
+					m_projectionMatrix = ion::Matrix4(aspectRatio, 45.0f, 0.1f, 1000.0f);
+#if defined ION_RENDERER_OPENGL_CORE && defined ION_RENDERER_FIXED
 					glLoadMatrixf(m_projectionMatrix.GetAsFloatArray());
+#endif
 					break;
 				}
 
-				case Viewport::eOrtho2DNormalised:
+				case Viewport::PerspectiveMode::Ortho2DNormalised:
 				{
 					m_projectionMatrix = ion::Matrix4(0.0f, 1.0f, 0.0f, 1.0f, -1.0f, 1.0f);
+#if defined ION_RENDERER_OPENGL_CORE && defined ION_RENDERER_FIXED
 					glLoadMatrixf(m_projectionMatrix.GetAsFloatArray());
+#endif
 					break;
 				}
 
-				case Viewport::eOrtho2DAbsolute:
+				case Viewport::PerspectiveMode::Ortho2DAbsolute:
 				{
-					m_projectionMatrix = ion::Matrix4(0.0f, width, 0.0f, height, -1.0f, 1.0f);
+					m_projectionMatrix = ion::Matrix4(0.0f, (float)width, 0.0f, (float)height, -1.0f, 1.0f);
+#if defined ION_RENDERER_OPENGL_CORE && defined ION_RENDERER_FIXED
 					glLoadMatrixf(m_projectionMatrix.GetAsFloatArray());
+#endif
 					break;
 				}
 			}
 
+#if defined ION_RENDERER_OPENGL_CORE && defined ION_RENDERER_FIXED
 			//Select the modelview matrix
 			glMatrixMode(GL_MODELVIEW);
 
 			//Reset the modelview matrix
 			glLoadIdentity();
+#endif
 
 			CheckGLError("RendererOpenGL::SetupViewport");
 
@@ -376,12 +290,22 @@ namespace ion
 
 		void RendererOpenGL::LockGLContext()
 		{
-			//Lock context against global DC
-			LockGLContext(s_globalDC);
+			//If context not allocated for this thread, allocate now
+			if (!s_threadContexts.IsAllocated())
+			{
+				s_threadContexts.Allocate();
+				s_currentDC.Allocate();
+				s_contextLockStack.Allocate();
+			}
+
+			//Lock context against current DC
+			LockGLContext(s_currentDC.GetData());
 		}
 
 		void RendererOpenGL::LockGLContext(const DeviceContext& deviceContext)
 		{
+			CheckGLError("RendererOpenGL::LockContext");
+
 #if defined ION_PLATFORM_DREAMCAST
 			//TEMP
 			RenderContext renderContext = 0;
@@ -390,83 +314,72 @@ namespace ion
 			if (!s_threadContexts.IsAllocated())
 			{
 				s_threadContexts.Allocate();
+				s_currentDC.Allocate();
+				s_contextLockStack.Allocate();
 			}
 
 			//Get context for this thread
 			RenderContext renderContext = s_threadContexts.GetData();
 #endif
 
-#if !defined ION_PLATFORM_DREAMCAST
-			//TEMP
-			s_contextCriticalSection.Begin();
-#endif
-
-			if (s_contextLockStack == 0)
+			u32 lockCount = s_contextLockStack.GetData();
+			if (lockCount == 0 || deviceContext != s_currentDC.GetData())
 			{
-				if (deviceContext != s_currentDC)
-				{
-					//Make context current
-#if defined ION_PLATFORM_WINDOWS
-					wglMakeCurrent(deviceContext, renderContext);
-#elif defined ION_PLATFORM_LINUX
-                    SDL_GL_MakeCurrent(deviceContext, renderContext);
-#endif
-				}
+				//Make context current
+				SetThreadContext(deviceContext, renderContext);
 
 				//Set current DC
-				s_currentDC = deviceContext;
-			}
-			else
-			{
-				//Cannot switch DC if locked
-				if (deviceContext != s_currentDC)
-				{
-					debug::Assert(s_contextLockStack == 0, "RendererOpenGL::LockGLContext() - Cannot change device context when locked");
-				}
+				s_currentDC.SetData(deviceContext);
 			}
 
 			CheckGLError("RendererOpenGL::LockContext");
 
-			s_contextLockStack++;
+			s_contextLockStack.SetData(lockCount + 1);
 		}
 
 		void RendererOpenGL::UnlockGLContext()
 		{
-			debug::Assert(s_contextLockStack > 0, "Bad OpenGL context lock count");
+			CheckGLContext();
 			CheckGLError("RendererOpenGL::UnlockContext");
 
-			s_contextLockStack--;
-			if (!s_contextLockStack)
-			{
-				if (s_currentDC != s_globalDC)
-				{
-					//Unbind current DC
-#if defined ION_PLATFORM_WINDOWS
-					wglMakeCurrent(s_currentDC, NULL);
-#elif defined ION_PLATFORM_LINUX
-                    SDL_GL_MakeCurrent(s_currentDC, NULL);
-#endif
-				}
+			u32 lockCount = s_contextLockStack.GetData();
 
-				s_currentDC = NULL;
+			lockCount--;
+			if (!lockCount)
+			{
+				//Unbind current DC
+				SetThreadContext(s_currentDC.GetData(), NullRenderContext);
+				s_currentDC.SetData(s_globalDC);
 			}
 
-#if !defined ION_PLATFORM_DREAMCAST
-			//TEMP
-			s_contextCriticalSection.End();
-#endif
+			s_contextLockStack.SetData(lockCount);
+		}
+
+		bool RendererOpenGL::CheckGLContext(const char* message)
+		{
+			if (s_contextLockStack.GetData() == 0)
+			{
+				if(message)
+					ion::debug::error << "OpenGL context is not locked : " << message << ion::debug::end;
+				else
+					ion::debug::error << "OpenGL context is not locked" << ion::debug::end;
+
+				return false;
+			}
+
+			return true;
 		}
 
 		bool RendererOpenGL::CheckGLError(const char* message)
 		{
 #if defined DEBUG
-			if (s_contextLockStack > 0)
+			if (s_contextLockStack.GetData() > 0)
 			{
 				GLenum error = glGetError();
 
 				if (error != GL_NO_ERROR)
 				{
-#if defined ION_RENDERER_OPENGLES
+#if defined ION_RENDERER_OPENGL_ES || defined ION_PLATFORM_SWITCH
 					debug::error << message << " - OpenGL error: " << error << debug::end;
 #else
 					const char* errString = (const char*)gluErrorString(error);
@@ -497,14 +410,16 @@ namespace ion
 
 		void RendererOpenGL::SetMatrix(const Matrix4& matrix)
 		{
-			debug::Assert(s_contextLockStack > 0, "OpenGL context is not locked");
-			glLoadMatrixf(matrix.GetAsFloatArray());
+#if defined ION_RENDERER_OPENGL_CORE
+			CheckGLContext();
+			glLoadMatrixf((float*)&matrix.GetAsFloatArray()[0]);
 			CheckGLError("RendererOpenGL::SetMatrix");
+#endif
 		}
 
 		Matrix4 RendererOpenGL::GetProjectionMatrix()
 		{
-			debug::Assert(s_contextLockStack > 0, "OpenGL context is not locked");
+			CheckGLContext();
 			return m_projectionMatrix;
 		}
 
@@ -519,25 +434,6 @@ namespace ion
 			UnlockContext();
 		}
 
-		void RendererOpenGL::SwapBuffers()
-		{
-			debug::Assert(s_contextLockStack > 0, "OpenGL context is not locked");
-
-#if defined ION_PLATFORM_WINDOWS
-			::SwapBuffers(s_currentDC);
-#elif defined ION_PLATFORM_MACOSX
-			SDL_GL_SwapWindow(s_currentDC);
-#elif defined ION_PLATFORM_LINUX
-			SDL_GL_SwapWindow(s_currentDC);
-#elif defined ION_PLATFORM_RASPBERRYPI
-			SDL_GL_SwapWindow(s_currentDC);
-#elif defined ION_PLATFORM_DREAMCAST
-			glutSwapBuffers();
-#endif
-
-			CheckGLError("RendererOpenGL::SwapBuffers");
-		}
-
 		void RendererOpenGL::SetClearColour(const Colour& colour)
 		{
 			glClearColor(colour.r, colour.g, colour.b, colour.a);
@@ -547,7 +443,7 @@ namespace ion
 
 		void RendererOpenGL::ClearColour()
 		{
-			debug::Assert(s_contextLockStack > 0, "OpenGL context is not locked");
+			CheckGLContext();
 
 			//Clear colour buffer
 			glClear(GL_COLOR_BUFFER_BIT);
@@ -557,7 +453,7 @@ namespace ion
 
 		void RendererOpenGL::ClearDepth()
 		{
-			debug::Assert(s_contextLockStack > 0, "OpenGL context is not locked");
+			CheckGLContext();
 
 			//Clear depth buffer
 			glClear(GL_DEPTH_BUFFER_BIT);
@@ -567,26 +463,26 @@ namespace ion
 
 		void RendererOpenGL::SetAlphaBlending(AlphaBlendType alphaBlendType)
 		{
-			debug::Assert(s_contextLockStack > 0, "OpenGL context is not locked");
+			CheckGLContext();
 
 			switch(alphaBlendType)
 			{
-			case eNoBlend:
+			case AlphaBlendType::None:
 				glDisable(GL_BLEND);
 				break;
 
-			case eAdditive:
+			case AlphaBlendType::Additive:
 				glEnable(GL_BLEND);
 				glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 				break;
 
-			case eTranslucent:
+			case AlphaBlendType::Translucent:
 				glEnable(GL_BLEND);
 				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 				break;
 
 #if defined ION_PLATFORM_WINDOWS
-			case eColourFilter:
+			case AlphaBlendType::ColourFilter:
 				glEnable(GL_BLEND);
 				glBlendFunc(GL_ZERO, GL_CONSTANT_COLOR);
 				break;
@@ -599,29 +495,22 @@ namespace ion
 			CheckGLError("RendererOpenGL::SetAlphaBlending");
 		}
 
-		void RendererOpenGL::SetBlendColour(const Colour& colour)
-		{
-#if defined ION_PLATFORM_WINDOWS
-			OpenGLExt::glBlendColor(colour.r, colour.g, colour.b, colour.a);
-#endif
-		}
-
 		void RendererOpenGL::SetFaceCulling(CullingMode cullingMode)
 		{
-			debug::Assert(s_contextLockStack > 0, "OpenGL context is not locked");
+			CheckGLContext();
 
 			switch(cullingMode)
 			{
-			case eNoCull:
+			case CullingMode::None:
 				glDisable(GL_CULL_FACE);
 				break;
 
-			case eClockwise:
+			case CullingMode::Clockwise:
 				glEnable(GL_CULL_FACE);
 				glCullFace(GL_FRONT);
 				break;
 
-			case eCounterClockwise:
+			case CullingMode::CounterClockwise:
 				glEnable(GL_CULL_FACE);
 				glCullFace(GL_BACK);
 				break;
@@ -635,212 +524,300 @@ namespace ion
 
 		void RendererOpenGL::SetDepthTest(DepthTest depthTest)
 		{
-			debug::Assert(s_contextLockStack > 0, "OpenGL context is not locked");
+			CheckGLContext();
 
-			if(depthTest == eDisabled)
+			switch (depthTest)
 			{
-				glDisable(GL_DEPTH_TEST);
-			}
-			else
-			{
+			case DepthTest::Always:
 				glEnable(GL_DEPTH_TEST);
-
-				switch(depthTest)
-				{
-				case eAlways:
-					glDepthFunc(GL_ALWAYS);
-					break;
-				case eLessEqual:
-					glDepthFunc(GL_LEQUAL);
-					break;
-				}
+				glDepthFunc(GL_ALWAYS);
+				break;
+			case DepthTest::Less:
+				glEnable(GL_DEPTH_TEST);
+				glDepthFunc(GL_LESS);
+				break;
+			case DepthTest::LessOrEqual:
+				glEnable(GL_DEPTH_TEST);
+				glDepthFunc(GL_LEQUAL);
+				break;
+			case DepthTest::Disabled:
+				glDisable(GL_DEPTH_TEST);
+				break;
 			}
 
 			CheckGLError("RendererOpenGL::SetDepthTest");
 		}
 
-		void RendererOpenGL::SetLineWidth(float width)
+		void RendererOpenGL::SetScissorTest(ScissorTest scissorTest)
 		{
-			//TODO: Dreamcast
-#if !defined ION_PLATFORM_DREAMCAST
-			glLineWidth(width);
-#endif
+			CheckGLContext();
 
-			CheckGLError("RendererOpenGL::SetLineWidth");
-		}
-
-		void RendererOpenGL::EnableVSync(bool enabled)
-		{
-#if defined ION_PLATFORM_WINDOWS
-			if (OpenGLExt::glSwapInterval)
+			switch (scissorTest)
 			{
-				OpenGLExt::glSwapInterval(enabled ? 1 : 0);
-			}
-#endif
-		}
-
-		void RendererOpenGL::LoadColourPalette(int paletteIdx, const std::vector<Colour>& palette)
-		{
-#if defined ION_PLATFORM_DREAMCAST
-			ion::debug::Assert(paletteIdx >= 0 && paletteIdx < GL_COLOR_TABLE_COUNT, "RenderereOpenGL::LoadColourPalette() - Palette out of range");
-
-			std::vector<u32> data;
-			data.resize(palette.size());
-
-			for (int i = 0; i < palette.size(); i++)
-			{
-				data[i] = palette[i].AsARGB();
+			case ScissorTest::Enabled:
+				glEnable(GL_SCISSOR_TEST);
+				break;
+			case ScissorTest::Disabled:
+				glDisable(GL_SCISSOR_TEST);
+				break;
 			}
 
-			glColorTable(GL_COLOR_TABLE + paletteIdx, GL_RGBA, palette.size(), GL_RGBA, GL_UNSIGNED_INT, data.data());
+			CheckGLError("RendererOpenGL::SetScissorTest");
+		}
+
+		void RendererOpenGL::SetScissorRegion(const ion::Vector2i& position, const ion::Vector2i& size)
+		{
+			CheckGLContext();
+
+			glScissor(position.x, position.y, size.x, size.y);
+
+			CheckGLError("RendererOpenGL::SetScissorRegion");
+		}
+
+		//Materials
+		void RendererOpenGL::BindMaterial(Material& material, const Matrix4& worldMtx, const Matrix4& viewMtx, const Matrix4& projectionMtx)
+		{
+#if defined ION_RENDERER_SHADER
+			if (material.GetShader())
+			{
+				material.GetShader()->Bind();
+				Material::ShaderParams& shaderParams = material.GetShaderParams();
+				
+				Matrix4 worldViewMtx = worldMtx * viewMtx;
+				Matrix4 worldViewProjMtx = worldViewMtx * projectionMtx;
+
+//#error TODO need to extract the 3x3
+				Matrix4 normalMtx = worldViewMtx.GetInverse().GetTranspose();
+
+				shaderParams.matrices.world.SetValue(worldMtx);
+				shaderParams.matrices.view.SetValue(viewMtx);
+				shaderParams.matrices.worldView.SetValue(worldViewMtx);
+				shaderParams.matrices.worldViewProjection.SetValue(worldViewProjMtx);
+				shaderParams.matrices.normal.SetValue(normalMtx);
+				shaderParams.colours.ambient.SetValue(material.GetAmbientColour());
+				shaderParams.colours.diffuse.SetValue(material.GetDiffuseColour());
+				shaderParams.colours.specular.SetValue(material.GetSpecularColour());
+				shaderParams.colours.emissive.SetValue(material.GetEmissiveColour());
+
+				if (material.GetNumDiffuseMaps() > 0)
+				{
+					shaderParams.textures.diffuseMap.SetValue(*material.GetDiffuseMap(0));
+				}
+
+				if (material.GetNormalMap())
+				{
+					shaderParams.textures.normalMap.SetValue(*material.GetNormalMap());
+				}
+
+				if (material.GetSpecularMap())
+				{
+					shaderParams.textures.specularMap.SetValue(*material.GetSpecularMap());
+				}
+
+				if (material.GetOpacityMap())
+				{
+					shaderParams.textures.opacityMap.SetValue(*material.GetOpacityMap());
+				}
+			}
+			else
+			{
+				ion::debug::Error("RendererOpenGL::BindMaterial() - Material has no shader");
+			}
+#elif defined ION_RENDERER_FIXED
+			//Set fixed function matrix
+			glLoadMatrixf((worldMtx * viewMtx).GetAsFloatArray());
+
+			//Bind diffuse map
+			if (material.GetNumDiffuseMaps() > 0)
+			{
+				glEnable(GL_TEXTURE_2D);
+				glBindTexture(GL_TEXTURE_2D, ((TextureOpenGL*)material.GetDiffuseMap(0))->GetTextureId());
+			}
+
+			//Setup default lighting
+			if (material.GetLightingEnabled())
+			{
+				float ambient[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+				float diffuse[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+				glLightfv(GL_LIGHT0, GL_AMBIENT, ambient);
+				glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse);
+				glEnable(GL_LIGHT0);
+				glEnable(GL_LIGHTING);
+
+				//Set material properties
+				glMaterialfv(GL_FRONT, GL_AMBIENT, (float*)&material.GetAmbientColour().r);
+				glMaterialfv(GL_FRONT, GL_DIFFUSE, (float*)&material.GetDiffuseColour().r);
+				glMaterialfv(GL_FRONT, GL_SPECULAR, (float*)&material.GetSpecularColour().r);
+
+				//Disable lighting
+				glDisable(GL_LIGHT0);
+				glDisable(GL_LIGHTING);
+			}
+
+			RendererOpenGL::CheckGLError("RendererOpenGL::BindMaterial");
+#endif
+		}
+
+		void RendererOpenGL::UnbindMaterial(Material& material)
+		{
+#if defined ION_RENDERER_SHADER
+			if (material.GetShader())
+			{
+				material.GetShader()->Unbind();
+			}
+			else
+			{
+				ion::debug::Error("RendererOpenGL::UnbindMaterial() - Material has no shader");
+			}
+#elif defined ION_RENDERER_FIXED
+			//Restore fixed function matrix
+			glLoadMatrixf(Matrix4().GetAsFloatArray());
+
+			glBindTexture(GL_TEXTURE_2D, 0);
+#if !defined ION_RENDERER_OPENGL_ES
+			glDisable(GL_TEXTURE_2D);
+#endif
+
+			RendererOpenGL::CheckGLError("RendererOpenGL::UnbindMaterial");
+#endif
+		}
+
+		void RendererOpenGL::BindVertexBuffer(const VertexBuffer& vertexBuffer)
+		{
+			int positionSize = vertexBuffer.GetElementNumComponents(VertexBuffer::ElementType::Position);
+			int normalSize = vertexBuffer.GetElementNumComponents(VertexBuffer::ElementType::Normal);
+			int colourSize = vertexBuffer.GetElementNumComponents(VertexBuffer::ElementType::Colour);
+			int texCoordSize = vertexBuffer.GetElementNumComponents(VertexBuffer::ElementType::TexCoord);
+
+#if defined ION_RENDERER_FIXED
+			//Enable client states and set element pointers
+			if (positionSize)
+			{
+				glEnableClientState(GL_VERTEX_ARRAY);
+				glVertexPointer(positionSize, s_glVertexDataTypes[vertexBuffer.GetDataType(VertexBuffer::ElementType::Position)], vertexBuffer.GetElementStride(VertexBuffer::ElementType::Position), vertexBuffer.GetStartAddress(VertexBuffer::ElementType::Position));
+			}
+
+			if (normalSize)
+			{
+				glEnableClientState(GL_NORMAL_ARRAY);
+				glNormalPointer(s_glVertexDataTypes[vertexBuffer.GetDataType(VertexBuffer::ElementType::Normal)], vertexBuffer.GetElementStride(VertexBuffer::ElementType::Normal), vertexBuffer.GetStartAddress(VertexBuffer::ElementType::Normal));
+			}
+
+			if (colourSize)
+			{
+				glEnableClientState(GL_COLOR_ARRAY);
+				glColorPointer(colourSize, s_glVertexDataTypes[vertexBuffer.GetDataType(VertexBuffer::ElementType::Colour)], vertexBuffer.GetElementStride(VertexBuffer::ElementType::Colour), vertexBuffer.GetStartAddress(VertexBuffer::ElementType::Colour));
+			}
+
+			if (texCoordSize)
+			{
+				glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+				glTexCoordPointer(texCoordSize, s_glVertexDataTypes[vertexBuffer.GetDataType(VertexBuffer::ElementType::TexCoord)], vertexBuffer.GetElementStride(VertexBuffer::ElementType::TexCoord), vertexBuffer.GetStartAddress(VertexBuffer::ElementType::TexCoord));
+			}
+#else
+			debug::Assert(vertexBuffer.IsCompiled(), "RendererOpenGL::BindVertexBuffer() - Vertex buffer has not been compiled");
+
+			//Bind vertex array
+			opengl::extensions->glBindVertexArray(vertexBuffer.m_glVAO);
+
+			//Enable vertex attributes
+			if (positionSize)
+				opengl::extensions->glEnableVertexAttribArray((int)ion::render::VertexBuffer::ElementType::Position);
+
+			if (normalSize)
+				opengl::extensions->glEnableVertexAttribArray((int)ion::render::VertexBuffer::ElementType::Normal);
+
+			if (colourSize)
+				opengl::extensions->glEnableVertexAttribArray((int)ion::render::VertexBuffer::ElementType::Colour);
+
+			if (texCoordSize)
+				opengl::extensions->glEnableVertexAttribArray((int)ion::render::VertexBuffer::ElementType::TexCoord);
+
+			//Bind index data
+			if (vertexBuffer.m_glEAB)
+				opengl::extensions->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vertexBuffer.m_glEAB);
+#endif
+
+			CheckGLError("RendererOpenGL::BindVertexBuffer()");
+		}
+
+		void RendererOpenGL::UnbindVertexBuffer()
+		{
+#if defined ION_RENDERER_FIXED
+			//Disable client states
+			glDisableClientState(GL_VERTEX_ARRAY);
+			glDisableClientState(GL_NORMAL_ARRAY);
+			glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+			glDisableClientState(GL_COLOR_ARRAY);
+#else
+			opengl::extensions->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+			opengl::extensions->glDisableVertexAttribArray((int)ion::render::VertexBuffer::ElementType::Position);
+			opengl::extensions->glDisableVertexAttribArray((int)ion::render::VertexBuffer::ElementType::Normal);
+			opengl::extensions->glDisableVertexAttribArray((int)ion::render::VertexBuffer::ElementType::Colour);
+			opengl::extensions->glDisableVertexAttribArray((int)ion::render::VertexBuffer::ElementType::TexCoord);
+			opengl::extensions->glBindVertexArray(0);
 #endif
 		}
 
 		void RendererOpenGL::DrawVertexBuffer(const VertexBuffer& vertexBuffer)
 		{
-			debug::Assert(s_contextLockStack > 0, "OpenGL context is not locked");
+			CheckGLContext();
 
-			//Enable client states and set element pointers
-			int positionSize = vertexBuffer.GetElementNumComponents(VertexBuffer::ePosition);
-			int normalSize = vertexBuffer.GetElementNumComponents(VertexBuffer::eNormal);
-			int colourSize = vertexBuffer.GetElementNumComponents(VertexBuffer::eColour);
-			int texCoordSize = vertexBuffer.GetElementNumComponents(VertexBuffer::eTexCoord);
-
-			if (positionSize)
-			{
-				glEnableClientState(GL_VERTEX_ARRAY);
-				glVertexPointer(positionSize, s_glVertexDataTypes[vertexBuffer.GetDataType(VertexBuffer::ePosition)], vertexBuffer.GetStrideBytes(), vertexBuffer.GetStartAddress(VertexBuffer::ePosition));
-			}
-
-			if (normalSize)
-			{
-				glEnableClientState(GL_NORMAL_ARRAY);
-				glNormalPointer(s_glVertexDataTypes[vertexBuffer.GetDataType(VertexBuffer::eNormal)], vertexBuffer.GetStrideBytes(), vertexBuffer.GetStartAddress(VertexBuffer::eNormal));
-			}
-
-			if (colourSize)
-			{
-				glEnableClientState(GL_COLOR_ARRAY);
-				glColorPointer(colourSize, s_glVertexDataTypes[vertexBuffer.GetDataType(VertexBuffer::eColour)], vertexBuffer.GetStrideBytes(), vertexBuffer.GetStartAddress(VertexBuffer::eColour));
-			}
-
-			if (texCoordSize)
-			{
-				glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-				glTexCoordPointer(texCoordSize, s_glVertexDataTypes[vertexBuffer.GetDataType(VertexBuffer::eTexCoord)], vertexBuffer.GetStrideBytes(), vertexBuffer.GetStartAddress(VertexBuffer::eTexCoord));
-			}
-
-			//Determine pattern type
-			int drawPattern = 0;
-			int numVertices = vertexBuffer.GetNumVerts();
-
-			switch(vertexBuffer.GetPattern())
-			{
-			case VertexBuffer::eLines:
-				drawPattern = GL_LINES;
-				break;
-
-			case VertexBuffer::eLineStrip:
-				drawPattern = GL_LINE_STRIP;
-				break;
-
-			case VertexBuffer::eTriangles:
-				drawPattern = GL_TRIANGLES;
-				break;
-
-			case VertexBuffer::eQuads:
-				drawPattern = GL_QUADS;
-				break;
-
-			default:
-				debug::Error("Invalid vertex pattern");
-			}
+			//Apply vertex attributes and bind vertex data
+			BindVertexBuffer(vertexBuffer);
 
 			//Draw
-			glDrawArrays(drawPattern, 0, vertexBuffer.GetNumVerts());
+			glDrawArrays(s_glVertexPatternTypes[(int)vertexBuffer.GetPattern()], 0, vertexBuffer.GetNumVerts());
 
-			//Disable client states
-			glDisableClientState(GL_VERTEX_ARRAY);
-			glDisableClientState(GL_NORMAL_ARRAY);
-			glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-			glDisableClientState(GL_COLOR_ARRAY);
+			//Unbind vertex data and disable vertex attributes
+			UnbindVertexBuffer();
 
-			if(!CheckGLError("RendererOpenGL::DrawVertexBuffer(const VertexBuffer&)"))
-			{
-				debug::Error("Could not draw vertex buffer");
-			}
+			CheckGLError("RendererOpenGL::DrawVertexBuffer(const VertexBuffer&)");
 		}
 
 		void RendererOpenGL::DrawVertexBuffer(const VertexBuffer& vertexBuffer, const IndexBuffer& indexBuffer)
 		{
-			debug::Assert(s_contextLockStack > 0, "OpenGL context is not locked");
+			CheckGLContext();
 
-			//Enable client states and set element pointers
-			int positionSize = vertexBuffer.GetElementNumComponents(VertexBuffer::ePosition);
-			int normalSize = vertexBuffer.GetElementNumComponents(VertexBuffer::eNormal);
-			int colourSize = vertexBuffer.GetElementNumComponents(VertexBuffer::eColour);
-			int texCoordSize = vertexBuffer.GetElementNumComponents(VertexBuffer::eTexCoord);
-
-			if (positionSize)
-			{
-				glEnableClientState(GL_VERTEX_ARRAY);
-				glVertexPointer(positionSize, s_glVertexDataTypes[vertexBuffer.GetDataType(VertexBuffer::ePosition)], vertexBuffer.GetStrideBytes(), vertexBuffer.GetStartAddress(VertexBuffer::ePosition));
-			}
-
-			if (normalSize)
-			{
-				glEnableClientState(GL_NORMAL_ARRAY);
-				glNormalPointer(s_glVertexDataTypes[vertexBuffer.GetDataType(VertexBuffer::eNormal)], vertexBuffer.GetStrideBytes(), vertexBuffer.GetStartAddress(VertexBuffer::eNormal));
-			}
-
-			if (colourSize)
-			{
-				glEnableClientState(GL_COLOR_ARRAY);
-				glColorPointer(colourSize, s_glVertexDataTypes[vertexBuffer.GetDataType(VertexBuffer::eColour)], vertexBuffer.GetStrideBytes(), vertexBuffer.GetStartAddress(VertexBuffer::eColour));
-			}
-
-			if (texCoordSize)
-			{
-				glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-				glTexCoordPointer(texCoordSize, s_glVertexDataTypes[vertexBuffer.GetDataType(VertexBuffer::eTexCoord)], vertexBuffer.GetStrideBytes(), vertexBuffer.GetStartAddress(VertexBuffer::eTexCoord));
-			}
-
-			//Determine pattern type
-			int drawPattern = 0;
-			int numVertices = vertexBuffer.GetNumVerts();
-
-			switch(vertexBuffer.GetPattern())
-			{
-			case VertexBuffer::eTriangles:
-				drawPattern = GL_TRIANGLES;
-				break;
-
-			case VertexBuffer::eQuads:
-				drawPattern = GL_QUADS;
-				break;
-
-			default:
-				debug::Error("Invalid number of vertices");
-			}
+			//Apply vertex attributes and bind vertex data
+			BindVertexBuffer(vertexBuffer);
 
 			//Draw
-#if defined ION_PLATFORM_WINDOWS
-			glDrawElements(drawPattern, indexBuffer.GetSize(), GL_UNSIGNED_INT, indexBuffer.GetAddress());
-#elif defined ION_PLATFORM_MACOSX
-            glDrawElements(drawPattern, indexBuffer.GetSize(), GL_UNSIGNED_INT, indexBuffer.GetAddress());
-#elif defined ION_PLATFORM_LINUX
-            glDrawElements(drawPattern, indexBuffer.GetSize(), GL_UNSIGNED_INT, indexBuffer.GetAddress());
-#elif defined ION_PLATFORM_RASPBERRYPI
-			glDrawElements(drawPattern, indexBuffer.GetSize(), GL_UNSIGNED_SHORT, indexBuffer.GetAddress());
-#elif defined ION_PLATFORM_DREAMCAST
-			glDrawElements(drawPattern, indexBuffer.GetSize(), GL_UNSIGNED_SHORT, indexBuffer.GetAddress());
+			GLuint indexType = sizeof(TIndex) == 4 ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT;
+#if defined ION_RENDERER_FIXED
+			glDrawElements(s_glVertexPatternTypes[vertexBuffer.GetPattern()], indexBuffer.GetSize(), indexType, indexBuffer.GetAddress());
+#else
+			if(vertexBuffer.m_glEAB)
+				glDrawElements(s_glVertexPatternTypes[(int)vertexBuffer.GetPattern()], indexBuffer.GetSize(), indexType, 0);
+			else
+				glDrawElements(s_glVertexPatternTypes[(int)vertexBuffer.GetPattern()], indexBuffer.GetSize(), indexType, indexBuffer.GetAddress());
 #endif
 
-			//Disable client states
-			glDisableClientState(GL_VERTEX_ARRAY);
-			glDisableClientState(GL_NORMAL_ARRAY);
-			glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-			glDisableClientState(GL_COLOR_ARRAY);
+			//Unbind vertex data and disable vertex attributes
+			UnbindVertexBuffer();
+
+			CheckGLError("RendererOpenGL::DrawVertexBuffer(const VertexBuffer&, const IndexBuffer&)");
+		}
+
+		void RendererOpenGL::DrawVertexBuffer(const VertexBuffer& compiledVertexBuffer, int indexOffset, int indexCount)
+		{
+			//TODO: Mesh object
+
+			CheckGLContext();
+
+			//Apply vertex attributes and bind vertex data
+			BindVertexBuffer(compiledVertexBuffer);
+
+			//Draw
+			GLuint indexType = sizeof(TIndex) == 4 ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT;
+#if defined ION_RENDERER_FIXED
+			glDrawElements(s_glVertexPatternTypes[(int)compiledVertexBuffer.GetPattern()], indexCount, indexType, (void*)(intptr_t)indexBuffer.GetAddress() + (indexOffset * sizeof(TIndex)));
+#else
+			glDrawElements(s_glVertexPatternTypes[(int)compiledVertexBuffer.GetPattern()], indexCount, indexType, (void*)(intptr_t)indexOffset);
+#endif
+
+			//Unbind vertex data and disable vertex attributes
+			UnbindVertexBuffer();
 
 			CheckGLError("RendererOpenGL::DrawVertexBuffer(const VertexBuffer&, const IndexBuffer&)");
 		}

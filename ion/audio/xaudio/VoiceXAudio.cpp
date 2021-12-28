@@ -15,7 +15,11 @@ namespace ion
 		VoiceXAudio::VoiceXAudio(IXAudio2* xaudio2System, Source& source, bool loop)
 			: Voice(source, loop)
 		{
-			mXAudioVoice = NULL;
+			m_XAudioVoice = nullptr;
+			m_buffersQueued = 0;
+			m_bytesBuffered = 0;
+			m_bytesConsumed = 0;
+			m_samplesPlayed = 0;
 
 			//Get stream desc
 			const StreamDesc* streamDesc = source.GetStreamDesc();
@@ -31,11 +35,8 @@ namespace ion
 			waveFormatEx.cbSize = 0;
 
 			//Create voice
-			HRESULT result = xaudio2System->CreateSourceVoice(&mXAudioVoice, &waveFormatEx, 0, XAUDIO2_DEFAULT_FREQ_RATIO, this);
-			debug::Assert(result == S_OK && mXAudioVoice, "VoiceXAudio::VoiceXAudio() - Could not create XAudio2 voice");
-
-			//Request first buffer
-			source.RequestBuffer(*this);
+			HRESULT result = xaudio2System->CreateSourceVoice(&m_XAudioVoice, &waveFormatEx, 0, XAUDIO2_DEFAULT_FREQ_RATIO, this);
+			debug::Assert(result == S_OK && m_XAudioVoice, "VoiceXAudio::VoiceXAudio() - Could not create XAudio2 voice");
 
 			//Set default properties
 			SetVolume(1.0f);
@@ -48,84 +49,129 @@ namespace ion
 
 		void VoiceXAudio::SubmitBuffer(Buffer& buffer)
 		{
-			buffer.Lock();
+			//Lock buffer until finished with
+			buffer.ReadLock();
+
+			const StreamDesc* streamDesc = m_source.GetStreamDesc();
 
 			XAUDIO2_BUFFER xaudioBuffer = {0};
 
 			xaudioBuffer.pAudioData = (const BYTE*)buffer.Get(0);
 			xaudioBuffer.AudioBytes = buffer.GetDataSize();
-			xaudioBuffer.PlayLength = mSource.GetStreamDesc()->GetSizeSamples();
+			xaudioBuffer.PlayLength = buffer.GetDataSize() / (streamDesc->GetBitsPerSample() / 8) / streamDesc->GetNumChannels();
+			xaudioBuffer.pContext = &buffer;
+			xaudioBuffer.LoopCount = ((m_source.GetFeedType() == Source::FeedType::SingleBuffer) && m_loop) ? XAUDIO2_LOOP_INFINITE : 0;
+			xaudioBuffer.Flags = (m_source.GetFeedType() == Source::FeedType::SingleBuffer) ? XAUDIO2_END_OF_STREAM : 0;
 
-			if (!mLoop)
-			{
-				xaudioBuffer.Flags = XAUDIO2_END_OF_STREAM;
-			}
+			m_XAudioVoice->SubmitSourceBuffer(&xaudioBuffer);
 
-			mXAudioVoice->SubmitSourceBuffer(&xaudioBuffer);
-
-			buffer.Unlock();
+			ion::thread::atomic::Add(m_bytesBuffered, buffer.GetDataSize());
+			ion::thread::atomic::Increment(m_buffersQueued);
 		}
 
 		void VoiceXAudio::Play()
 		{
-			mXAudioVoice->Start(0);
-			mState = Playing;
+			m_XAudioVoice->Start(0);
+			m_state = State::Playing;
 		}
 
 		void VoiceXAudio::Stop()
 		{
-			mXAudioVoice->Stop();
-			mState = Stopped;
+			m_XAudioVoice->Stop();
+			m_state = State::Stopped;
 		}
 
 		void VoiceXAudio::Pause()
 		{
-			mXAudioVoice->Stop();
-			mState = Paused;
+			m_XAudioVoice->Stop();
+			m_state = State::Paused;
 		}
 
 		void VoiceXAudio::Resume()
 		{
-			mXAudioVoice->Start();
-			mState = Playing;
+			m_XAudioVoice->Start();
+			m_state = State::Playing;
+		}
+
+		u32 VoiceXAudio::GetQueuedBuffers()
+		{
+			return m_buffersQueued;
+		}
+
+		u32 VoiceXAudio::GetBufferedBytes()
+		{
+			return m_bytesBuffered;
+		}
+
+		u32 VoiceXAudio::GetConsumedBytes()
+		{
+			return m_bytesConsumed;
 		}
 
 		u64 VoiceXAudio::GetPositionSamples()
 		{
-			XAUDIO2_VOICE_STATE state;
-			mXAudioVoice->GetState(&state);
-			return state.SamplesPlayed;
+			return m_samplesPlayed;
 		}
 
-		float VoiceXAudio::GetPositionSeconds()
+		double VoiceXAudio::GetPositionSeconds()
 		{
-			return (float)GetPositionSamples() / (float)mSource.GetStreamDesc()->GetSampleRate();
+			return (double)GetPositionSamples() / (double)m_source.GetStreamDesc()->GetSampleRate();
 		}
 
-		void VoiceXAudio::Update()
+		void VoiceXAudio::Update(float deltaTime)
 		{
+			Voice::Update(deltaTime);
 		}
 
 		void VoiceXAudio::SetVolume(float volume)
 		{
-			mXAudioVoice->SetVolume(volume);
+			m_XAudioVoice->SetVolume(volume);
 			Voice::SetVolume(volume);
 		}
 
 		void VoiceXAudio::SetPitch(float pitch)
 		{
-			mXAudioVoice->SetFrequencyRatio(pitch);
+			m_XAudioVoice->SetFrequencyRatio(pitch);
 			Voice::SetPitch(pitch);
 		}
 
 		void VoiceXAudio::OnBufferEnd(void* bufferContext)
 		{
-			mSource.RequestBuffer(*this);
+			//Done with buffer, count it
+			Buffer* buffer = (Buffer*)bufferContext;
+
+			ion::thread::atomic::Add(m_bytesConsumed, buffer->GetDataSize());
+			ion::thread::atomic::Decrement(m_buffersQueued);
+
+			//Unlock it
+			buffer->ReadUnlock();
+
+			//Get next
+			m_source.RequestBuffer(*this);
+
+			if (m_buffersQueued == 0)
+			{
+				ion::debug::Log("VoiceXAudio::OnBufferEnd() - Voice is starved");
+			}
 		}
 
 		void VoiceXAudio::OnStreamEnd()
 		{
-			mState = Stopped;
+			if (m_source.GetFeedType() == Source::FeedType::SingleBuffer)
+			{
+				m_state = State::Stopped;
+			}
+			else
+			{
+				ion::debug::Log("VoiceXAudio::OnStreamEnd() - voice is starved of data");
+			}
+		}
+
+		void VoiceXAudio::OnVoiceProcessingPassEnd()
+		{
+			XAUDIO2_VOICE_STATE state;
+			m_XAudioVoice->GetState(&state);
+			ion::thread::atomic::Swap(m_samplesPlayed, (u64)state.SamplesPlayed);
 		}
 
 		void VoiceXAudio::OnVoiceError(void* bufferContext, HRESULT error)

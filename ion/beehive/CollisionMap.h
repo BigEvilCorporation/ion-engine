@@ -14,7 +14,7 @@
 #include <vector>
 #include <sstream>
 
-#include <io/Archive.h>
+#include <ion/core/io/Archive.h>
 #include <maths/Vector.h>
 
 #include <ion/gamekit/Bezier.h>
@@ -47,6 +47,7 @@ public:
 	};
 
 	CollisionMap();
+	CollisionMap(const CollisionMap& rhs);
 	CollisionMap(const PlatformConfig& platformConfig);
 	CollisionMap(const PlatformConfig& platformConfig, int width, int height);
 
@@ -80,6 +81,10 @@ public:
 	int FindTerrainBeziers(int x, int y, int width, int height, std::vector<const ion::gamekit::BezierPath*>& beziers) const;
 	void SetTerrainBezierFlags(u32 index, u16 flags);
 	u16 GetTerrainBezierFlags(u32 index) const;
+	void SetTerrainBezierLayer(u32 index, u8 layer);
+	u8 GetTerrainBezierLayer(u32 index) const;
+	void SetTerrainBezierGenerateWidth(u32 index, bool generateWidth);
+	bool GetTerrainBezierGenerateWidth(u32 index) const;
 	void RemoveTerrainBezier(u32 index);
 	int GetNumTerrainBeziers() const;
 
@@ -105,11 +110,15 @@ private:
 	{
 		ion::gamekit::BezierPath bezier;
 		u16 terrainFlags;
+		u8 layer;
+		bool generateWidthData;
 
 		void Serialise(ion::io::Archive& archive)
 		{
 			archive.Serialise(bezier, "bezier");
 			archive.Serialise(terrainFlags, "flags");
+			archive.Serialise(layer, "layer");
+			archive.Serialise(generateWidthData, "generateWidthData");
 		}
 	};
 

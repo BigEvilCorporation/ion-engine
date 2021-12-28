@@ -25,80 +25,44 @@ TerrainTile::TerrainTile()
 	const PlatformConfig& defaultPlatformConfig = PlatformPresets::s_configs[PlatformPresets::ePresetMegaDrive];
 
 	m_hash = 0;
+	m_angleByte = 0;
 	m_width = defaultPlatformConfig.tileWidth;
 	m_height = defaultPlatformConfig.tileHeight;
+	m_heightmap.resize(m_width, 0);
+	m_widthmap.resize(m_height, 0);
 }
 
 TerrainTile::TerrainTile(u8 width, u8 height)
 {
 	m_hash = 0;
+	m_angleByte = 0;
 	m_width = width;
 	m_height = height;
-	m_heightmap.resize(width * height, 0);
+	m_heightmap.resize(width, 0);
+	m_widthmap.resize(height, 0);
 }
 
 bool TerrainTile::operator == (const TerrainTile& rhs) const
 {
-	return m_heightmap == rhs.m_heightmap;
+	return (m_heightmap == rhs.m_heightmap) && (m_widthmap == rhs.m_widthmap) && m_angleByte == rhs.m_angleByte;
 }
 
-float TerrainTile::CalculateAngle() const
-{
-	ion::Vector2 point1;
-	ion::Vector2 point2;
-
-	int leftY = m_heightmap[0];
-	int rightY = m_heightmap[m_width - 1];
-
-	//Find left point - X coord at which height first changes, scanning left-to-right
-	for (int x = 1; x < m_width; x++)
-	{
-		if (m_heightmap[x] != leftY)
-		{
-			point1.x = (float)x - 1;
-			point1.y = ion::maths::Min((float)m_heightmap[x], (float)leftY);
-			break;
-		}
-	}
-
-	//Find right point - X coord at which height first changes, scanning right-to-left
-	for (int x = m_width - 1; x >= 0; x--)
-	{
-		if (m_heightmap[x] != rightY)
-		{
-			point2.x = (float)x;
-			point2.y = ion::maths::Max((float)m_heightmap[x], (float)rightY);
-			break;
-		}
-	}
-
-	//Calculate angle
-	float angle = 0;
-
-	if (point1.y >= 0.0f && point2.y >= 0.0f)
-	{
-		//If at same X coord, invert
-		if (point1.x == point2.x)
-		{
-			point2.y = -point2.y;
-		}
-
-		ion::Vector2 vector = point2 - point1;
-		angle = ion::Vector2(1.0f, 0.0f).Angle(vector);
-	}
-
-	return angle;
-}
-
-void TerrainTile::CopyHeights(const TerrainTile& tile)
+void TerrainTile::CopyData(const TerrainTile& tile)
 {
 	m_heightmap = tile.m_heightmap;
+	m_widthmap = tile.m_widthmap;
 }
 
 void TerrainTile::GetHeights(std::vector<s8>& heights) const
 {
-	heights.resize(m_heightmap.size());
-	ion::memory::MemCopy(heights.data(), m_heightmap.data(), m_heightmap.size());
+	heights.resize(m_width);
+	ion::memory::MemCopy(heights.data(), m_heightmap.data(), m_width);
+}
+
+void TerrainTile::GetWidths(std::vector<s8>& widths) const
+{
+	widths.resize(m_height);
+	ion::memory::MemCopy(widths.data(), m_widthmap.data(), m_height);
 }
 
 void TerrainTile::SetHeight(int x, s8 height)
@@ -108,10 +72,23 @@ void TerrainTile::SetHeight(int x, s8 height)
 	m_heightmap[x] = height;
 }
 
+void TerrainTile::SetWidth(int y, s8 width)
+{
+	ion::debug::Assert(y < m_height, "TerrainTile::SetWidth() - Out of range");
+	ion::debug::Assert(width >= -m_width && width <= m_width, "TerrainTile::SetWidth() - Out of range");
+	m_widthmap[y] = width;
+}
+
 void TerrainTile::ClearHeight(int x)
 {
 	ion::debug::Assert(x < m_width, "TerrainTile::ClearHeight() - Out of range");
 	m_heightmap[x] = 0;
+}
+
+void TerrainTile::ClearWidth(int y)
+{
+	ion::debug::Assert(y < m_height, "TerrainTile::ClearWidth() - Out of range");
+	m_widthmap[y] = 0;
 }
 
 s8 TerrainTile::GetHeight(int x) const
@@ -120,12 +97,56 @@ s8 TerrainTile::GetHeight(int x) const
 	return m_heightmap[x];
 }
 
+s8 TerrainTile::GetWidth(int y) const
+{
+	ion::debug::Assert(y < m_height, "TerrainTile::GetWidth() - Out of range");
+	return m_widthmap[y];
+}
+
+void TerrainTile::SetNormal(const ion::Vector2& normal)
+{
+	m_normal = normal;
+
+	float radians = normal.Angle(ion::Vector2(0.0f, 1.0f));
+	float degrees = 360.0f - ion::maths::Fmod(ion::maths::RadiansToDegrees(radians) + 360.0f, 360.0f);
+	if (degrees >= 360.0f)
+		degrees -= 360.0f;
+
+	m_angleByte = (u8)ion::maths::Floor((360.0f - degrees) * (256.0f / 360.0f));
+}
+
+const ion::Vector2& TerrainTile::GetNormal() const
+{
+	return m_normal;
+}
+
+u8 TerrainTile::GetAngleByte() const
+{
+	return m_angleByte;
+}
+
+float TerrainTile::GetAngleRadians() const
+{
+	return m_normal.Angle(ion::Vector2(0.0f, 1.0f));
+}
+
+float TerrainTile::GetAngleDegrees() const
+{
+	float degrees = 360.0f - ion::maths::Fmod(ion::maths::RadiansToDegrees(GetAngleRadians()) + 360.0f, 360.0f);
+	if (degrees >= 360.0f)
+		degrees -= 360.0f;
+	return degrees;
+}
+
 void TerrainTile::Serialise(ion::io::Archive& archive)
 {
 	archive.Serialise(m_width, "width");
 	archive.Serialise(m_height, "height");
 	archive.Serialise(m_hash, "hash");
+	archive.Serialise(m_normal, "normal");
+	archive.Serialise(m_angleByte, "angleByte");
 	archive.Serialise(m_heightmap, "heightMap");
+	archive.Serialise(m_widthmap, "widthMap");
 }
 
 void TerrainTile::Export(std::stringstream& stream) const
@@ -159,7 +180,13 @@ void TerrainTile::Export(ion::io::File& file) const
 
 u64 TerrainTile::CalculateHash()
 {
-	m_hash = ion::Hash64((const u8*)m_heightmap.data(), m_heightmap.size());
+	std::vector<u8> data;
+	data.reserve((m_width * m_height) + 1);
+	data.insert(data.end(), m_heightmap.begin(), m_heightmap.end());
+	data.insert(data.end(), m_widthmap.begin(), m_widthmap.end());
+	data.push_back(m_angleByte);
+
+	m_hash = ion::Hash64((const u8*)data.data(), data.size());
 	return m_hash;
 }
 

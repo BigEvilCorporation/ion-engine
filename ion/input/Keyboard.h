@@ -43,7 +43,7 @@ namespace ion
 		class Keyboard
 		{
 		public:
-			enum CoopLevel { Background, Foreground, Exclusive };
+			enum class CoopLevel { Background, Foreground, Exclusive };
 
 			Keyboard();
 			~Keyboard();
@@ -53,6 +53,9 @@ namespace ion
 
 			//Is key currently down
 			bool KeyDown(Keycode key) const;
+
+			//Is any key currently down
+			bool AnyKeyDown() const;
 
 			//Was key pressed this frame
 			bool KeyPressedThisFrame(Keycode key) const;

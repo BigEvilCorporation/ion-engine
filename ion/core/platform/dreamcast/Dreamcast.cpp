@@ -6,6 +6,7 @@
 ///////////////////////////////////////////////////
 
 #include "Dreamcast.h"
+#include "core/debug/CrashHandler.h"
 
 #include <ion/core/debug/Debug.h>
 
@@ -14,6 +15,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <iostream>
 
 #include <arch/timer.h>
 #include <arch/arch.h>
@@ -42,16 +44,20 @@
 #include <arch/timer.h>
 #include <dc/fb_console.h>
 
+#include "DreamcastGDB.h"
+
 KOS_INIT_FLAGS(INIT_DEFAULT);
 KOS_INIT_ROMDISK(KOS_INIT_ROMDISK_NONE);
 
-#if 1 // defined DEBUG
+#define KOS_LOGGING 1
+#define KOS_GDB_SERVER 0
+#define SH4_GDB_SERVER 0
+
+#if KOS_LOGGING
 #define KOS_DEBUG(msg) dbglog(DBG_INFO, msg);
 #else
 #define KOS_DEBUG(msg)
 #endif
-
-#define KOS_GDB_SERVER 0
 
 namespace ion
 {
@@ -75,6 +81,11 @@ extern "C"
 	void fini(void);
 	void __verify_newlib_patch();
 	uint32 _fs_dclsocket_get_ip(void);
+
+	int main(int numargs, char** args)
+	{
+		return ion::EntryPoint(numargs, args);
+	}
 
 	int arch_auto_init()
 	{
@@ -220,6 +231,9 @@ extern "C"
 #if KOS_GDB_SERVER
 		KOS_DEBUG("KOS: Starting GDB server\n");
 		gdb_init();
+#elif SH4_GDB_SERVER
+		KOS_DEBUG("KOS: Starting GDB server\n");
+		start_gdbstub();
 #endif
 
 		KOS_DEBUG("KOS: arch_auto_init() completed\n");

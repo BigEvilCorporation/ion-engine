@@ -12,6 +12,8 @@
 
 #include <string>
 
+#if 0
+
 #if defined ION_RENDERER_OGRE3D
 #include <Ogre/OgreCompositorManager.h>
 #include <Ogre/OgreCompositor.h>
@@ -105,3 +107,5 @@ namespace ion
 		};
 	}
 }
+
+#endif

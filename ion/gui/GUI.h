@@ -11,6 +11,8 @@
 #include <ion/renderer/Viewport.h>
 #include <ion/renderer/Texture.h>
 #include <ion/renderer/Material.h>
+#include <ion/renderer/Shader.h>
+#include <ion/renderer/VertexBuffer.h>
 #include <ion/input/Keyboard.h>
 #include <ion/input/Mouse.h>
 #include <ion/input/Gamepad.h>
@@ -27,10 +29,14 @@ namespace ion
 		class GUI
 		{
 		public:
-			GUI(const Vector2i& size);
+			GUI(const Vector2i& size, float scale = 1.0f);
 			virtual ~GUI();
 
 			Font* LoadFontTTF(const std::string filename, int size);
+
+#if defined ION_RENDERER_SHADER
+			void SetShader(ion::io::ResourceHandle<ion::render::Shader> shader);
+#endif
 
 			void AddWindow(Window& window);
 			void RemoveWindow(Window& window);
@@ -39,6 +45,8 @@ namespace ion
 			void PopWindow();
 
 			void DeleteWindow(Window& window);
+
+			void MessageBox(const std::string& title, const std::string& message);
 
 			void Update(float deltaTime, input::Keyboard* keyboard, input::Mouse* mouse, input::Gamepad* gamepad);
 			void Render(ion::render::Renderer& renderer, ion::render::Viewport& viewport);
@@ -57,7 +65,7 @@ namespace ion
 
 			//Imgui
 			ImGuiContext* m_imguiContext;
-			render::Texture* m_fontAtlasTexture;
+			io::ResourceHandle<render::Texture> m_fontAtlasTexture;
 			render::Material* m_fontAtlasMaterial;
 			render::Material m_defaultMaterial;
 		};

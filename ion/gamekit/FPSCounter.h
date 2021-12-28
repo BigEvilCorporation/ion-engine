@@ -49,6 +49,7 @@ namespace ion
 			}
 
 			float GetLastFPS() const { return m_lastFPS; }
+			u64 GetFrameCount() const { return m_frameCount; }
 
 		private:
 			u64 m_frameCount;

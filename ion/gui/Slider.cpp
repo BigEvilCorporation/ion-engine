@@ -16,10 +16,10 @@ namespace ion
 		Slider::Slider(const std::string& text, float min, float max, float defaultValue, float step, std::function<void(const Slider&, float)> const& onChanged)
 			: m_onChanged(onChanged)
 			, m_text(text)
+			, m_value(defaultValue)
 			, m_min(min)
 			, m_max(max)
 			, m_step(step)
-			, m_value(defaultValue)
 		{
 
 		}

@@ -20,7 +20,7 @@
 
 #if defined ION_RENDER_SUPPORTS_SDL
 #if defined ION_PLATFORM_DREAMCAST
-#include <SDL/SDL.h>
+//#include <SDL/SDL.h>
 #else
 #error PLATFORM_SDL_UNSUPPORTED
 #endif
@@ -28,7 +28,7 @@
 
 #if defined ION_RENDER_SUPPORTS_SDL2IMAGE
 #if defined ION_PLATFORM_WINDOWS
-#include <SDLImage/SDL_image.h>
+#include <SDL2Image/SDL_image.h>
 #elif defined ION_PLATFORM_LINUX
 #include <SDL2/SDL_image.h>
 #elif defined ION_PLATFORM_MACOSX

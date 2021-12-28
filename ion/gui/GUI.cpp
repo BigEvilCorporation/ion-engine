@@ -6,9 +6,9 @@
 ///////////////////////////////////////////////////
 
 #include "GUI.h"
+#include "MessageBox.h"
 
 #include <ion/renderer/Renderer.h>
-#include <ion/renderer/VertexBuffer.h>
 #include <ion/renderer/IndexBuffer.h>
 #include <ion/renderer/Primitive.h>
 #include <ion/renderer/Camera.h>
@@ -19,7 +19,7 @@ namespace ion
 {
 	namespace gui
 	{
-		GUI::GUI(const Vector2i& size)
+		GUI::GUI(const Vector2i& size, float scale)
 		{
 			m_visible = true;
 
@@ -37,8 +37,9 @@ namespace ion
 			//Set default style
 			ImGui::StyleColorsClassic();
 
-			//Set UI size
+			//Set UI size and scale
 			io.DisplaySize = ImVec2((float)size.x, (float)size.y);
+			io.DisplayFramebufferScale = ImVec2(scale, scale);
 
 			//Draw mouse cursor
 			io.MouseDrawCursor = true;
@@ -50,9 +51,12 @@ namespace ion
 			io.Fonts->GetTexDataAsRGBA32(&fontAtlasData, &fontAtlasWidth, &fontAtlasHeight);
 
 			m_fontAtlasTexture = render::Texture::Create(fontAtlasWidth, fontAtlasHeight, render::Texture::Format::RGBA, render::Texture::Format::RGBA, render::Texture::BitsPerPixel::BPP24, false, false, fontAtlasData);
+			m_fontAtlasTexture->SetMinifyFilter(ion::render::Texture::Filter::Linear);
+			m_fontAtlasTexture->SetMagnifyFilter(ion::render::Texture::Filter::Linear);
+
 			m_fontAtlasMaterial = new render::Material();
 			m_fontAtlasMaterial->AddDiffuseMap(m_fontAtlasTexture);
-			m_fontAtlasMaterial->SetDiffuseColour(ion::Colour(0.3f, 0.3f, 0.3f, 1.0f));
+			m_fontAtlasMaterial->SetDiffuseColour(ion::Colour(1.0f, 1.0f, 1.0f, 1.0f));
 
 			io.Fonts->SetTexID(m_fontAtlasMaterial);
 
@@ -87,22 +91,35 @@ namespace ion
 		{
 			SetVisible(false);
 			delete m_fontAtlasMaterial;
-			delete m_fontAtlasTexture;
+			m_fontAtlasTexture.Clear();
 			ImGui::DestroyContext(m_imguiContext);
 		}
 
 		Font* GUI::LoadFontTTF(const std::string filename, int size)
 		{
-			Font* font = new Font();
-
-			if (!font->LoadTTF(filename, size, m_imguiContext))
+			Font* font = nullptr;
+			
+			if (ion::io::FileExists(filename))
 			{
-				delete font;
-				font = nullptr;
+				font = new Font();
+
+				if (!font->LoadTTF(filename, size, m_imguiContext))
+				{
+					delete font;
+					font = nullptr;
+				}
 			}
 
 			return font;
 		}
+
+#if defined ION_RENDERER_SHADER
+		void GUI::SetShader(ion::io::ResourceHandle<ion::render::Shader> shader)
+		{
+			m_fontAtlasMaterial->SetShader(shader);
+			m_defaultMaterial.SetShader(shader);
+		}
+#endif
 
 		void GUI::AddWindow(Window& window)
 		{
@@ -130,6 +147,16 @@ namespace ion
 		void GUI::DeleteWindow(Window& window)
 		{
 			m_windowDeleteList.push_back(&window);
+		}
+
+		void GUI::MessageBox(const std::string& title, const std::string& message)
+		{
+			new ion::gui::MessageBox(title, message, ion::gui::MessageBox::Ok,
+				[&](const ion::gui::MessageBox& messageBox, ion::gui::MessageBox::ButtonType buttonType)
+			{
+				RemoveWindow((ion::gui::MessageBox&)messageBox);
+				DeleteWindow((ion::gui::MessageBox&)messageBox);
+			});
 		}
 
 		void GUI::SetVisible(bool visible)
@@ -188,7 +215,7 @@ namespace ion
 				//Provide mouse input
 				if (mouse)
 				{
-					io.MousePos = ImVec2((float)mouse->GetAbsoluteX(), (float)mouse->GetAbsoluteY());
+					io.MousePos = ImVec2((float)mouse->GetAbsoluteX() / io.DisplayFramebufferScale.x, (float)mouse->GetAbsoluteY() / io.DisplayFramebufferScale.y);
 					//io.MouseWheel = mouse->GetWheelAbsolute();
 					io.MouseDown[0] = mouse->ButtonDown(input::Mouse::LB);
 					io.MouseDown[1] = mouse->ButtonDown(input::Mouse::RB);
@@ -212,8 +239,8 @@ namespace ion
 					io.NavInputs[ImGuiNavInput_LStickRight] = gamepad->GetLeftStick().x;
 					io.NavInputs[ImGuiNavInput_LStickUp] = gamepad->GetLeftStick().y;
 					io.NavInputs[ImGuiNavInput_LStickDown] = -gamepad->GetLeftStick().y;
-					io.NavInputs[ImGuiNavInput_FocusPrev] = gamepad->ButtonDown(ion::input::GamepadButtons::LEFT_SHOULDER) ? 1.0f : 0.0f;
-					io.NavInputs[ImGuiNavInput_FocusNext] = gamepad->ButtonDown(ion::input::GamepadButtons::RIGHT_SHOULDER) ? 1.0f : 0.0f;
+					io.NavInputs[ImGuiNavInput_FocusPrev] = gamepad->ButtonDown(ion::input::GamepadButtons::LEFT_TRIGGER) ? 1.0f : 0.0f;
+					io.NavInputs[ImGuiNavInput_FocusNext] = gamepad->ButtonDown(ion::input::GamepadButtons::RIGHT_TRIGGER) ? 1.0f : 0.0f;
 				}
 
 				//Begin UI frame
@@ -262,8 +289,13 @@ namespace ion
 				ion::Matrix4 viewMtx;
 				viewMtx.SetTranslation(ion::Vector3(0.0f, -(float)viewport.GetHeight(), -1.0f));
 
-				renderer.SetAlphaBlending(ion::render::Renderer::eTranslucent);
-				renderer.SetFaceCulling(ion::render::Renderer::eNoCull);
+				Vector3 scale(drawData->FramebufferScale.x, drawData->FramebufferScale.y, 1.0f);
+
+				renderer.SetAlphaBlending(ion::render::Renderer::AlphaBlendType::Translucent);
+				renderer.SetFaceCulling(ion::render::Renderer::CullingMode::None);
+				renderer.SetScissorTest(ion::render::Renderer::ScissorTest::Enabled);
+
+				ImVec2 displayPos = drawData->DisplayPos;
 
 				for (int i = 0; i < drawData->CmdListsCount; i++)
 				{
@@ -271,24 +303,33 @@ namespace ion
 					const ImDrawVert* vertexBuffer = commandList->VtxBuffer.Data;
 					const ImDrawIdx* indexBuffer = commandList->IdxBuffer.Data;
 
-					//Super slow and lazy - build ion vertex buffer right here
-					//TODO: allow VertexBuffer to be constructed with a ptr, size and layout descriptor
-					ion::render::VertexBuffer vertices(render::VertexBuffer::eTriangles);
-
+					//Build vertex and index buffers
+					ion::render::VertexBuffer vertices(ion::render::VertexBuffer::Pattern::Triangles);
+					ion::render::IndexBuffer indices;
+					
+					vertices.Reserve(commandList->VtxBuffer.size());
+					indices.Reserve(commandList->IdxBuffer.size());
+					
 					for (int j = 0; j < commandList->VtxBuffer.size(); j++)
 					{
 						const ImDrawVert& vertex = vertexBuffer[j];
-						vertices.AddVertex(Vector3(vertex.pos.x, vertex.pos.y, 0.0f),
+						vertices.AddVertex(Vector3(vertex.pos.x, vertex.pos.y, 0.0f) * scale,
 							Vector3(),
 							Colour(((u8)vertex.col & 0xFF), ((u8)(vertex.col >> 8) & 0xFF), (u8)((vertex.col >> 16) & 0xFF), (u8)((vertex.col >> 24) & 0xFF)),
 							render::TexCoord(vertex.uv.x, vertex.uv.y));
 					}
+					
+					for (unsigned int j = 0; j < commandList->IdxBuffer.size(); j++)
+					{
+						indices.Add(indexBuffer[j]);
+					}
+					
+					vertices.CompileBuffer(&indices);
 
 					for (int j = 0; j < commandList->CmdBuffer.Size; j++)
 					{
 						const ImDrawCmd* drawCommand = &commandList->CmdBuffer[j];
-						ImGuiIO& io = ImGui::GetIO();
-
+					
 						if (drawCommand->UserCallback)
 						{
 							//TODO
@@ -300,28 +341,35 @@ namespace ion
 							{
 								material = &m_defaultMaterial;
 							}
-
-							ion::Matrix4 objMtx;
-							objMtx.SetScale(ion::Vector3(1.0f, -1.0f, 1.0f));
-
-							material->Bind(objMtx, viewMtx.GetInverse(), renderer.GetProjectionMatrix());
-
-							//Super slow and lazy - build ion index buffer right here
-							//TODO: allow IndexBuffer to be constructed with a ptr, size and element width
-							ion::render::IndexBuffer indices;
-							for (int k = 0; k < drawCommand->ElemCount; k++)
+					
+#if defined ION_RENDERER_SHADER
+							if (material->GetShader())
+#endif
 							{
-								indices.Add(indexBuffer[k]);
+								ion::Matrix4 objMtx;
+								objMtx.SetScale(ion::Vector3(1.0f, -1.0f, 1.0f));
+
+								renderer.BindMaterial(*material, objMtx, viewMtx.GetInverse(), renderer.GetProjectionMatrix());
+
+								//Scissor rect
+								ImVec4 clipRect;
+								clipRect.x = (drawCommand->ClipRect.x - displayPos.x) * scale.x;
+								clipRect.y = (drawCommand->ClipRect.y - displayPos.y) * scale.y;
+								clipRect.z = (drawCommand->ClipRect.z - displayPos.x) * scale.x;
+								clipRect.w = (drawCommand->ClipRect.w - displayPos.y) * scale.y;
+								renderer.SetScissorRegion(ion::Vector2i((int)clipRect.x, (int)(drawData->DisplaySize.y - clipRect.w)), ion::Vector2i((int)(clipRect.z - clipRect.x), (int)(clipRect.w - clipRect.y)));
+
+								//Draw
+								renderer.DrawVertexBuffer(vertices, drawCommand->IdxOffset * sizeof(ion::render::TIndex), drawCommand->ElemCount);
+
+								renderer.UnbindMaterial(*material);
 							}
-
-							renderer.DrawVertexBuffer(vertices, indices);
-
-							material->Unbind();
 						}
-
-						indexBuffer += drawCommand->ElemCount;
 					}
 				}
+
+				renderer.SetAlphaBlending(ion::render::Renderer::AlphaBlendType::None);
+				renderer.SetScissorTest(ion::render::Renderer::ScissorTest::Disabled);
 			}
 
 			//Restore context

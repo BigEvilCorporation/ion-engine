@@ -86,7 +86,7 @@ void AnimTrackSpriteFrame::Export(ion::io::File& file) const
 AnimTrackSpritePosition::AnimTrackSpritePosition()
 {
 	//Linear mode by default
-	SetBlendMode(eLinear);
+	SetBlendMode(BlendMode::Linear);
 }
 
 const ion::Vector2i AnimTrackSpritePosition::GetValue(float time) const
@@ -98,7 +98,7 @@ const ion::Vector2i AnimTrackSpritePosition::GetValue(float time) const
 
 	if(keyframeA && keyframeB)
 	{
-		if(GetBlendMode() == eSnap)
+		if(GetBlendMode() == BlendMode::Snap)
 		{
 			result = keyframeA->GetValue();
 		}
@@ -187,7 +187,7 @@ void AnimTrackSFX::Export(std::stringstream& stream, int numKeyframes) const
 		}
 		else
 		{
-			stream << "0x0";
+			stream << "0";
 		}
 
 		if(i < numKeyframes - 1)

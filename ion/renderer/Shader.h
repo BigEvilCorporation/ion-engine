@@ -17,8 +17,9 @@
 #include "maths/Vector.h"
 #include "maths/Matrix.h"
 #include "maths/Quaternion.h"
-#include "io/Archive.h"
+#include "core/io/Archive.h"
 #include "renderer/Colour.h"
+#include "core/debug/Debug.h"
 
 #include <string>
 #include <map>
@@ -29,6 +30,7 @@ namespace ion
 	{
 		//Forward declaration
 		class Texture;
+		class VertexBuffer;
 
 		class ShaderManager
 		{
@@ -46,7 +48,25 @@ namespace ion
 			class ShaderParamDelegate;
 
 		public:
-			enum ProgramType { eVertex, eFragment };
+			enum class ProgramType
+			{
+				Vertex,
+				Fragment,
+
+				COUNT
+			};
+
+			struct Program
+			{
+				std::string m_programCode;
+				std::string m_entryPoint;
+
+				void Serialise(io::Archive& archive)
+				{
+					archive.Serialise(m_programCode, "programCode");
+					archive.Serialise(m_entryPoint, "entryPoint");
+				}
+			};
 
 			template <typename T> class ParamHndl
 			{
@@ -70,8 +90,9 @@ namespace ion
 			static Shader* Create();
 			virtual ~Shader();
 
-			//Set entry point, program type and program code
-			void SetProgram(const std::string& name, const std::string& programCode, const std::string& entryPoint, ProgramType programType);
+			//Set/get a program for specified type and language
+			void SetProgram(const std::string& language, const std::string& programCode, const std::string& entryPoint, ProgramType programType);
+			Program* GetProgram(const std::string& language, ProgramType programType);
 
 			//Compile shader
 			virtual bool Compile() = 0;
@@ -93,7 +114,7 @@ namespace ion
 			{
 			public:
 				ShaderParamDelegate() : m_refCount(0) {}
-                virtual ~ShaderParamDelegate() {}
+				virtual ~ShaderParamDelegate() {}
 
 				virtual void Set(const int& value) = 0;
 				virtual void Set(const float& value) = 0;
@@ -113,10 +134,7 @@ namespace ion
 			Shader();
 			virtual ShaderParamDelegate* CreateShaderParamDelegate(const std::string& paramName) = 0;
 
-			std::string m_name;
-			std::string m_programCode;
-			std::string m_entryPoint;
-			ProgramType m_programType;
+			std::map<std::string, std::map<int, Program>> m_programs;
 		};
 
 		template <typename T> Shader::ParamHndl<T> Shader::CreateParamHndl(const std::string& name)

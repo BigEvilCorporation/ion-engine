@@ -12,6 +12,10 @@
 #include <direct.h>
 #include <shlobj.h>
 #include <Dbghelp.h>
+#include <memory.h>
+#include <objbase.h>
+#include <cstdlib>
+#include <string>
 
 //Defines/undefs
 #ifdef DELETE
@@ -45,3 +49,12 @@
 #undef max
 #endif
 #endif
+
+namespace ion
+{
+	namespace platform
+	{
+		//Calls GetLastError and formats an error message
+		std::string GetLastWin32Error();
+	}
+}

@@ -5,6 +5,8 @@
 // Description:	Vertex mesh and file loader
 ///////////////////////////////////////////////////
 
+#if 0
+
 #pragma once
 
 #include "core/Debug.h"
@@ -288,3 +290,5 @@ namespace ion
 		}
 	}
 }
+
+#endif

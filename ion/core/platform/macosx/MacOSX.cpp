@@ -6,6 +6,9 @@
 ///////////////////////////////////////////////////
 
 #include "MacOSX.h"
+#include "core/debug/CrashHandler.h"
+
+#include <iostream>
 
 namespace ion
 {
@@ -13,7 +16,13 @@ namespace ion
 	{
 		void Initialise()
 		{
-
+#if defined ION_BUILD_MASTER
+			char path[PATH_MAX];
+			uint32_t pathLen = sizeof(path);
+			int err = _NSGetExecutablePath(path, &pathLen);
+			assert(!err);
+			chdir(dirname(path));
+#endif
 		}
 
 		void Shutdown()
@@ -21,4 +30,9 @@ namespace ion
 
 		}
 	}
+}
+
+int main(int numargs, char** args)
+{
+	return ion::EntryPoint(numargs, args);
 }

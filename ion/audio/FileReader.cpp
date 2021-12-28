@@ -6,7 +6,7 @@ namespace ion
 	{
 		FileReader::FileReader(const char* filename)
 		{
-			mFilename = filename;
+			m_filename = filename;
 		}
 
 		FileReader::~FileReader()

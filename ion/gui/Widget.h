@@ -27,18 +27,22 @@ namespace ion
 			};
 
 			Widget();
-			Widget(const Vector2i& position, const Vector2i& size);
+			Widget(const Vector2i& Position, const Vector2i& size);
 			virtual ~Widget();
 
 			virtual bool operator == (const Widget& rhs) const;
 
 			UUID64 GetId() const;
 
-			void SetPosition(const Vector2i& position);
+			void SetPosition(const Vector2i& Position);
 			void SetSize(const Vector2i& size);
 			void SetCentred(bool centred);
 			void SetArrangement(Arrangement arrangement);
+			void SetAlpha(float alpha);
 			void SetEnabled(bool enabled);
+
+			const Vector2i& GetSize() const;
+			const Vector2i& GetPosition() const;
 
 			virtual void Show();
 			virtual void Hide();
@@ -53,6 +57,7 @@ namespace ion
 			Vector2i m_position;
 			Vector2i m_size;
 			Arrangement m_arrangement;
+			float m_alpha;
 		};
 	}
 }

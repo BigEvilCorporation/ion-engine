@@ -95,7 +95,7 @@ namespace ion
 #endif
 		}
 
-		bool Mouse::ButtonDown(Buttons button)
+		bool Mouse::ButtonDown(Buttons button) const
 		{
 #if defined ION_PLATFORM_DREAMCAST
 			return false;
@@ -111,10 +111,23 @@ namespace ion
 			}
 #elif defined ION_PLATFORM_WINDOWS
 			return (mMouseState.rgbButtons[button] & 0x80) != 0;
+#elif defined ION_PLATFORM_SWITCH
+			return false;
 #endif
 		}
 
-		s32 Mouse::GetDeltaX()
+		bool Mouse::AnyButtonDown() const
+		{
+			for (int i = 0; i < Buttons::Count; i++)
+			{
+				if (ButtonDown((Buttons)i))
+					return true;
+			}
+
+			return false;
+		}
+
+		s32 Mouse::GetDeltaX() const
 		{
 #if defined ION_PLATFORM_DREAMCAST
 			return 0;
@@ -122,10 +135,12 @@ namespace ion
 			return m_sdlMouseRelX;
 #elif defined ION_PLATFORM_WINDOWS
 			return mMouseState.lX;
+#elif defined ION_PLATFORM_SWITCH
+			return 0;
 #endif
 		}
 
-		s32 Mouse::GetDeltaY()
+		s32 Mouse::GetDeltaY() const
 		{
 #if defined ION_PLATFORM_DREAMCAST
 			return 0;
@@ -133,20 +148,22 @@ namespace ion
             return m_sdlMouseRelY;
 #elif defined ION_PLATFORM_WINDOWS
 			return mMouseState.lY;
+#elif defined ION_PLATFORM_SWITCH
+			return 0;
 #endif
 		}
 
-		s32 Mouse::GetAbsoluteX()
+		s32 Mouse::GetAbsoluteX() const
 		{
 			return mAbsX;
 		}
 
-		s32 Mouse::GetAbsoluteY()
+		s32 Mouse::GetAbsoluteY() const
 		{
 			return mAbsY;
 		}
 
-		s32 Mouse::GetWheelDelta()
+		s32 Mouse::GetWheelDelta() const
 		{
 #if defined ION_PLATFORM_DREAMCAST
 			return 0;
@@ -154,10 +171,12 @@ namespace ion
             return 0;
 #elif defined ION_PLATFORM_WINDOWS
 			return mMouseState.lZ;
+#elif defined ION_PLATFORM_SWITCH
+			return 0;
 #endif
 		}
 
-		s32 Mouse::GetWheelAbsolute()
+		s32 Mouse::GetWheelAbsolute() const
 		{
 			return mWheelAbs;
 		}
@@ -177,15 +196,15 @@ namespace ion
 
 			switch(coopLevel)
 			{
-			case Background:
+			case CoopLevel::Background:
 				windowsCoopLevel = DISCL_BACKGROUND | DISCL_NONEXCLUSIVE;
 				break;
 
-			case Foreground:
+			case CoopLevel::Foreground:
 				windowsCoopLevel = DISCL_FOREGROUND | DISCL_NONEXCLUSIVE;
 				break;
 
-			case Exclusive:
+			case CoopLevel::Exclusive:
 				windowsCoopLevel = DISCL_EXCLUSIVE | DISCL_FOREGROUND;
 				break;
 			}

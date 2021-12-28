@@ -43,16 +43,19 @@ namespace ion
 			//Temp: just add default output device
 			devices.push_back(new OutputDeviceSDL2());
 
-			return devices.size();
+			return (int)devices.size();
 		}
 
 		Voice* EngineSDL2::CreateVoice(Source& source, bool loop)
 		{
-			return new VoiceSDL2(source, loop);
+			Voice* voice = new VoiceSDL2(source, loop);
+			AddVoice(voice);
+			return voice;
 		}
 
 		void EngineSDL2::ReleaseVoice(Voice& voice)
 		{
+			RemoveVoice(&voice);
 			delete &(VoiceSDL2&)voice;
 		}
 	}

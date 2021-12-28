@@ -12,7 +12,7 @@
 // Description:	Font loading and text rendering
 ///////////////////////////////////////////////////
 
-#pragma once
+#if ION_GUI_SUPPORTS_FREETYPE
 
 #include "Font.h"
 
@@ -36,3 +36,5 @@ namespace ion
 		}
 	}
 }
+
+#endif

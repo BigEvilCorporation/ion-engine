@@ -5,6 +5,8 @@
 // Description:	Bloom post effect
 ///////////////////////////////////////////////////
 
+#if 0
+
 #include "PostEffectBloom.h"
 
 #if defined ION_RENDERER_OGRE3D
@@ -101,3 +103,5 @@ namespace ion
 		}
 	}
 }
+
+#endif

@@ -40,16 +40,19 @@ namespace ion
 		{
 		public:
 			//Alpha blending types
-			enum AlphaBlendType { eNoBlend, eAdditive, eSubtractive, eTranslucent, eColourFilter };
+			enum class AlphaBlendType { None, Additive, Subtractive, Translucent, ColourFilter };
 
 			//Culling modes
-			enum CullingMode { eNoCull, eClockwise, eCounterClockwise };
+			enum class CullingMode { None, Clockwise, CounterClockwise };
 
 			//Depth test type
-			enum DepthTest { eDisabled, eAlways, eLessEqual };
+			enum class DepthTest { Disabled, Always, Less, LessOrEqual };
+
+			//Scissor test type
+			enum class ScissorTest { Disabled, Enabled };
 
 			//Render vertex pattern type
-			enum VertexPattern { eTriangles, eQuads };
+			enum class VertexPattern { Triangles, Quads };
 
 			static Renderer* Create(DeviceContext globalDeviceContext);
 			static Renderer* Create(DeviceContext globalDeviceContext, RenderContext renderContext);
@@ -85,7 +88,13 @@ namespace ion
 			virtual void SetBlendColour(const Colour& colour) = 0;
 			virtual void SetFaceCulling(CullingMode cullingMode) = 0;
 			virtual void SetDepthTest(DepthTest depthTest) = 0;
+			virtual void SetScissorTest(ScissorTest scissorTest) = 0;
+			virtual void SetScissorRegion(const ion::Vector2i& position, const ion::Vector2i& size) = 0;
 			virtual void SetLineWidth(float width) = 0;
+
+			//Materials
+			virtual void BindMaterial(Material& material, const Matrix4& worldMtx, const Matrix4& viewMtx, const Matrix4& projectionMtx) = 0;
+			virtual void UnbindMaterial(Material& material) = 0;
 
 			//Palettes
 			virtual void LoadColourPalette(int paletteIdx, const std::vector<Colour>& palette) = 0;
@@ -93,6 +102,9 @@ namespace ion
 			//Vertex buffer drawing
 			virtual void DrawVertexBuffer(const VertexBuffer& vertexBuffer) = 0;
 			virtual void DrawVertexBuffer(const VertexBuffer& vertexBuffer, const IndexBuffer& indexBuffer) = 0;
+
+			//TODO: Mesh object
+			virtual void DrawVertexBuffer(const VertexBuffer& compiledVertexBuffer, int indexOffset, int indexCount) = 0;
 
 		protected:
 			Renderer();

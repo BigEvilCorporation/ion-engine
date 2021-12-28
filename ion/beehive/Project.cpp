@@ -10,7 +10,8 @@
 ///////////////////////////////////////////////////////
 
 #include <ion/core/string/String.h>
-#include <ion/io/Archive.h>
+#include <ion/core/utils/STL.h>
+#include <ion/core/io/Archive.h>
 #include <ion/gamekit/Bezier.h>
 #include <ion/maths/Fixed.h>
 
@@ -20,7 +21,7 @@
 #include <cctype>
 
 #include "Project.h"
-#include "BMPReader.h"
+#include "renderer/imageformats/ImageFormatBMP.h"
 
 #define HEX1(val) std::hex << std::setfill('0') << std::setw(1) << std::uppercase << (int)val << std::dec
 #define HEX2(val) std::hex << std::setfill('0') << std::setw(2) << std::uppercase << (int)val << std::dec
@@ -37,6 +38,7 @@ Project::Project(PlatformConfig& defaultPatformConfig)
 	m_paintTile = InvalidTileId;
 	m_eraseTile = InvalidTileId;
 	m_backgroundTile = InvalidTileId;
+	m_backgroundStamp = InvalidStampId;
 	m_defaultTerrainTile = InvalidTerrainTileId;
 	m_paintStamp = InvalidStampId;
 	m_mapInvalidated = true;
@@ -53,6 +55,7 @@ Project::Project(PlatformConfig& defaultPatformConfig)
 	m_showDisplayFrame = false;
 	m_palettes.resize(s_maxPalettes);
 	m_nextFreeStampId = 1;
+	m_nextFreeTerrainStampId = 1;
 	m_nextFreeGameObjectTypeId = 1;
 
 	//Add default map
@@ -67,6 +70,7 @@ void Project::Clear()
 	m_paintTile = InvalidTileId;
 	m_eraseTile = InvalidTileId;
 	m_backgroundTile = InvalidTileId;
+	m_backgroundStamp = InvalidStampId;
 	m_defaultTerrainTile = InvalidTerrainTileId;
 	m_paintStamp = InvalidStampId;
 	m_mapInvalidated = true;
@@ -86,12 +90,13 @@ void Project::Clear()
 	m_tileset.Clear();
 	m_stamps.clear();
 	m_nextFreeStampId = 1;
+	m_nextFreeTerrainStampId = 1;
 	m_nextFreeGameObjectTypeId = 1;
 }
 
 bool Project::Load(const std::string& filename)
 {
-	ion::io::File file(filename, ion::io::File::eOpenRead);
+	ion::io::File file(filename, ion::io::File::OpenMode::Read);
 	if(file.IsOpen())
 	{
 		ion::io::Archive archive(file, ion::io::Archive::Direction::In);
@@ -113,19 +118,19 @@ bool Project::Load(const std::string& filename)
 		}
 
 		//Load external resources
-		if(!m_settings.gameObjectsExternalFile.empty())
+		if(!m_settings.Get("gameObjectsExternalFile").empty())
 		{
 			//Import game objects file
-			if(!ImportGameObjectTypes(m_settings.gameObjectsExternalFile))
+			if(!ImportGameObjectTypes(m_settings.Get("gameObjectsExternalFile"), true))
 			{
 				ion::debug::Popup("Could not import external game object types, check settings.\nData may be lost if project is saved.", "Error");
 			}
 		}
 
-		if(!m_settings.spriteActorsExternalFile.empty())
+		if(!m_settings.Get("spriteActorsExternalFile").empty())
 		{
 			//Import sprites file
-			if(!ImportActors(m_settings.spriteActorsExternalFile))
+			if(!ImportActors(m_settings.Get("spriteActorsExternalFile"), true))
 			{
 				ion::debug::Popup("Could not import external sprite actors, check settings.\nData may be lost if project is saved.", "Error");
 			}
@@ -139,7 +144,7 @@ bool Project::Load(const std::string& filename)
 
 bool Project::Save(const std::string& filename)
 {
-	ion::io::File file(filename, ion::io::File::eOpenWrite);
+	ion::io::File file(filename, ion::io::File::OpenMode::Write);
 	if(file.IsOpen())
 	{
 		ion::io::Archive archive(file, ion::io::Archive::Direction::Out);
@@ -147,19 +152,19 @@ bool Project::Save(const std::string& filename)
 		m_filename = filename;
 
 		//Save external resources
-		if(!m_settings.gameObjectsExternalFile.empty())
+		if(!m_settings.Get("gameObjectsExternalFile").empty())
 		{
 			//Export game objects file
-			if(!ExportGameObjectTypes(m_settings.gameObjectsExternalFile, ExportFormat::Beehive, false))
+			if(!ExportGameObjectTypes(m_settings.Get("gameObjectsExternalFile"), ExportFormat::Beehive, false))
 			{
 				ion::debug::Popup("Could not export external game object types, check settings.\nData may be lost if project is closed.", "Error");
 			}
 		}
 
-		if(!m_settings.spriteActorsExternalFile.empty())
+		if(!m_settings.Get("spriteActorsExternalFile").empty())
 		{
 			//Export sprites file
-			if(!ExportActors(m_settings.spriteActorsExternalFile, ExportFormat::Beehive))
+			if(!ExportActors(m_settings.Get("spriteActorsExternalFile"), ExportFormat::Beehive))
 			{
 				ion::debug::Popup("Could not export external sprite actors, check settings.\nData may be lost if project is closed.", "Error");
 			}
@@ -191,21 +196,24 @@ void Project::Serialise(ion::io::Archive& archive)
 	archive.Serialise(m_editingMapId, "editingMap");
 	archive.Serialise(m_editingCollisionMapId, "editingCollisionMap");
 	archive.Serialise(m_backgroundTile, "backgroundTile");
+	archive.Serialise(m_backgroundStamp, "backgroundStamp");
 	archive.Serialise(m_terrainTileset, "terrainTileset");
 	archive.Serialise(m_defaultTerrainTile, "defaultTerrainTile");
 	archive.Serialise(m_collisionMaps, "collisionMaps");
 	archive.Serialise(m_stamps, "stamps");
+	archive.Serialise(m_terrainStamps, "terrainStamps");
 	archive.Serialise(m_animations, "animations");
 	archive.Serialise(m_nextFreeStampId, "nextFreeStampId");
+	archive.Serialise(m_nextFreeTerrainStampId, "nextFreeTerrainStampId");
 	archive.Serialise(m_nextFreeGameObjectTypeId, "nextFreeGameObjectTypeId");
 	archive.Serialise(m_exportFilenames, "exportFilenames");
 
-	if(m_settings.gameObjectsExternalFile.empty())
+	if(m_settings.Get("gameObjectsExternalFile").empty())
 	{
 		archive.Serialise(m_gameObjectTypes, "gameObjectTypes");
 	}
 
-	if(m_settings.spriteActorsExternalFile.empty())
+	if(m_settings.Get("spriteActorsExternalFile").empty())
 	{ 
 		archive.Serialise(m_actors, "actors");
 	}
@@ -270,6 +278,13 @@ MapId Project::CreateMap()
 {
 	MapId mapId = ion::GenerateUUID64();
 	m_maps.insert(std::make_pair(mapId, Map(m_platformConfig)));
+	return mapId;
+}
+
+MapId Project::CreateMap(const Map& copyFrom)
+{
+	MapId mapId = ion::GenerateUUID64();
+	m_maps.insert(std::make_pair(mapId, Map(copyFrom)));
 	return mapId;
 }
 
@@ -372,6 +387,12 @@ CollisionMapId Project::CreateCollisionMap(CollisionMapId collisionMapId)
 	return collisionMapId;
 }
 
+CollisionMapId Project::CreateCollisionMap(CollisionMapId collisionMapId, const CollisionMap& copyFrom)
+{
+	m_collisionMaps.insert(std::make_pair(collisionMapId, CollisionMap(copyFrom)));
+	return collisionMapId;
+}
+
 CollisionMapId Project::CreateCollisionMap(CollisionMapId collisionMapId, int width, int height)
 {
 	m_collisionMaps.insert(std::make_pair(collisionMapId, CollisionMap(m_platformConfig, width, height)));
@@ -464,7 +485,7 @@ void Project::SetActivePaletteSlot(PaletteId paletteId, int slotIndex)
 
 void Project::ExportPaletteSlots(const std::string& filename, ExportFormat format)
 {
-	ion::io::File file(filename, ion::io::File::eOpenWrite);
+	ion::io::File file(filename, ion::io::File::OpenMode::Write);
 	if(file.IsOpen())
 	{
 		ion::io::Archive archive(file, ion::io::Archive::Direction::Out);
@@ -474,7 +495,7 @@ void Project::ExportPaletteSlots(const std::string& filename, ExportFormat forma
 
 void Project::ImportPaletteSlots(const std::string& filename)
 {
-	ion::io::File file(filename, ion::io::File::eOpenRead);
+	ion::io::File file(filename, ion::io::File::OpenMode::Read);
 	if(file.IsOpen())
 	{
 		ion::io::Archive archive(file, ion::io::Archive::Direction::In);
@@ -482,29 +503,55 @@ void Project::ImportPaletteSlots(const std::string& filename)
 	}
 }
 
-void Project::SetBackgroundColour(u8 colourIdx)
+void Project::SetBackgroundColour(u8 paletteId, u8 colourIdx)
 {
-	SwapPaletteEntries(colourIdx, 0);
+	SwapPaletteEntries(paletteId, colourIdx, 0);
 }
 
-void Project::SwapPaletteEntries(u8 colourA, u8 colourB)
+void Project::SwapPaletteEntries(u8 paletteId, u8 colourA, u8 colourB)
 {
 	for(int i = 0; i < m_tileset.GetCount(); i++)
 	{
 		if(Tile* tile = m_tileset.GetTile(i))
 		{
-			for(int x = 0; x < m_platformConfig.tileWidth; x++)
+			if (tile->GetPaletteId() == paletteId)
 			{
-				for(int y = 0; y < m_platformConfig.tileHeight; y++)
+				for (int x = 0; x < m_platformConfig.tileWidth; x++)
 				{
-					u8 originalIdx = tile->GetPixelColour(x, y);
-					if(originalIdx == colourB)
+					for (int y = 0; y < m_platformConfig.tileHeight; y++)
 					{
-						tile->SetPixelColour(x, y, colourA);
+						u8 originalIdx = tile->GetPixelColour(x, y);
+						if (originalIdx == colourB)
+						{
+							tile->SetPixelColour(x, y, colourA);
+						}
+						else if (originalIdx == colourA)
+						{
+							tile->SetPixelColour(x, y, colourB);
+						}
 					}
-					else if(originalIdx == colourA)
+				}
+			}
+		}
+	}
+}
+
+void Project::MergePaletteEntries(u8 paletteId, u8 mergeFromIdx, u8 mergeToIdx)
+{
+	for (int i = 0; i < m_tileset.GetCount(); i++)
+	{
+		if (Tile* tile = m_tileset.GetTile(i))
+		{
+			if (tile->GetPaletteId() == paletteId)
+			{
+				for (int x = 0; x < m_platformConfig.tileWidth; x++)
+				{
+					for (int y = 0; y < m_platformConfig.tileHeight; y++)
 					{
-						tile->SetPixelColour(x, y, colourB);
+						if (tile->GetPixelColour(x, y) == mergeFromIdx)
+						{
+							tile->SetPixelColour(x, y, mergeToIdx);
+						}
 					}
 				}
 			}
@@ -964,6 +1011,24 @@ Actor* Project::FindActor(const std::string& name)
 	return NULL;
 }
 
+ActorId Project::FindActorId(const std::string& name) const
+{
+	for (TActorMap::const_iterator it = m_actors.begin(), end = m_actors.end(); it != end; ++it)
+	{
+		if (ion::string::CompareNoCase(it->second.GetName(), name))
+		{
+			return it->first;
+		}
+	}
+
+	return InvalidActorId;
+}
+
+const TActorMap& Project::GetActors() const
+{
+	return m_actors;
+}
+
 const TActorMap::const_iterator Project::ActorsBegin() const
 {
 	return m_actors.begin();
@@ -981,7 +1046,7 @@ int Project::GetActorCount() const
 
 bool Project::ExportActors(const std::string& filename, ExportFormat format)
 {
-	ion::io::File file(filename, ion::io::File::eOpenWrite);
+	ion::io::File file(filename, ion::io::File::OpenMode::Write);
 	if(file.IsOpen())
 	{
 		ion::io::Archive archive(file, ion::io::Archive::Direction::Out);
@@ -992,13 +1057,24 @@ bool Project::ExportActors(const std::string& filename, ExportFormat format)
 	return false;
 }
 
-bool Project::ImportActors(const std::string& filename)
+bool Project::ImportActors(const std::string& filename, bool clearExisting)
 {
-	ion::io::File file(filename, ion::io::File::eOpenRead);
+	ion::io::File file(filename, ion::io::File::OpenMode::Read);
 	if(file.IsOpen())
 	{
 		ion::io::Archive archive(file, ion::io::Archive::Direction::In);
-		archive.Serialise(m_actors, "actors");
+		std::map<ActorId, Actor> importedActors;
+		archive.Serialise(importedActors, "actors");
+
+		if (clearExisting)
+		{
+			m_actors = importedActors;
+		}
+		else
+		{
+			m_actors.insert(importedActors.begin(), importedActors.end());
+		}
+
 		return true;
 	}
 
@@ -1060,6 +1136,44 @@ const TAnimationMap::const_iterator Project::AnimationsEnd() const
 int Project::GetAnimationCount() const
 {
 	return m_animations.size();
+}
+
+bool Project::ExportAnimations(const std::string& filename)
+{
+	ion::io::File file(filename, ion::io::File::OpenMode::Write);
+	if (file.IsOpen())
+	{
+		ion::io::Archive archive(file, ion::io::Archive::Direction::Out);
+		archive.Serialise(m_animations, "animations");
+		return true;
+	}
+
+	return false;
+}
+
+bool Project::ImportAnimations(const std::string& filename, bool clearExisting)
+{
+	ion::io::File file(filename, ion::io::File::OpenMode::Read);
+	if (file.IsOpen())
+	{
+		ion::io::Archive archive(file, ion::io::Archive::Direction::In);
+
+		TAnimationMap importedAnims;
+		archive.Serialise(importedAnims, "animations");
+
+		if (clearExisting)
+		{
+			m_animations = importedAnims;
+		}
+		else
+		{
+			m_animations.insert(importedAnims.begin(), importedAnims.end());
+		}
+
+		return true;
+	}
+
+	return false;
 }
 
 StampId Project::AddStamp(int width, int height)
@@ -1289,7 +1403,178 @@ int Project::CleanupStamps()
 		}
 	}
 
+	CompactStampIds();
+
 	return unusedStamps.size();
+}
+
+int Project::CompactStampIds()
+{
+	//Shuffle down IDs
+	int count = m_stamps.size();
+
+	int mappedIdx = 0;
+	for (int i = 0; i < count; i++)
+	{
+		while (!GetStamp(mappedIdx))
+		{
+			mappedIdx++;
+		}
+
+		if (Stamp* stamp = GetStamp(mappedIdx))
+		{
+
+			if (stamp->GetId() != i)
+			{
+				//ID mismatch, change in maps
+				for (TMapMap::iterator mapIt = m_maps.begin(), mapEnd = m_maps.end(); mapIt != mapEnd; ++mapIt)
+				{
+					for (TStampPosMap::iterator stampIt = mapIt->second.GetStamps().begin(), stampEnd = mapIt->second.GetStamps().end(); stampIt != stampEnd; ++stampIt)
+					{
+						if (stampIt->m_id == mappedIdx)
+						{
+							stampIt->m_id = i;
+						}
+					}
+				}
+
+				//Reinsert into map and set ID
+				m_stamps.insert(std::make_pair(i, Stamp(i, *stamp)));
+
+				//Remove old
+				m_stamps.erase(stamp->GetId());
+			}
+			mappedIdx++;
+		}
+	}
+
+	return m_stamps.size();
+}
+
+TerrainStampId Project::AddTerrainStamp(int width, int height)
+{
+	TerrainStampId id = m_nextFreeTerrainStampId++;
+	m_terrainStamps.insert(std::make_pair(id, TerrainStamp(id, width, height)));
+	return id;
+}
+
+TerrainStampId Project::AddTerrainStamp(TerrainStamp* terrainStamp)
+{
+	TerrainStampId id = m_nextFreeTerrainStampId++;
+	m_terrainStamps.insert(std::make_pair(id, TerrainStamp(id, *terrainStamp)));
+	return id;
+}
+
+void Project::DeleteTerrainStamp(TerrainStampId terrainStampId)
+{
+	//Remove all uses of TerrainStamp on all maps
+	std::vector<ion::Vector2i> terrainStampUseCoords;
+
+	//Delete TerrainStamp
+	TTerrainStampMap::iterator it = m_terrainStamps.find(terrainStampId);
+	if (it != m_terrainStamps.end())
+	{
+		m_terrainStamps.erase(it);
+	}
+}
+
+TerrainStamp* Project::GetTerrainStamp(TerrainStampId terrainStampId)
+{
+	TerrainStamp* terrainStamp = NULL;
+
+	TTerrainStampMap::iterator it = m_terrainStamps.find(terrainStampId);
+	if (it != m_terrainStamps.end())
+	{
+		terrainStamp = &it->second;
+	}
+
+	return terrainStamp;
+}
+
+const TerrainStamp* Project::GetTerrainStamp(TerrainStampId terrainStampId) const
+{
+	const TerrainStamp* terrainStamp = NULL;
+
+	TTerrainStampMap::const_iterator it = m_terrainStamps.find(terrainStampId);
+	if (it != m_terrainStamps.end())
+	{
+		terrainStamp = &it->second;
+	}
+
+	return terrainStamp;
+}
+
+TerrainStampId Project::FindDuplicateTerrainStamp(TerrainStamp* terrainStamp) const
+{
+	TerrainStampId foundTerrainStampId = InvalidTerrainStampId;
+
+	for (TTerrainStampMap::const_iterator it = m_terrainStamps.begin(), end = m_terrainStamps.end(); it != end && foundTerrainStampId == InvalidTerrainStampId; ++it)
+	{
+		if (it->second.GetWidth() == terrainStamp->GetWidth() && it->second.GetHeight() == terrainStamp->GetHeight())
+		{
+			bool tilesMatch = true;
+
+			for (int x = 0; x < it->second.GetWidth() && tilesMatch; x++)
+			{
+				for (int y = 0; y < it->second.GetHeight() && tilesMatch; y++)
+				{
+					const Tile* tileA = GetTileset().GetTile(terrainStamp->GetTile(x, y));
+					const Tile* tileB = GetTileset().GetTile(it->second.GetTile(x, y));
+					const u64 hashA = tileA ? tileA->GetHash() : 0;
+					const u64 hashB = tileB ? tileB->GetHash() : 0;
+					const u32 flagsA = terrainStamp->GetTileFlags(x, y);
+					const u32 flagsB = it->second.GetTileFlags(x, y);
+
+					if (((tileA != NULL) != (tileB != NULL)) || (hashA != hashB) || (flagsA != flagsB))
+					{
+						tilesMatch = false;
+					}
+				}
+			}
+
+			if (tilesMatch)
+				foundTerrainStampId = it->first;
+		}
+	}
+
+	return foundTerrainStampId;
+}
+
+const TTerrainStampMap::const_iterator Project::TerrainStampsBegin() const
+{
+	return m_terrainStamps.begin();
+}
+
+const TTerrainStampMap::const_iterator Project::TerrainStampsEnd() const
+{
+	return m_terrainStamps.end();
+}
+
+int Project::GetTerrainStampCount() const
+{
+	return m_terrainStamps.size();
+}
+
+int Project::CleanupTerrainStamps()
+{
+	std::set<TerrainStampId> unusedTerrainStamps;
+
+	if (unusedTerrainStamps.size() > 0)
+	{
+		std::stringstream message;
+		message << "Found " << unusedTerrainStamps.size() << " unused TerrainStamps, delete?";
+
+		//TODO: wx message handler in ion::debug
+		//if(wxMessageBox(message.str().c_str(), "Delete unused TerrainStamps", wxOK | wxCANCEL | wxICON_WARNING) == wxOK)
+		{
+			for (std::set<TerrainStampId>::const_iterator it = unusedTerrainStamps.begin(), end = unusedTerrainStamps.end(); it != end; ++it)
+			{
+				DeleteTerrainStamp(*it);
+			}
+		}
+	}
+
+	return unusedTerrainStamps.size();
 }
 
 void Project::DeleteTerrainTile(TerrainTileId terrainTileId)
@@ -1535,7 +1820,7 @@ int Project::CleanupTerrainTiles(bool prompt)
 	return unusedTerrainTiles.size() + duplicates.size();
 }
 
-bool Project::GenerateTerrainFromBeziers(int granularity)
+bool Project::GenerateTerrainFromBeziers_HeightsOnly(int granularity)
 {
 	//Clear all terrain tiles
 	m_terrainTileset.Clear();
@@ -1545,15 +1830,15 @@ bool Project::GenerateTerrainFromBeziers(int granularity)
 	SetDefaultTerrainTile(blankTileId);
 
 	//Clear all terrain entries from all maps
-	for(TCollisionMapMap::iterator it = m_collisionMaps.begin(), end = m_collisionMaps.end(); it != end; ++it)
+	for (TCollisionMapMap::iterator it = m_collisionMaps.begin(), end = m_collisionMaps.end(); it != end; ++it)
 	{
 		CollisionMap& collisionMap = it->second;
 		int mapWidth = collisionMap.GetWidth();
 		int mapHeight = collisionMap.GetHeight();
 
-		for(int x = 0; x < mapWidth; x++)
+		for (int x = 0; x < mapWidth; x++)
 		{
-			for(int y = 0; y < mapHeight; y++)
+			for (int y = 0; y < mapHeight; y++)
 			{
 				collisionMap.SetTerrainTile(x, y, InvalidTerrainTileId);
 				collisionMap.SetCollisionTileFlags(x, y, collisionMap.GetCollisionTileFlags(x, y) & (eCollisionTileFlagSolid | eCollisionTileFlagHole));
@@ -1561,7 +1846,7 @@ bool Project::GenerateTerrainFromBeziers(int granularity)
 		}
 	}
 
-	for(TCollisionMapMap::iterator it = m_collisionMaps.begin(), end = m_collisionMaps.end(); it != end; ++it)
+	for (TCollisionMapMap::iterator it = m_collisionMaps.begin(), end = m_collisionMaps.end(); it != end; ++it)
 	{
 		CollisionMap& collisionMap = it->second;
 		int mapWidth = collisionMap.GetWidth();
@@ -1582,19 +1867,19 @@ bool Project::GenerateTerrainFromBeziers(int granularity)
 
 		terrainTiles.clear();
 		terrainTiles.reserve(numTiles);
-		for(int i = 0; i < numTiles; i++)
+		for (int i = 0; i < numTiles; i++)
 		{
 			terrainTiles.push_back(std::make_pair(TerrainTile(tileWidth, tileHeight), 0));
 		}
 
 		//Follow paths, generate terrain height tiles
-		for(int i = 0; i < collisionMap.GetNumTerrainBeziers(); i++)
+		for (int i = 0; i < collisionMap.GetNumTerrainBeziers(); i++)
 		{
 			ion::gamekit::BezierPath* bezier = collisionMap.GetTerrainBezier(i);
 			u16 terrainFlags = collisionMap.GetTerrainBezierFlags(i);
 			const int maxPoints = bezier->GetNumPoints();
 
-			if(bezier->GetNumCurves() > 0)
+			if (bezier->GetNumCurves() > 0)
 			{
 				//Get all spline points
 				std::vector<ion::Vector2> points;
@@ -1602,13 +1887,13 @@ bool Project::GenerateTerrainFromBeziers(int granularity)
 				bezier->GetPositions(points, 0.0f, 1.0f, granularity);
 
 				//Draw all tiles in spline
-				for(int posIdx = 0; posIdx < points.size(); posIdx++)
+				for (int posIdx = 0; posIdx < points.size(); posIdx++)
 				{
 					//Get position
 					const ion::Vector2 pixelPos(ion::maths::Floor(points[posIdx].x), (float)mapHeightPixels - ion::maths::Round(points[posIdx].y));
 					const ion::Vector2i tilePos(ion::maths::Floor(pixelPos.x / (float)tileWidth), ion::maths::Floor(pixelPos.y / (float)tileHeight));
 
-					if(tilePos.x >= 0 && tilePos.x < mapWidth && tilePos.y >= 0 && tilePos.y < mapHeight)
+					if (tilePos.x >= 0 && tilePos.x < mapWidth && tilePos.y >= 0 && tilePos.y < mapHeight)
 					{
 						//Get tile
 						TerrainTile& currentTile = terrainTiles[(tilePos.y * mapWidth) + tilePos.x].first;
@@ -1621,22 +1906,22 @@ bool Project::GenerateTerrainFromBeziers(int granularity)
 						currentTile.SetHeight(pixelX, height);
 
 						//Set flags
-						if(tilePos.x != prevTilePos.x || tilePos.y != prevTilePos.y)
+						if (tilePos.x != prevTilePos.x || tilePos.y != prevTilePos.y)
 						{
 							currentFlags |= terrainFlags;
 							prevTilePos = tilePos;
-						}
 					}
 				}
 			}
 		}
+	}
 
 		const bool approximateCurves = true;
 
-		if(approximateCurves)
+		if (approximateCurves)
 		{
 			//Reduce unique tiles by approximating curves using start/end pos only
-			for(int i = 0; i < terrainTiles.size(); i++)
+			for (int i = 0; i < terrainTiles.size(); i++)
 			{
 				TerrainTile& terrainTile = terrainTiles[i].first;
 
@@ -1645,14 +1930,14 @@ bool Project::GenerateTerrainFromBeziers(int granularity)
 				int x1 = -1;
 				int x2 = -1;
 
-				for(int x = 0; x < tileWidth && !containsGaps; x++)
+				for (int x = 0; x < tileWidth && !containsGaps; x++)
 				{
 					u8 y = terrainTile.GetHeight(x);
-					
-					if(y == 0)
+
+					if (y == 0)
 					{
 						//If left marker found, and right marker not found, use as right marker
-						if(x1 != -1 && x2 == -1)
+						if (x1 != -1 && x2 == -1)
 						{
 							x2 = x - 1;
 						}
@@ -1660,38 +1945,38 @@ bool Project::GenerateTerrainFromBeziers(int granularity)
 					else
 					{
 						//If left marker not found, use as left marker
-						if(x1 == -1)
+						if (x1 == -1)
 						{
 							x1 = x;
 						}
 
 						//If both markers found, this is a gap
-						if(x1 != -1 && x2 != -1)
+						if (x1 != -1 && x2 != -1)
 						{
 							containsGaps = true;
 						}
 					}
 				}
 
-				if(x1 == -1)
+				if (x1 == -1)
 					x1 = 0;
-				if(x2 == -1)
+				if (x2 == -1)
 					x2 = tileWidth - 1;
 
-				if(!containsGaps && x1 != x2)
+				if (!containsGaps && x1 != x2)
 				{
 					int y1 = terrainTile.GetHeight(x1);
 					int y2 = terrainTile.GetHeight(x2);
 
 					// Bresenham's line algorithm
 					const bool steep = (ion::maths::Abs(y2 - y1) > ion::maths::Abs(x2 - x1));
-					if(steep)
+					if (steep)
 					{
 						std::swap(x1, y1);
 						std::swap(x2, y2);
 					}
 
-					if(x1 > x2)
+					if (x1 > x2)
 					{
 						std::swap(x1, x2);
 						std::swap(y1, y2);
@@ -1706,9 +1991,9 @@ bool Project::GenerateTerrainFromBeziers(int granularity)
 
 					const int maxX = (int)x2;
 
-					for(int x = (int)x1; x < maxX; x++)
+					for (int x = (int)x1; x < maxX; x++)
 					{
-						if(steep)
+						if (steep)
 						{
 							terrainTile.SetHeight(y, x);
 						}
@@ -1718,7 +2003,7 @@ bool Project::GenerateTerrainFromBeziers(int granularity)
 						}
 
 						error -= dy;
-						if(error < 0)
+						if (error < 0)
 						{
 							y += ystep;
 							error += dx;
@@ -1729,11 +2014,11 @@ bool Project::GenerateTerrainFromBeziers(int granularity)
 		}
 
 		//Find duplicates/draw to map
-		for(int x = 0; x < mapWidth; x++)
+		for (int x = 0; x < mapWidth; x++)
 		{
-			for(int y = 0; y < mapHeight; y++)
+			for (int y = 0; y < mapHeight; y++)
 			{
-				if(x >= 0 && x < mapWidth && y >= 0 && y < mapHeight)
+				if (x >= 0 && x < mapWidth && y >= 0 && y < mapHeight)
 				{
 					//Get generated tile
 					TerrainTile& currentTile = terrainTiles[(y * mapWidth) + x].first;
@@ -1741,12 +2026,12 @@ bool Project::GenerateTerrainFromBeziers(int granularity)
 
 					//If empty tile, keep existing map entry
 					bool empty = true;
-					for(int i = 0; i < tileWidth && empty; i++)
+					for (int i = 0; i < tileWidth && empty; i++)
 					{
 						empty = currentTile.GetHeight(i) == 0;
 					}
 
-					if(!empty)
+					if (!empty)
 					{
 						//Calculate hash
 						currentTile.CalculateHash();
@@ -1754,12 +2039,12 @@ bool Project::GenerateTerrainFromBeziers(int granularity)
 						//Find duplicate tile
 						tileId = m_terrainTileset.FindDuplicate(currentTile.GetHash());
 
-						if(tileId == InvalidTerrainTileId)
+						if (tileId == InvalidTerrainTileId)
 						{
 							//Add as new collision tile
 							tileId = m_terrainTileset.AddTerrainTile(currentTile);
 
-							if(tileId == InvalidTerrainTileId)
+							if (tileId == InvalidTerrainTileId)
 							{
 								//Out of tiles
 								return false;
@@ -1768,7 +2053,7 @@ bool Project::GenerateTerrainFromBeziers(int granularity)
 						else
 						{
 							TerrainTile* duplicate = m_terrainTileset.GetTerrainTile(tileId);
-							if(!(*duplicate == currentTile))
+							if (!(*duplicate == currentTile))
 							{
 								ion::debug::error << "Terrain tile hash collision" << ion::debug::end;
 							}
@@ -1782,6 +2067,462 @@ bool Project::GenerateTerrainFromBeziers(int granularity)
 						originalFlags &= ~(eCollisionTileFlagWater | eCollisionTileFlagSpecial);
 
 						collisionMap.SetCollisionTileFlags(x, y, originalFlags | currentFlags);
+					}
+				}
+			}
+		}
+	}
+
+	InvalidateTerrainTiles(false);
+
+	return true;
+}
+
+bool Project::GenerateTerrainFromBeziers()
+{
+	//Clear all terrain tiles
+	m_terrainTileset.Clear();
+
+	//Create blank tile, use as default
+	TerrainTileId blankTileId = m_terrainTileset.AddTerrainTile();
+	SetDefaultTerrainTile(blankTileId);
+
+#if BEEHIVE_FIXED_STAMP_MODE //No tile/collision editing in fixed mode
+	//Reset tile ids and flags in all stamps
+	for (TStampMap::iterator it = m_stamps.begin(), end = m_stamps.end(); it != end; ++it)
+	{
+		Stamp& stamp = it->second;
+		int mapWidth = stamp.GetWidth();
+		int mapHeight = stamp.GetHeight();
+
+		for (int x = 0; x < mapWidth; x++)
+		{
+			for (int y = 0; y < mapHeight; y++)
+			{
+				stamp.SetTerrainTile(x, y, InvalidTerrainTileId);
+				stamp.SetCollisionTileFlags(x, y, stamp.GetCollisionTileFlags(x, y) & (eCollisionTileFlagSolid | eCollisionTileFlagHole));
+			}
+		}
+	}
+#else
+	//Clear all terrain entries from all maps
+	for(TCollisionMapMap::iterator it = m_collisionMaps.begin(), end = m_collisionMaps.end(); it != end; ++it)
+	{
+		CollisionMap& collisionMap = it->second;
+		int mapWidth = collisionMap.GetWidth();
+		int mapHeight = collisionMap.GetHeight();
+
+		for(int x = 0; x < mapWidth; x++)
+		{
+			for(int y = 0; y < mapHeight; y++)
+			{
+				collisionMap.SetTerrainTile(x, y, InvalidTerrainTileId);
+				collisionMap.SetCollisionTileFlags(x, y, collisionMap.GetCollisionTileFlags(x, y) & (eCollisionTileFlagSolid | eCollisionTileFlagHole));
+			}
+		}
+	}
+#endif
+
+#if BEEHIVE_FIXED_STAMP_MODE //No tile/collision editing in fixed mode
+	for (TStampMap::iterator it = m_stamps.begin(), end = m_stamps.end(); it != end; ++it)
+	{
+		Stamp& stamp = it->second;
+		int mapWidth = stamp.GetWidth();
+		int mapHeight = stamp.GetHeight();
+#else
+	for(TCollisionMapMap::iterator it = m_collisionMaps.begin(), end = m_collisionMaps.end(); it != end; ++it)
+	{
+		CollisionMap& collisionMap = it->second;
+		int mapWidth = collisionMap.GetWidth();
+		int mapHeight = collisionMap.GetHeight();
+
+#endif
+		const int tileWidth = GetPlatformConfig().tileWidth;
+		const int tileHeight = GetPlatformConfig().tileHeight;
+
+		const int mapWidthPixels = (mapWidth * tileWidth);
+		const int mapHeightPixels = (mapHeight * tileHeight);
+
+		ion::Vector2i prevTilePosHeight;
+		ion::Vector2i prevTilePosWidth;
+		TerrainTileId tileId = InvalidTileId;
+
+		//Reserve tiles
+		std::vector<std::vector<std::pair<TerrainTile, u16>>> terrainTiles;
+		int numTiles = mapWidth * mapHeight;
+
+#if BEEHIVE_FIXED_STAMP_MODE
+		static const int maxLayers = 2;
+#else
+		static const int maxLayers = 1;
+#endif
+
+		terrainTiles.clear();
+		terrainTiles.resize(maxLayers);
+
+		for (int i = 0; i < maxLayers; i++)
+		{
+			terrainTiles[i].clear();
+			terrainTiles[i].reserve(numTiles);
+			for (int j = 0; j < numTiles; j++)
+			{
+				terrainTiles[i].push_back(std::make_pair(TerrainTile(tileWidth, tileHeight), 0));
+			}
+		}
+
+		//All normals discovered for each tile, for computing average
+		std::vector<std::vector<std::pair<int,ion::Vector2>>> foundNormals;
+		foundNormals.resize(maxLayers);
+
+		for (int i = 0; i < maxLayers; i++)
+		{
+			foundNormals[i].resize(numTiles);
+		}
+
+		//Follow paths, generate terrain height tiles
+#if BEEHIVE_FIXED_STAMP_MODE //No tile/collision editing in fixed mode
+		for (int i = 0; i < stamp.GetNumTerrainBeziers(); i++)
+		{
+			ion::gamekit::BezierPath* bezier = stamp.GetTerrainBezier(i);
+			u16 terrainFlags = stamp.GetTerrainBezierFlags(i);
+			u8 terrainLayer = stamp.GetTerrainBezierLayer(i);
+			bool generateWidthData = stamp.GetTerrainBezierGenerateWidth(i);
+#else
+		for(int i = 0; i < collisionMap.GetNumTerrainBeziers(); i++)
+		{
+			ion::gamekit::BezierPath* bezier = collisionMap.GetTerrainBezier(i);
+			u16 terrainFlags = collisionMap.GetTerrainBezierFlags(i);
+			u8 terrainLayer = collisionMap.GetTerrainBezierLayer(i);
+#endif
+
+			if(bezier->GetNumCurves() > 0)
+			{
+				//Recompute length
+				bezier->CalculateLength();
+
+				//Get all spline points
+				const float granularity = 1.0f;
+				const int numPoints = ion::maths::Ceil(bezier->GetLength() * granularity);
+				std::vector<ion::Vector2> points;
+				std::vector<ion::Vector2> normals;
+				points.reserve(numPoints);
+				normals.reserve(numPoints);
+				bezier->GetDistributedPositions(points, numPoints);
+				bezier->GetDistributedNormals(normals, numPoints);
+
+				const float rightAngle = ion::maths::Atan2(1.0f, 0.0f);
+
+				ion::Vector2 prevPosHeight(ion::maths::Floor(points[0].x), (float)mapHeightPixels - ion::maths::Round(points[0].y));
+				ion::Vector2 prevPosWidth = prevPosHeight;
+				if (normals[0].y < 0.0f)
+					prevPosHeight.y -= 1.0f;
+				if (normals[0].x < 0.0f)
+					prevPosWidth.x -= 1.0f;
+
+				//Draw all tiles in spline
+				for(int posIdx = 0; posIdx < points.size(); posIdx++)
+				{
+					//Get position
+					ion::Vector2 nextPosHeight(ion::maths::Floor(points[posIdx].x), (float)mapHeightPixels - ion::maths::Round(points[posIdx].y));
+					ion::Vector2 nextPosWidth = nextPosHeight;
+
+					//Get normal
+					ion::Vector2 normal = normals[posIdx];
+
+					//Normal y<0 is a ceiling
+					if (normal.y < 0.0f)
+						nextPosHeight.y -= 1.0f;
+
+					//Normal x<0 is right wall
+					if (normals[0].x < 0.0f)
+						nextPosWidth.x -= 1.0f;
+
+					//Interpolate between positions
+					ion::Vector2 directionHeight = (nextPosHeight - prevPosHeight).Normalise();
+					ion::Vector2 directionWidth = (nextPosWidth - prevPosWidth).Normalise();
+					float distanceHeight = (nextPosHeight - prevPosHeight).GetLength();
+					float distanceWidth = (nextPosWidth - prevPosWidth).GetLength();
+					float maxDistance = ion::maths::Max(distanceWidth, distanceHeight);
+					int numSteps = (maxDistance > 0.0f) ? ion::maths::Ceil(maxDistance) + 1 : 1;
+					float stepLength = maxDistance / numSteps;
+
+					for (int step = 0; step < numSteps; step++)
+					{
+						ion::Vector2 pixelPosHeight = prevPosHeight + (directionHeight * (stepLength * step));
+						ion::Vector2 pixelPosWidth = prevPosWidth + (directionWidth * (stepLength * step));
+
+						//If ceiling, offset Y 1 px
+						if (normal.y < 0.0f)
+							pixelPosHeight.y += 1.0f;
+
+						//If right-hand side wall, offset X 1 px
+						if (normal.x < 0.0f)
+							pixelPosWidth.x += 1.0f;
+
+						const ion::Vector2i tilePosHeight(ion::maths::Floor(pixelPosHeight.x / (float)tileWidth), ion::maths::Floor(pixelPosHeight.y / (float)tileHeight));
+						const ion::Vector2i tilePosWidth(ion::maths::Floor(pixelPosWidth.x / (float)tileHeight), ion::maths::Floor(pixelPosWidth.y / (float)tileWidth));
+
+						//Draw heightmap
+						if (tilePosHeight.x >= 0 && tilePosHeight.x < mapWidth && tilePosHeight.y >= 0 && tilePosHeight.y < mapHeight)
+						{
+							//Get tile
+							int tileIdx = (tilePosHeight.y * mapWidth) + tilePosHeight.x;
+							TerrainTile& currentTile = terrainTiles[terrainLayer][tileIdx].first;
+							u16& currentFlags = terrainTiles[terrainLayer][tileIdx].second;
+
+							//Draw height at X
+							int pixelX = pixelPosHeight.x - (tilePosHeight.x * tileWidth);
+							int pixelY = pixelPosHeight.y - (tilePosHeight.y * tileHeight);
+							int height = 0;
+
+							if (normal.y < 0.0f)
+								height = -ion::maths::Clamp(pixelY, 1, tileHeight);
+							else
+								height = ion::maths::Clamp(tileHeight - pixelY, 1, tileHeight);
+
+							currentTile.SetHeight(pixelX, height);
+
+							//Set flags
+							if (tilePosHeight.x != prevTilePosHeight.x || tilePosHeight.y != prevTilePosHeight.y)
+							{
+								currentFlags |= terrainFlags | eCollisionTileFlagTerrain;
+								prevTilePosHeight = tilePosHeight;
+								currentTile.SetNormal(normal);
+							}
+
+							//Add normal
+							foundNormals[terrainLayer][tileIdx].first++;
+							foundNormals[terrainLayer][tileIdx].second += normal;
+						}
+
+#if BEEHIVE_FIXED_STAMP_MODE
+						if (generateWidthData)
+#endif
+						{
+							//Draw widthmap
+							if (tilePosWidth.x >= 0 && tilePosWidth.x < mapWidth && tilePosWidth.y >= 0 && tilePosWidth.y < mapHeight)
+							{
+								//Get tile
+								int tileIdx = (tilePosWidth.y * mapWidth) + tilePosWidth.x;
+								TerrainTile& currentTile = terrainTiles[terrainLayer][tileIdx].first;
+								u16& currentFlags = terrainTiles[terrainLayer][tileIdx].second;
+
+								//Draw width at Y
+								int pixelX = pixelPosWidth.x - (tilePosWidth.x * tileWidth);
+								int pixelY = pixelPosWidth.y - (tilePosWidth.y * tileHeight);
+								int width = 0;
+
+								if (normal.x < 0.0f)
+									width = -ion::maths::Clamp(tileWidth - pixelX, 1, tileWidth);
+								else
+									width = ion::maths::Clamp(pixelX, 1, tileWidth);
+
+								currentTile.SetWidth(tileHeight - 1 - pixelY, width);
+
+								//Set flags and angle
+								if (tilePosWidth.x != prevTilePosWidth.x || tilePosWidth.y != prevTilePosWidth.y)
+								{
+									currentFlags |= terrainFlags | eCollisionTileFlagTerrain;
+									prevTilePosWidth = tilePosWidth;
+									currentTile.SetNormal(normal);
+								}
+
+								//Add normal
+								foundNormals[terrainLayer][tileIdx].first++;
+								foundNormals[terrainLayer][tileIdx].second += normal;
+							}
+						}
+					}
+
+					prevPosHeight = nextPosHeight;
+					prevPosWidth = nextPosWidth;
+				}
+			}
+		}
+
+		//Average all normals
+		for (int terrainLayer = 0; terrainLayer < maxLayers; terrainLayer++)
+		{
+			for (int i = 0; i < foundNormals.size(); i++)
+			{
+				terrainTiles[terrainLayer][i].first.SetNormal((foundNormals[terrainLayer][i].second / foundNormals[terrainLayer][i].first).Normalise());
+			}
+		}
+
+		//TODO - approximate widthmaps too
+		const bool approximateCurves = false;
+
+		if(approximateCurves)
+		{
+			//Reduce unique tiles by approximating curves using start/end pos only
+			for (int terrainLayer = 0; terrainLayer < maxLayers; terrainLayer++)
+			{
+				for (int i = 0; i < terrainTiles[terrainLayer].size(); i++)
+				{
+					TerrainTile& terrainTile = terrainTiles[terrainLayer][i].first;
+
+					//Get min and max X bounds, and determine if tile contains gaps
+					bool containsGaps = false;
+					int x1 = -1;
+					int x2 = -1;
+
+					for (int x = 0; x < tileWidth && !containsGaps; x++)
+					{
+						u8 y = terrainTile.GetHeight(x);
+
+						if (y == 0)
+						{
+							//If left marker found, and right marker not found, use as right marker
+							if (x1 != -1 && x2 == -1)
+							{
+								x2 = x - 1;
+							}
+						}
+						else
+						{
+							//If left marker not found, use as left marker
+							if (x1 == -1)
+							{
+								x1 = x;
+							}
+
+							//If both markers found, this is a gap
+							if (x1 != -1 && x2 != -1)
+							{
+								containsGaps = true;
+							}
+						}
+					}
+
+					if (x1 == -1)
+						x1 = 0;
+					if (x2 == -1)
+						x2 = tileWidth - 1;
+
+					if (!containsGaps && x1 != x2)
+					{
+						int y1 = terrainTile.GetHeight(x1);
+						int y2 = terrainTile.GetHeight(x2);
+
+						// Bresenham's line algorithm
+						const bool steep = (ion::maths::Abs(y2 - y1) > ion::maths::Abs(x2 - x1));
+						if (steep)
+						{
+							std::swap(x1, y1);
+							std::swap(x2, y2);
+						}
+
+						if (x1 > x2)
+						{
+							std::swap(x1, x2);
+							std::swap(y1, y2);
+						}
+
+						const float dx = x2 - x1;
+						const float dy = ion::maths::Abs(y2 - y1);
+
+						float error = dx / 2.0f;
+						const int ystep = (y1 < y2) ? 1 : -1;
+						int y = (int)y1;
+
+						const int maxX = (int)x2;
+
+						for (int x = (int)x1; x < maxX; x++)
+						{
+							if (steep)
+							{
+								terrainTile.SetHeight(y, x);
+							}
+							else
+							{
+								terrainTile.SetHeight(x, y);
+							}
+
+							error -= dy;
+							if (error < 0)
+							{
+								y += ystep;
+								error += dx;
+							}
+						}
+					}
+				}
+			}
+		}
+
+		//Recompute hashes
+		for (int terrainLayer = 0; terrainLayer < maxLayers; terrainLayer++)
+		{
+			for (int i = 0; i < terrainTiles[terrainLayer].size(); i++)
+			{
+				terrainTiles[terrainLayer][i].first.CalculateHash();
+			}
+		}
+
+		//Find duplicates/draw to map
+		for (int terrainLayer = 0; terrainLayer < maxLayers; terrainLayer++)
+		{
+			for (int x = 0; x < mapWidth; x++)
+			{
+				for (int y = 0; y < mapHeight; y++)
+				{
+					if (x >= 0 && x < mapWidth && y >= 0 && y < mapHeight)
+					{
+						//Get generated tile
+						TerrainTile& currentTile = terrainTiles[terrainLayer][(y * mapWidth) + x].first;
+						u16 currentFlags = terrainTiles[terrainLayer][(y * mapWidth) + x].second;
+
+						//If empty tile, keep existing map entry
+						bool empty = (currentTile.GetHash() == 0);
+
+						if (!empty)
+						{
+							//Find duplicate tile
+							tileId = m_terrainTileset.FindDuplicate(currentTile.GetHash());
+
+							if (tileId == InvalidTerrainTileId)
+							{
+								//Add as new collision tile
+								tileId = m_terrainTileset.AddTerrainTile(currentTile);
+
+								if (tileId == InvalidTerrainTileId)
+								{
+									//Out of tiles
+									return false;
+								}
+							}
+							else
+							{
+								TerrainTile* duplicate = m_terrainTileset.GetTerrainTile(tileId);
+								if (!(*duplicate == currentTile))
+								{
+									ion::debug::error << "Terrain tile hash collision" << ion::debug::end;
+								}
+							}
+
+#if BEEHIVE_FIXED_STAMP_MODE //No tile/collision editing in fixed mode
+							//Resize layers
+							stamp.SetNumTerrainLayers(maxLayers);
+
+							//Set on stamp
+							stamp.SetTerrainTile(x, y, tileId, terrainLayer);
+
+							//Clear water/special flag
+							u16 originalFlags = stamp.GetCollisionTileFlags(x, y);
+							originalFlags &= ~(eCollisionTileFlagWater | eCollisionTileFlagSpecial);
+
+							stamp.SetCollisionTileFlags(x, y, originalFlags | currentFlags, terrainLayer);
+#else
+							//Set on map
+							collisionMap.SetTerrainTile(x, y, tileId);
+
+							//Clear water/special flag
+							u16 originalFlags = collisionMap.GetCollisionTileFlags(x, y);
+							originalFlags &= ~(eCollisionTileFlagWater | eCollisionTileFlagSpecial);
+
+							collisionMap.SetCollisionTileFlags(x, y, originalFlags | currentFlags);
+#endif
+						}
 					}
 				}
 			}
@@ -2001,6 +2742,19 @@ const GameObjectType* Project::GetGameObjectType(GameObjectTypeId typeId) const
 	return gameObjectType;
 }
 
+GameObjectType* Project::FindGameObjectType(const std::string& name)
+{
+	for (TGameObjectTypeMap::iterator it = m_gameObjectTypes.begin(), end = m_gameObjectTypes.end(); it != end; ++it)
+	{
+		if (ion::string::CompareNoCase(it->second.GetName(), name))
+		{
+			return &it->second;
+		}
+	}
+
+	return NULL;
+}
+
 const TGameObjectTypeMap& Project::GetGameObjectTypes() const
 {
 	return m_gameObjectTypes;
@@ -2008,7 +2762,7 @@ const TGameObjectTypeMap& Project::GetGameObjectTypes() const
 
 bool Project::ExportGameObjectTypes(const std::string& filename, ExportFormat format, bool minimal)
 {
-	ion::io::File file(filename, ion::io::File::eOpenWrite);
+	ion::io::File file(filename, ion::io::File::OpenMode::Write);
 	if(file.IsOpen())
 	{
 		ion::io::Archive archive(file, ion::io::Archive::Direction::Out);
@@ -2026,14 +2780,30 @@ bool Project::ExportGameObjectTypes(const std::string& filename, ExportFormat fo
 	return false;
 }
 
-bool Project::ImportGameObjectTypes(const std::string& filename)
+bool Project::ImportGameObjectTypes(const std::string& filename, bool clearExisting)
 {
-	ion::io::File file(filename, ion::io::File::eOpenRead);
+	ion::io::File file(filename, ion::io::File::OpenMode::Read);
 	if(file.IsOpen())
 	{
 		ion::io::Archive archive(file, ion::io::Archive::Direction::In);
-		archive.Serialise(m_gameObjectTypes, "gameObjectTypes");
-		archive.Serialise(m_nextFreeGameObjectTypeId, "nextFreeGameObjTypeId");
+
+		TGameObjectTypeMap importedTypes;
+		GameObjectTypeId importedFreeId = InvalidGameObjectId;
+
+		archive.Serialise(importedTypes, "gameObjectTypes");
+		archive.Serialise(importedFreeId, "nextFreeGameObjTypeId");
+
+		if (clearExisting)
+		{
+			m_gameObjectTypes = importedTypes;
+			m_nextFreeGameObjectTypeId = importedFreeId;
+		}
+		else
+		{
+			m_gameObjectTypes.insert(importedTypes.begin(), importedTypes.end());
+			m_nextFreeGameObjectTypeId = ion::maths::Max(m_nextFreeGameObjectTypeId, importedFreeId);
+		}
+
 		return true;
 	}
 
@@ -2090,14 +2860,20 @@ StampId Project::GetPaintStamp() const
 	return m_paintStamp;
 }
 
-void Project::SetPaintGameObjectType(GameObjectTypeId typeId)
+void Project::SetPaintGameObjectType(GameObjectTypeId typeId, GameObjectArchetypeId archetypeId)
 {
 	m_paintGameObjectType = typeId;
+	m_paintGameObjectArchetype = archetypeId;
 }
 
 GameObjectTypeId Project::GetPaintGameObjectType() const
 {
 	return m_paintGameObjectType;
+}
+
+GameObjectArchetypeId Project::GetPaintGameObjectArchetype() const
+{
+	return m_paintGameObjectArchetype;
 }
 
 bool Project::FindPalette(Colour* pixels, u32 useablePalettes, PaletteId& paletteId, PaletteId& closestPalette, int& closestColourCount) const
@@ -2216,65 +2992,67 @@ bool Project::ImportBitmap(const std::string& filename, u32 importFlags, u32 pal
 
 	CollisionMap& collisionMap = m_collisionMaps[m_editingCollisionMapId];
 
-	if(importFlags & eBMPImportClearPalettes)
+	if (importFlags & eTileImportClearPalettes)
 	{
-		for(int i = 0; i < s_maxPalettes; i++)
+		for (int i = 0; i < s_maxPalettes; i++)
 		{
-			if(paletteBits & (1 << i))
+			if (paletteBits & (1 << i))
 			{
 				m_palettes[i].Clear();
 			}
 		}
 	}
 
-	if(importFlags & eBMPImportClearTiles)
+	if (importFlags & eTileImportClearTiles)
 	{
 		m_tileset.Clear();
 	}
 
-	if(importFlags & eBMPImportClearMap)
+	if (importFlags & eTileImportClearMap)
 	{
 		map.Clear();
 	}
 
-	if(importFlags & eBMPImportInsertBGTile)
+	if (importFlags & eTileImportInsertBGTile)
 	{
 		m_tileset.AddTile();
 	}
 
 	const int tileWidth = GetPlatformConfig().tileWidth;
 	const int tileHeight = GetPlatformConfig().tileHeight;
+	const int stampWidth = GetPlatformConfig().stampWidth;
+	const int stampHeight = GetPlatformConfig().stampHeight;
 
 	//Read BMP
-	BMPReader reader;
-	if(reader.Read(filename))
+	ion::ImageFormat* reader = ion::ImageFormat::CreateReader(ion::string::GetFileExtension(filename));
+	if (reader && reader->Read(filename))
 	{
-		if(reader.GetWidth() % tileWidth != 0 || reader.GetHeight() % tileHeight != 0)
+		if (reader->GetWidth() % tileWidth != 0 || reader->GetHeight() % tileHeight != 0)
 		{
 			//TODO: wx message handler in ion::debug
 			//if(wxMessageBox("Bitmap width/height is not multiple of target platform tile width/height, image will be truncated", "Warning", wxOK | wxCANCEL | wxICON_WARNING) == wxCANCEL)
 			{
-				ion::debug::log << "Bitmap width / height " << reader.GetWidth() << "x" << reader.GetHeight() << " is not multiple of target platform tile width / height, image will be truncated: " << filename << ion::debug::end;
+				ion::debug::log << "Bitmap width / height " << reader->GetWidth() << "x" << reader->GetHeight() << " is not multiple of target platform tile width / height, image will be truncated: " << filename << ion::debug::end;
 				return false;
 			}
 		}
 
 		//Get width/height in tiles (aligned up to tile width/height)
-		int tilesWidth = (int)ion::maths::Ceil((float)reader.GetWidth() / (float)tileWidth);
-		int tilesHeight = (int)ion::maths::Ceil((float)reader.GetHeight() / (float)tileHeight);
+		int tilesWidth = (int)ion::maths::Ceil((float)reader->GetWidth() / (float)tileWidth);
+		int tilesHeight = (int)ion::maths::Ceil((float)reader->GetHeight() / (float)tileHeight);
 
-		if(importFlags & eBMPImportDrawToMap)
+		if (importFlags & eTileImportDrawToMap)
 		{
 			//Grow map if necessary
 			map.Resize(ion::maths::Max(mapWidth, tilesWidth), ion::maths::Max(mapHeight, tilesHeight), false, false);
 			collisionMap.Resize(ion::maths::Max(collisionMap.GetWidth(), tilesWidth), ion::maths::Max(collisionMap.GetHeight(), tilesHeight), false, false);
 		}
 
-		if(importFlags & eBMPImportReplaceStamp)
+		if (importFlags & eTileImportReplaceStamp)
 		{
-			if(stamp)
+			if (stamp)
 			{
-				if((tilesWidth != stamp->GetWidth()) || (tilesHeight != stamp->GetHeight()))
+				if ((tilesWidth != stamp->GetWidth()) || (tilesHeight != stamp->GetHeight()))
 				{
 					//TODO: wx message handler in ion::debug
 					//wxMessageBox("Bitmap width/height does not match stamp to be replaced, cannot import", "Warning", wxOK | wxICON_WARNING);
@@ -2291,9 +3069,25 @@ bool Project::ImportBitmap(const std::string& filename, u32 importFlags, u32 pal
 			}
 		}
 
-		if(importFlags & eBMPImportToStamp)
+		int stampsWidth = 1;
+		int stampsHeight = 1;
+
+		if (importFlags & eTileImportToStamp)
 		{
-			if(!stamp)
+			if (stampWidth > 0 && stampHeight > 0)
+			{
+				if (((tilesWidth % stampWidth) != 0)
+					|| ((tilesHeight % stampHeight) != 0))
+				{
+					ion::debug::log << "Bitmap tile width / height " << tilesWidth << "x" << stampHeight << " is not multiple of stamp width / height: " << filename << ion::debug::end;
+					return false;
+				}
+			}
+
+			stampsWidth = (stampWidth > 1) ? (tilesWidth / stampWidth) : 1;
+			stampsHeight = (stampHeight > 1) ? (tilesHeight / stampHeight) : 1;
+
+			if((stampsWidth == 1 && stampsHeight == 1) && !stamp)
 			{
 				//Create new stamp
 				StampId stampId = AddStamp(tilesWidth, tilesHeight);
@@ -2301,7 +3095,7 @@ bool Project::ImportBitmap(const std::string& filename, u32 importFlags, u32 pal
 			}
 		}
 
-		if((importFlags & eBMPImportToStamp) || (importFlags & eBMPImportReplaceStamp))
+		if((stampsWidth == 1 && stampsHeight == 1) && ((importFlags & eTileImportToStamp) || (importFlags & eTileImportReplaceStamp)))
 		{
 			if(stamp)
 			{
@@ -2327,7 +3121,7 @@ bool Project::ImportBitmap(const std::string& filename, u32 importFlags, u32 pal
 
 		int paletteIndex = -1;
 
-		if(importFlags & eBMPImportWholePalette)
+		if(importFlags & eTileImportWholePalette)
 		{
 			//Read whole palette
 			for(int i = 0; i < s_maxPalettes && paletteIndex == -1; i++)
@@ -2350,207 +3144,232 @@ bool Project::ImportBitmap(const std::string& filename, u32 importFlags, u32 pal
 			//Get palette
 			Palette& palette = m_palettes[paletteIndex];
 
-			for(int i = 0; i < reader.GetPaletteSize(); i++)
+			for(int i = 0; i < reader->GetPaletteSize(); i++)
 			{
-				BMPReader::Colour bmpColour = reader.GetPaletteEntry(i);
+				ion::ImageFormat::Colour bmpColour = reader->GetPaletteEntry(i);
 				palette.AddColour(Colour(bmpColour.r, bmpColour.g, bmpColour.b));
 			}
 		}
 
-		//For all 8x8 tiles, in row-at-a-time order
-		for(int tileY = 0; tileY < tilesHeight; tileY++)
+		if (stampsWidth > 1 || stampsHeight > 1)
 		{
-			for(int tileX = 0; tileX < tilesWidth; tileX++)
+			tilesWidth = stampWidth;
+			tilesHeight = stampHeight;
+		}
+
+		//For all NxN stamps
+		for (int stampX = 0; stampX < stampsWidth; stampX++)
+		{
+			for (int stampY = 0; stampY < stampsHeight; stampY++)
 			{
-				Tile tile(m_platformConfig.tileWidth, m_platformConfig.tileHeight);
-				PaletteId paletteId = (importFlags & eBMPImportWholePalette) ? paletteIndex : 0;
-
-				if(importFlags & eBMPImportWholePalette)
+				if (stampsWidth > 1 || stampsHeight > 1)
 				{
-					//Copy colour indices directly
-					for(int pixelX = 0; pixelX < tileWidth; pixelX++)
-					{
-						for(int pixelY = 0; pixelY < tileHeight; pixelY++)
-						{
-							int sourcePixelX = (tileX * tileWidth) + pixelX;
-							int sourcePixelY = (tileY * tileHeight) + pixelY;
-							tile.SetPixelColour(pixelX, pixelY, reader.GetColourIndex(sourcePixelX, sourcePixelY));
-						}
-					}
+					//Create new stamp
+					StampId stampId = AddStamp(stampWidth, stampHeight);
+					stamp = GetStamp(stampId);
 				}
-				else
+
+				//For all 8x8 tiles, in row-at-a-time order
+				for (int tileDstY = 0; tileDstY < tilesHeight; tileDstY++)
 				{
-					//Search for colours
-					std::vector<Colour> pixels(tileWidth * tileHeight);
-
-					//Read pixel colours from bitmap
-					for(int pixelX = 0; pixelX < tileWidth; pixelX++)
+					for (int tileDstX = 0; tileDstX < tilesWidth; tileDstX++)
 					{
-						for(int pixelY = 0; pixelY < tileHeight; pixelY++)
+						int tileSrcX = tileDstX + (stampX * stampWidth);
+						int tileSrcY = tileDstY + (stampY * stampHeight);
+
+						Tile tile(m_platformConfig.tileWidth, m_platformConfig.tileHeight);
+						PaletteId paletteId = (importFlags & eTileImportWholePalette) ? paletteIndex : 0;
+
+						if (importFlags & eTileImportWholePalette)
 						{
-							int sourcePixelX = (tileX * tileWidth) + pixelX;
-							int sourcePixelY = (tileY * tileHeight) + pixelY;
-
-							if(sourcePixelX < reader.GetWidth() && sourcePixelY < reader.GetHeight())
+							//Copy colour indices directly
+							for (int pixelX = 0; pixelX < tileWidth; pixelX++)
 							{
-								BMPReader::Colour bmpColour = reader.GetPixel(sourcePixelX, sourcePixelY);
-								pixels[(pixelY * tileWidth) + pixelX] = Colour(bmpColour.r, bmpColour.g, bmpColour.b);
-							}
-							else
-							{
-								BMPReader::Colour bmpColour = reader.GetPaletteEntry(0);
-								pixels[(pixelY * tileWidth) + pixelX] = Colour(bmpColour.r, bmpColour.g, bmpColour.b);
-							}
-						}
-					}
-
-					//Find or create palette
-					PaletteId closestPaletteId = 0;
-					int closestPaletteColourMatches = 0;
-					if(!FindPalette(pixels.data(), paletteBits, paletteId, closestPaletteId, closestPaletteColourMatches))
-					{
-						//Import palette
-						Palette importedPalette;
-						if(!ImportPalette(pixels.data(), importedPalette))
-						{
-							//TODO: wx message handler in ion::debug
-							//wxMessageBox("Too many colours in tile, bailing out", "Error", wxOK | wxICON_ERROR);
-							ion::debug::log << "Too many colours in tile, bailing out: " << filename << ion::debug::end;
-							return false;
-						}
-
-						//If closest palette has enough space to merge
-						bool merged = false;
-
-						int closestPaletteUsedColours = 0;
-						int importedPaletteUsedColours = 0;
-
-						for(int i = 0; i < Palette::coloursPerPalette; i++)
-						{
-							if(m_palettes[closestPaletteId].IsColourUsed(i))
-							{
-								closestPaletteUsedColours++;
-							}
-						}
-
-						for(int i = 0; i < Palette::coloursPerPalette; i++)
-						{
-							if(importedPalette.IsColourUsed(i))
-							{
-								importedPaletteUsedColours++;
-							}
-						}
-
-						int spareColours = Palette::coloursPerPalette - closestPaletteUsedColours;
-						int requiredNewColours = importedPaletteUsedColours - closestPaletteColourMatches;
-
-						if(spareColours >= requiredNewColours)
-						{
-							//Merge palettes
-							if(MergePalettes(m_palettes[closestPaletteId], importedPalette))
-							{
-								paletteId = closestPaletteId;
-								merged = true;
-							}
-						}
-
-						if(!merged)
-						{
-							//Find free useable palette
-							bool foundFreePalette = false;
-							for(int i = 0; i < s_maxPalettes && !foundFreePalette; i++)
-							{
-								if((paletteBits & (1 << i)) && m_palettes[i].GetUsedColourMask() == 0)
+								for (int pixelY = 0; pixelY < tileHeight; pixelY++)
 								{
-									paletteId = i;
-									foundFreePalette = true;
+									int sourcePixelX = (tileSrcX * tileWidth) + pixelX;
+									int sourcePixelY = (tileSrcY * tileHeight) + pixelY;
+									tile.SetPixelColour(pixelX, pixelY, reader->GetColourIndex(sourcePixelX, sourcePixelY));
+								}
+							}
+						}
+						else
+						{
+							//Search for colours
+							std::vector<Colour> pixels(tileWidth * tileHeight);
+
+							//Read pixel colours from bitmap
+							for (int pixelX = 0; pixelX < tileWidth; pixelX++)
+							{
+								for (int pixelY = 0; pixelY < tileHeight; pixelY++)
+								{
+									int sourcePixelX = (tileSrcX * tileWidth) + pixelX;
+									int sourcePixelY = (tileSrcY * tileHeight) + pixelY;
+
+									if (sourcePixelX < reader->GetWidth() && sourcePixelY < reader->GetHeight())
+									{
+										ion::ImageFormat::Colour bmpColour = reader->GetPixel(sourcePixelX, sourcePixelY);
+										pixels[(pixelY * tileWidth) + pixelX] = Colour(bmpColour.r, bmpColour.g, bmpColour.b);
+									}
+									else
+									{
+										ion::ImageFormat::Colour bmpColour = reader->GetPaletteEntry(0);
+										pixels[(pixelY * tileWidth) + pixelX] = Colour(bmpColour.r, bmpColour.g, bmpColour.b);
+									}
 								}
 							}
 
-							if(!foundFreePalette)
+							//Find or create palette
+							PaletteId closestPaletteId = 0;
+							int closestPaletteColourMatches = 0;
+							if (!FindPalette(pixels.data(), paletteBits, paletteId, closestPaletteId, closestPaletteColourMatches))
 							{
-								//TODO: wx message handler in ion::debug
-								//wxMessageBox("Exceeded palette count, bailing out", "Error", wxOK | wxICON_ERROR);
-								ion::debug::log << "Exceeded palette count, bailing out: " << filename << ion::debug::end;
-								return false;
+								//Import palette
+								Palette importedPalette;
+								if (!ImportPalette(pixels.data(), importedPalette))
+								{
+									//TODO: wx message handler in ion::debug
+									//wxMessageBox("Too many colours in tile, bailing out", "Error", wxOK | wxICON_ERROR);
+									ion::debug::log << "Too many colours in tile, bailing out: " << filename << ion::debug::end;
+									return false;
+								}
+
+								//If closest palette has enough space to merge
+								bool merged = false;
+
+								int closestPaletteUsedColours = 0;
+								int importedPaletteUsedColours = 0;
+
+								for (int i = 0; i < Palette::coloursPerPalette; i++)
+								{
+									if (m_palettes[closestPaletteId].IsColourUsed(i))
+									{
+										closestPaletteUsedColours++;
+									}
+								}
+
+								for (int i = 0; i < Palette::coloursPerPalette; i++)
+								{
+									if (importedPalette.IsColourUsed(i))
+									{
+										importedPaletteUsedColours++;
+									}
+								}
+
+								int spareColours = Palette::coloursPerPalette - closestPaletteUsedColours;
+								int requiredNewColours = importedPaletteUsedColours - closestPaletteColourMatches;
+
+								if (spareColours >= requiredNewColours)
+								{
+									//Merge palettes
+									if (MergePalettes(m_palettes[closestPaletteId], importedPalette))
+									{
+										paletteId = closestPaletteId;
+										merged = true;
+									}
+								}
+
+								if (!merged)
+								{
+									//Find free useable palette
+									bool foundFreePalette = false;
+									for (int i = 0; i < s_maxPalettes && !foundFreePalette; i++)
+									{
+										if ((paletteBits & (1 << i)) && m_palettes[i].GetUsedColourMask() == 0)
+										{
+											paletteId = i;
+											foundFreePalette = true;
+										}
+									}
+
+									if (!foundFreePalette)
+									{
+										//TODO: wx message handler in ion::debug
+										//wxMessageBox("Exceeded palette count, bailing out", "Error", wxOK | wxICON_ERROR);
+										ion::debug::log << "Exceeded palette count, bailing out: " << filename << ion::debug::end;
+										return false;
+									}
+
+									//Use imported palette
+									m_palettes[paletteId] = importedPalette;
+								}
 							}
 
-							//Use imported palette
-							m_palettes[paletteId] = importedPalette;
+							//Get palette
+							Palette& palette = m_palettes[paletteId];
+
+							//Find pixel colours from palette
+							for (int pixelX = 0; pixelX < tileWidth; pixelX++)
+							{
+								for (int pixelY = 0; pixelY < tileHeight; pixelY++)
+								{
+									int colourIdx = 0;
+									if (!palette.GetNearestColourIdx(pixels[(pixelY * tileWidth) + pixelX], Palette::eExact, colourIdx))
+									{
+										//Shouldn't reach here - palette should have been validated
+										//TODO: wx message handler in ion::debug
+										//wxMessageBox("Error mapping colour indices", "Error", wxOK | wxICON_ERROR);
+										ion::debug::log << "Error mapping colour indices, bailing out: " << filename << ion::debug::end;
+										return false;
+									}
+
+									tile.SetPixelColour(pixelX, pixelY, colourIdx);
+								}
+							}
 						}
-					}
 
-					//Get palette
-					Palette& palette = m_palettes[paletteId];
+						//Hash invalidated
+						tile.CalculateHash();
 
-					//Find pixel colours from palette
-					for(int pixelX = 0; pixelX < tileWidth; pixelX++)
-					{
-						for(int pixelY = 0; pixelY < tileHeight; pixelY++)
+						//Find duplicate or create new
+						TileId tileId = 0;
+						u32 tileFlags = 0;
+						TileId duplicateId = InvalidTileId;
+
+						if (!(importFlags & eTileImportNoDuplicateTileCheck))
 						{
-							int colourIdx = 0;
-							if(!palette.GetNearestColourIdx(pixels[(pixelY * tileWidth) + pixelX], Palette::eExact, colourIdx))
-							{
-								//Shouldn't reach here - palette should have been validated
-								//TODO: wx message handler in ion::debug
-								//wxMessageBox("Error mapping colour indices", "Error", wxOK | wxICON_ERROR);
-								ion::debug::log << "Error mapping colour indices, bailing out: " << filename << ion::debug::end;
-								return false;
-							}
-
-							tile.SetPixelColour(pixelX, pixelY, colourIdx);
+							duplicateId = m_tileset.FindDuplicate(tile, tileFlags);
 						}
-					}
-				}
 
-				//Hash invalidated
-				tile.CalculateHash();
+						if (duplicateId != InvalidTileId)
+						{
+							//Tile already exists
+							tileId = duplicateId;
+						}
+						else
+						{
+							//Create new tile and copy
+							tileId = m_tileset.AddTile();
+							Tile* newTile = m_tileset.GetTile(tileId);
+							newTile->CopyPixels(tile);
+							newTile->SetPaletteId(paletteId);
 
-				//Find duplicate or create new
-				TileId tileId = 0;
-				u32 tileFlags = 0;
-				TileId duplicateId = InvalidTileId;
-				
-				if(!(importFlags & eBMPImportNoDuplicateTileCheck))
-				{
-					duplicateId = m_tileset.FindDuplicate(tile, tileFlags);
-				}
+							//Re-add to hash map
+							m_tileset.HashChanged(tileId);
+						}
 
-				if(duplicateId != InvalidTileId)
-				{
-					//Tile already exists
-					tileId = duplicateId;
-				}
-				else
-				{
-					//Create new tile and copy
-					tileId = m_tileset.AddTile();
-					Tile* newTile = m_tileset.GetTile(tileId);
-					newTile->CopyPixels(tile);
-					newTile->SetPaletteId(paletteId);
+						if (importFlags & eTileImportDrawToMap)
+						{
+							//Set in map
+							map.SetTile(tileDstX, tileDstY, tileId);
+							map.SetTileFlags(tileDstX, tileDstY, tileFlags);
+						}
 
-					//Re-add to hash map
-					m_tileset.HashChanged(tileId);
-				}
-
-				if(importFlags & eBMPImportDrawToMap)
-				{
-					//Set in map
-					map.SetTile(tileX, tileY, tileId);
-					map.SetTileFlags(tileX, tileY, tileFlags);
-				}
-
-				if((importFlags & eBMPImportToStamp) || (importFlags & eBMPImportReplaceStamp))
-				{
-					if(stamp)
-					{
-						//Set in stamp
-						stamp->SetTile(tileX, tileY, tileId);
-						stamp->SetTileFlags(tileX, tileY, tileFlags);
+						if ((importFlags & eTileImportToStamp) || (importFlags & eTileImportReplaceStamp))
+						{
+							if (stamp)
+							{
+								//Set in stamp
+								stamp->SetTile(tileDstX, tileDstY, tileId);
+								stamp->SetTileFlags(tileDstX, tileDstY, tileFlags);
+							}
+						}
 					}
 				}
 			}
 		}
+
+		delete reader;
 	}
 	else
 	{
@@ -2562,8 +3381,89 @@ bool Project::ImportBitmap(const std::string& filename, u32 importFlags, u32 pal
 	return true;
 }
 
+void Project::WriteIncludeFile(const std::string& projectDir, const std::string& exportDir, const std::string& includeFilename, const std::vector<IncludeFile>& filenames, bool generateLabel) const
+{
+	if (filenames.size() > 0 && projectDir.size() > 0)
+	{
+		//If export dir is within project dir
+		if (ion::string::StartsWith(ion::string::ToLower(exportDir), ion::string::ToLower(projectDir)))
+		{
+			//Generate include file
+			std::stringstream includePath;
+			includePath << exportDir << "\\" << includeFilename;
+
+			ion::io::File file(includePath.str(), ion::io::File::OpenMode::Write);
+			if (file.IsOpen())
+			{
+				size_t substrSize = projectDir.size() + 1; // + backslash
+
+				std::stringstream stream;
+				WriteFileHeader(stream);
+
+				for (int i = 0; i < filenames.size(); i++)
+				{
+					bool closeIf = false;
+
+					if (filenames[i].flags == IncludeExportFlags::DebugOnly)
+					{
+						stream << "\tIFND FINAL" << std::endl;
+						closeIf = true;
+					}
+					else if (filenames[i].flags == IncludeExportFlags::ReleaseOnly)
+					{
+						stream << "\tIFD FINAL" << std::endl;
+						closeIf = true;
+					}
+
+					const std::string& label = filenames[i].label;
+					const std::string& filename = filenames[i].filename;
+					std::string relativeFilename = filename.substr(substrSize, filename.size() - substrSize);
+
+					if (generateLabel)
+					{
+						stream << label << ":" << std::endl;
+					}
+
+					if (ion::string::EndsWith(ion::string::ToLower(relativeFilename), ".bin"))
+					{
+						stream << "\tincbin \'" << relativeFilename << "\'" << std::endl;
+					}
+					else
+					{
+						stream << "\tinclude \'" << relativeFilename << "\'" << std::endl;
+					}
+
+					stream << "\teven" << std::endl;
+
+					if (closeIf)
+					{
+						stream << "\tENDIF" << std::endl;
+					}
+
+					stream << std::endl;
+				}
+
+				file.Write(stream.str().c_str(), stream.str().size());
+				file.Close();
+			}
+		}
+	}
+}
+
 void Project::WriteFileHeader(std::stringstream& stream) const
 {
+#if defined BEEHIVE_PLUGIN_LUMINARY
+	stream << "; ============================================================================================" << std::endl;
+	stream << ";   AUTOGENERATED WITH BEEHIVE - DO NOT EDIT MANUALLY" << std::endl;
+	stream << ";============================================================================================" << std::endl;
+	stream << ";   http://www.bigevilcorporation.co.uk" << std::endl;
+	stream << "; ============================================================================================" << std::endl;
+	stream << ";   Beehive and LUMINARY Engine (c) Matt Phillips 2019" << std::endl;
+	stream << "; ============================================================================================" << std::endl;
+	stream << std::endl;
+	stream << std::endl;
+#else
+	//TW compatibility, to keep source control diffs clean
 	stream << "; == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == ==" << std::endl;
 	stream << ";   **AUTOGENERATED WITH BEEHIVE** - the complete art tool for SEGA Mega Drive" << std::endl;
 	stream << "; == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == ==" << std::endl;
@@ -2573,11 +3473,12 @@ void Project::WriteFileHeader(std::stringstream& stream) const
 	stream << "; == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == ==" << std::endl;
 	stream << std::endl;
 	stream << std::endl;
+#endif
 }
 
 bool Project::ExportPalettes(const std::string& filename, ExportFormat format)
 {
-	ion::io::File file(filename, ion::io::File::eOpenWrite);
+	ion::io::File file(filename, ion::io::File::OpenMode::Write);
 	if(file.IsOpen())
 	{
 		if (format == ExportFormat::Beehive)
@@ -2616,7 +3517,7 @@ bool Project::ExportTiles(const std::string& filename, ExportFormat format)
 		binaryFilename += ".bin";
 
 		//Export binary data
-		ion::io::File binaryFile(binaryFilename, ion::io::File::eOpenWrite);
+		ion::io::File binaryFile(binaryFilename, ion::io::File::OpenMode::Write);
 		if(binaryFile.IsOpen())
 		{
 			m_tileset.Export(m_platformConfig, binaryFile, format == ExportFormat::BinaryCompressed);
@@ -2627,7 +3528,7 @@ bool Project::ExportTiles(const std::string& filename, ExportFormat format)
 		}
 	}
 
-	ion::io::File file(filename, ion::io::File::eOpenWrite);
+	ion::io::File file(filename, ion::io::File::OpenMode::Write);
 	if(file.IsOpen())
 	{
 		if (format == ExportFormat::Beehive)
@@ -2682,7 +3583,7 @@ bool Project::ExportTerrainTiles(const std::string& filename, ExportFormat forma
 {
 	if (format == ExportFormat::Beehive)
 	{
-		ion::io::File file(filename, ion::io::File::eOpenWrite);
+		ion::io::File file(filename, ion::io::File::OpenMode::Write);
 		if (file.IsOpen())
 		{
 			ion::io::Archive archive(file, ion::io::Archive::Direction::Out);
@@ -2701,7 +3602,7 @@ bool Project::ExportTerrainTiles(const std::string& filename, ExportFormat forma
 			binaryFilename += ".bin";
 
 			//Export binary data
-			ion::io::File binaryFile(binaryFilename, ion::io::File::eOpenWrite);
+			ion::io::File binaryFile(binaryFilename, ion::io::File::OpenMode::Write);
 			if (binaryFile.IsOpen())
 			{
 				m_terrainTileset.Export(binaryFile);
@@ -2713,7 +3614,7 @@ bool Project::ExportTerrainTiles(const std::string& filename, ExportFormat forma
 			}
 		}
 
-		ion::io::File file(filename, ion::io::File::eOpenWrite);
+		ion::io::File file(filename, ion::io::File::OpenMode::Write);
 		if (file.IsOpen())
 		{
 			std::stringstream stream;
@@ -2759,7 +3660,7 @@ bool Project::ExportTerrainAngles(const std::string& filename, ExportFormat form
 	binaryFilename += ".bin";
 
 	//Export binary data
-	ion::io::File binaryFile(binaryFilename, ion::io::File::eOpenWrite);
+	ion::io::File binaryFile(binaryFilename, ion::io::File::OpenMode::Write);
 	if (binaryFile.IsOpen())
 	{
 		m_terrainTileset.ExportAngles(binaryFile);
@@ -2775,7 +3676,7 @@ bool Project::ExportMap(MapId mapId, const std::string& filename, ExportFormat f
 
 	if (format == ExportFormat::Beehive)
 	{
-		ion::io::File file(filename, ion::io::File::eOpenWrite);
+		ion::io::File file(filename, ion::io::File::OpenMode::Write);
 		if (file.IsOpen())
 		{
 			//Bake map/stamps to tiles
@@ -2809,7 +3710,7 @@ bool Project::ExportMap(MapId mapId, const std::string& filename, ExportFormat f
 			binaryFilename += ".bin";
 
 			//Export binary data
-			ion::io::File binaryFile(binaryFilename, ion::io::File::eOpenWrite);
+			ion::io::File binaryFile(binaryFilename, ion::io::File::OpenMode::Write);
 			if (binaryFile.IsOpen())
 			{
 				map.Export(*this, binaryFile);
@@ -2821,7 +3722,7 @@ bool Project::ExportMap(MapId mapId, const std::string& filename, ExportFormat f
 			}
 		}
 
-		ion::io::File file(filename, ion::io::File::eOpenWrite);
+		ion::io::File file(filename, ion::io::File::OpenMode::Write);
 		if (file.IsOpen())
 		{
 			std::stringstream stream;
@@ -2973,7 +3874,7 @@ bool Project::ExportBlocks(const std::string& filename, ExportFormat format, int
 			binaryFilename += ".bin";
 
 			//Export binary data
-			ion::io::File binaryFile(binaryFilename, ion::io::File::eOpenWrite);
+			ion::io::File binaryFile(binaryFilename, ion::io::File::OpenMode::Write);
 			if(binaryFile.IsOpen())
 			{
 				for(int i = 0; i < uniqueBlocks.size(); i++)
@@ -2990,7 +3891,7 @@ bool Project::ExportBlocks(const std::string& filename, ExportFormat format, int
 		}
 	}
 
-	ion::io::File file(filename, ion::io::File::eOpenWrite);
+	ion::io::File file(filename, ion::io::File::OpenMode::Write);
 	if(file.IsOpen())
 	{
 		std::stringstream stream;
@@ -3048,7 +3949,7 @@ bool Project::ExportBlockMap(MapId mapId, const std::string& filename, ExportFor
 		binaryFilename += ".bin";
 
 		//Export binary data
-		ion::io::File binaryFile(binaryFilename, ion::io::File::eOpenWrite);
+		ion::io::File binaryFile(binaryFilename, ion::io::File::OpenMode::Write);
 		if(binaryFile.IsOpen())
 		{
 			map.ExportBlockMap(*this, binaryFile, blockWidth, blockHeight, colOffsets);
@@ -3060,7 +3961,7 @@ bool Project::ExportBlockMap(MapId mapId, const std::string& filename, ExportFor
 		}
 	}
 
-	ion::io::File file(filename, ion::io::File::eOpenWrite);
+	ion::io::File file(filename, ion::io::File::OpenMode::Write);
 	if(file.IsOpen())
 	{
 		std::stringstream stream;
@@ -3162,7 +4063,7 @@ bool Project::ExportTerrainBlocks(const std::string& filename, ExportFormat form
 		binaryFilename += ".bin";
 
 		//Export binary data
-		ion::io::File binaryFile(binaryFilename, ion::io::File::eOpenWrite);
+		ion::io::File binaryFile(binaryFilename, ion::io::File::OpenMode::Write);
 		if(binaryFile.IsOpen())
 		{
 			for(int i = 0; i < uniqueBlocks.size(); i++)
@@ -3178,7 +4079,7 @@ bool Project::ExportTerrainBlocks(const std::string& filename, ExportFormat form
 		}
 	}
 
-	ion::io::File file(filename, ion::io::File::eOpenWrite);
+	ion::io::File file(filename, ion::io::File::OpenMode::Write);
 	if(file.IsOpen())
 	{
 		std::stringstream stream;
@@ -3247,7 +4148,7 @@ bool Project::ExportTerrainBlockMap(MapId mapId, const std::string& filename, Ex
 			binaryFilename += ".bin";
 
 			//Export binary data
-			ion::io::File binaryFile(binaryFilename, ion::io::File::eOpenWrite);
+			ion::io::File binaryFile(binaryFilename, ion::io::File::OpenMode::Write);
 			if(binaryFile.IsOpen())
 			{
 				collisionMap.ExportBlockMap(*this, binaryFile, blockWidth, blockHeight, rowOffsets);
@@ -3259,7 +4160,7 @@ bool Project::ExportTerrainBlockMap(MapId mapId, const std::string& filename, Ex
 			}
 		}
 
-		ion::io::File file(filename, ion::io::File::eOpenWrite);
+		ion::io::File file(filename, ion::io::File::OpenMode::Write);
 		if(file.IsOpen())
 		{
 			std::stringstream stream;
@@ -3332,7 +4233,7 @@ bool Project::ExportTerrainBlockMap(MapId mapId, const std::string& filename, Ex
 			}
 
 			stream << "; Terrain bezier bounds" << std::endl;
-			stream << "terrainmap_" << mapName << "_num_special_terrain_descs\tequ " << "0x" << std::setw(2) << specialTerrainStartEndPositions.size() << std::endl;
+			stream << "terrainmap_" << mapName << "_num_special_terrain_descs\tequ " << "0x" << SSTREAM_HEX2(specialTerrainStartEndPositions.size()) << std::endl;
 			stream << "terrainmap_" << mapName << "_special_terrain_descs:" << std::endl;
 
 			for(int i = 0; i < specialTerrainStartEndPositions.size(); i++)
@@ -3360,7 +4261,7 @@ bool Project::ExportStamps(const std::string& filename, ExportFormat format)
 {
 	if (format == ExportFormat::Beehive)
 	{
-		ion::io::File file(filename, ion::io::File::eOpenWrite);
+		ion::io::File file(filename, ion::io::File::OpenMode::Write);
 		if (file.IsOpen())
 		{
 			ion::io::Archive archive(file, ion::io::Archive::Direction::Out);
@@ -3398,7 +4299,7 @@ bool Project::ExportStamps(const std::string& filename, ExportFormat format)
 			binaryFilename += ".bin";
 
 			//Export binary data
-			ion::io::File binaryFile(binaryFilename, ion::io::File::eOpenWrite);
+			ion::io::File binaryFile(binaryFilename, ion::io::File::OpenMode::Write);
 			if (binaryFile.IsOpen())
 			{
 				for (TStampMap::const_iterator it = m_stamps.begin(), end = m_stamps.end(); it != end; ++it)
@@ -3415,7 +4316,7 @@ bool Project::ExportStamps(const std::string& filename, ExportFormat format)
 			}
 		}
 
-		ion::io::File file(filename, ion::io::File::eOpenWrite);
+		ion::io::File file(filename, ion::io::File::OpenMode::Write);
 		if (file.IsOpen())
 		{
 			std::stringstream stream;
@@ -3495,7 +4396,7 @@ bool Project::ExportStampMap(MapId mapId, const std::string& filename, ExportFor
 
 	if (format == ExportFormat::Beehive)
 	{
-		ion::io::File file(filename, ion::io::File::eOpenWrite);
+		ion::io::File file(filename, ion::io::File::OpenMode::Write);
 		if (file.IsOpen())
 		{
 			ion::io::Archive archive(file, ion::io::Archive::Direction::Out);
@@ -3520,7 +4421,7 @@ bool Project::ExportStampMap(MapId mapId, const std::string& filename, ExportFor
 			binaryFilename += ".bin";
 
 			//Export binary data
-			ion::io::File binaryFile(binaryFilename, ion::io::File::eOpenWrite);
+			ion::io::File binaryFile(binaryFilename, ion::io::File::OpenMode::Write);
 			if (binaryFile.IsOpen())
 			{
 				map.ExportStampMap(*this, binaryFile);
@@ -3532,7 +4433,7 @@ bool Project::ExportStampMap(MapId mapId, const std::string& filename, ExportFor
 			}
 		}
 
-		ion::io::File file(filename, ion::io::File::eOpenWrite);
+		ion::io::File file(filename, ion::io::File::OpenMode::Write);
 		if (file.IsOpen())
 		{
 			std::stringstream stream;
@@ -3586,7 +4487,7 @@ bool Project::ExportCollisionMap(MapId mapId, const std::string& filename, Expor
 
 	if (format == ExportFormat::Beehive)
 	{
-		ion::io::File file(filename, ion::io::File::eOpenWrite);
+		ion::io::File file(filename, ion::io::File::OpenMode::Write);
 		if (file.IsOpen())
 		{
 			ion::io::Archive archive(file, ion::io::Archive::Direction::Out);
@@ -3603,7 +4504,7 @@ bool Project::ExportCollisionMap(MapId mapId, const std::string& filename, Expor
 			binaryFilename += ".bin";
 
 			//Export binary data
-			ion::io::File binaryFile(binaryFilename, ion::io::File::eOpenWrite);
+			ion::io::File binaryFile(binaryFilename, ion::io::File::OpenMode::Write);
 			if (binaryFile.IsOpen())
 			{
 				collisionMap.Export(*this, binaryFile);
@@ -3615,7 +4516,7 @@ bool Project::ExportCollisionMap(MapId mapId, const std::string& filename, Expor
 			}
 		}
 
-		ion::io::File file(filename, ion::io::File::eOpenWrite);
+		ion::io::File file(filename, ion::io::File::OpenMode::Write);
 		if (file.IsOpen())
 		{
 			std::stringstream stream;
@@ -3684,7 +4585,7 @@ bool Project::ExportSceneAnimations(MapId mapId, const std::string& filename, Ex
 	Map& map = m_maps.find(mapId)->second;
 	const std::string& mapName = map.GetName();
 
-	ion::io::File file(filename, ion::io::File::eOpenWrite);
+	ion::io::File file(filename, ion::io::File::OpenMode::Write);
 	if (file.IsOpen())
 	{
 		std::stringstream stream;
@@ -3702,40 +4603,86 @@ bool Project::ExportSceneAnimations(MapId mapId, const std::string& filename, Ex
 
 			//STRUCT_BEGIN SceneAnimation
 			//	SceneAnim_ActorList            rs.l 1
+			//	SceneAnim_InitialPosList       rs.l 1
 			//	SceneAnim_KeyframeTimesList    rs.l 1
 			//	SceneAnim_KeyframeTrackListPos rs.l 1
 			//	SceneAnim_ActorCount           rs.w 1
 			//	SceneAnim_KeyframeCount        rs.w 1
+			//	SceneAnim_WorldPosX            rs.w 1
+			//	SceneAnim_WorldPosY            rs.w 1
+			//	SceneAnim_Width                rs.w 1
+			//	SceneAnim_Height               rs.w 1
 			//	SceneAnim_Looping              rs.b 1
 			//STRUCT_END
 
 			//; Scene animation - l1a1_BossTest1
 			//SceneAnim_l1a1_BossTest1 :
 			//	dc.l SceneAnim_l1a1_BossTest11_ActorList
+			//	dc.l SceneAnim_l1a1_BossTest11_InitialPositions
 			//	dc.l SceneAnim_l1a1_BossTest11_KeyframeTimes
 			//	dc.l SceneAnim_l1a1_BossTest11_KeyframeTrackList_Pos
 			//	dc.w 5
 			//	dc.w 8
+			//	dc.w x
+			//	dc.w y
+			//	dc.w w
+			//	dc.w h
 			//	dc.b 1
 			//	even
 
+			//Calc world pos
+			ion::Vector2i boundsMin(ion::maths::S32_MAX, ion::maths::S32_MAX);
+			ion::Vector2i boundsMax(ion::maths::S32_MIN, ion::maths::S32_MIN);
+			for (TAnimActorMap::const_iterator actorIt = animation.ActorsBegin(), actorEnd = animation.ActorsEnd(); actorIt != actorEnd; ++actorIt)
+			{
+				if (const GameObject* gameObject = map.GetGameObject(actorIt->second.GetGameObjectId()))
+				{
+					if (const GameObjectType* gameObjectType = GetGameObjectType(gameObject->GetTypeId()))
+					{
+						const ion::Vector2i dimensions = (gameObject->GetDimensions().x == 0) ? gameObjectType->GetDimensions() : gameObject->GetDimensions();
+						const ion::Vector2i topLeft = gameObject->GetPosition();
+						const ion::Vector2i bottomRight = topLeft + dimensions;
+
+						if (topLeft.x < boundsMin.x)
+							boundsMin.x = topLeft.x;
+						if (topLeft.y < boundsMin.y)
+							boundsMin.y = topLeft.y;
+						if (bottomRight.x > boundsMax.x)
+							boundsMax.x = bottomRight.x;
+						if (bottomRight.y > boundsMax.y)
+							boundsMax.y = bottomRight.y;
+					}
+				}
+			}
+
 			stream << "SceneAnim_" << mapName << "_" << animation.GetName() << "_ActorCount\t\tequ " << animation.GetActorCount() << std::endl;
 			stream << "SceneAnim_" << mapName << "_" << animation.GetName() << "_KeyframeCount\t\tequ " << numKeyframes << std::endl;
-			stream << "SceneAnim_" << mapName << "_" << animation.GetName() << "_Looping\t\tequ " << ((animation.GetPlaybackBehaviour() == ion::render::Animation::eLoop) ? "1" : "0") << std::endl;
+			stream << "SceneAnim_" << mapName << "_" << animation.GetName() << "_WorldPosX\t\tequ " << boundsMin.x << std::endl;
+			stream << "SceneAnim_" << mapName << "_" << animation.GetName() << "_WorldPosY\t\tequ " << boundsMin.y << std::endl;
+			stream << "SceneAnim_" << mapName << "_" << animation.GetName() << "_Width\t\tequ " << (boundsMax.x - boundsMin.x) << std::endl;
+			stream << "SceneAnim_" << mapName << "_" << animation.GetName() << "_Height\t\tequ " << (boundsMax.y - boundsMin.y) << std::endl;
+			stream << "SceneAnim_" << mapName << "_" << animation.GetName() << "_Looping\t\tequ " << ((animation.GetPlaybackBehaviour() == ion::render::Animation::PlaybackBehaviour::Loop) ? "1" : "0") << std::endl;
 
 			stream << std::endl;
 
 			stream << "; Scene animation - " << mapName << "_" << animation.GetName() << std::endl;
 			stream << "SceneAnim_" << mapName << "_" << animation.GetName() << ":" << std::endl;
 			stream << "\tdc.l SceneAnim_" << mapName << "_" << animation.GetName() << "_ActorList" << std::endl;
+			stream << "\tdc.l SceneAnim_" << mapName << "_" << animation.GetName() << "_InitialPositions" << std::endl;
 			stream << "\tdc.l SceneAnim_" << mapName << "_" << animation.GetName() << "_KeyframeTimes" << std::endl;
 			stream << "\tdc.l SceneAnim_" << mapName << "_" << animation.GetName() << "_KeyframeTrackList_Pos" << std::endl;
 			stream << "\tdc.w SceneAnim_" << mapName << "_" << animation.GetName() << "_ActorCount" << std::endl;
 			stream << "\tdc.w SceneAnim_" << mapName << "_" << animation.GetName() << "_KeyframeCount" << std::endl;
+			stream << "\tdc.w SceneAnim_" << mapName << "_" << animation.GetName() << "_WorldPosX" << std::endl;
+			stream << "\tdc.w SceneAnim_" << mapName << "_" << animation.GetName() << "_WorldPosY" << std::endl;
+			stream << "\tdc.w SceneAnim_" << mapName << "_" << animation.GetName() << "_Width" << std::endl;
+			stream << "\tdc.w SceneAnim_" << mapName << "_" << animation.GetName() << "_Height" << std::endl;
 			stream << "\tdc.b SceneAnim_" << mapName << "_" << animation.GetName() << "_Looping" << std::endl;
 			stream << "\teven" << std::endl;
 
 			stream << std::endl;
+
+			// =========================================================================================================================
 
 			//; Actor list
 			//SceneAnim_l1a1_BossTest11_ActorList:
@@ -3755,15 +4702,45 @@ bool Project::ExportSceneAnimations(MapId mapId, const std::string& filename, Ex
 
 			for (TAnimActorMap::const_iterator actorIt = animation.ActorsBegin(), actorEnd = animation.ActorsEnd(); actorIt != actorEnd; ++actorIt)
 			{
-				const GameObject* gameObject = map.GetGameObject(actorIt->second.GetGameObjectId());
-				const GameObjectType* gameObjectType = GetGameObjectType(gameObject->GetTypeId());
-				std::string objectName = GenerateObjectName(mapName, *gameObject, *gameObjectType);
+				if (const GameObject* gameObject = map.GetGameObject(actorIt->second.GetGameObjectId()))
+				{
+					if (const GameObjectType* gameObjectType = GetGameObjectType(gameObject->GetTypeId()))
+					{
+						std::string objectName = GenerateObjectName(mapName, *gameObject, *gameObjectType);
 
-				stream << "\tdc.l EntityPoolStart_" << gameObjectType->GetName() << "\t; Pool" << std::endl;
-				stream << "\tdc.l " << objectName << "_idx*" << gameObjectType->GetName() << "_Struct_Size\t; Offset" << std::endl;
+						stream << "\tdc.l EntityPoolStart_" << gameObjectType->GetName() << "\t; Pool" << std::endl;
+						stream << "\tdc.l " << objectName << "_idx*" << gameObjectType->GetName() << "_Struct_Size\t; Offset" << std::endl;
+					}
+				}
 			}
 
 			stream << std::endl;
+
+			// =========================================================================================================================
+
+			//; Initial object positions
+			//SceneAnim_l1a1_BossTest11_InitialPositions:
+			//	dc.l SceneAnim_l1a1_BossTest1_InitialPosition_l1a1_Core_3
+			//	dc.l SceneAnim_l1a1_BossTest1_InitialPosition_l1a1_Joint_4
+			//	dc.l SceneAnim_l1a1_BossTest1_InitialPosition_l1a1_Joint_5
+			//	dc.l SceneAnim_l1a1_BossTest1_InitialPosition_l1a1_Joint_6
+			//	dc.l SceneAnim_l1a1_BossTest1_InitialPosition_l1a1_Joint_7
+
+			stream << "; Initial object positions" << std::endl;
+			stream << "SceneAnim_" << mapName << "_" << animation.GetName() << "_InitialPositions:" << std::endl;
+
+			for (TAnimActorMap::const_iterator actorIt = animation.ActorsBegin(), actorEnd = animation.ActorsEnd(); actorIt != actorEnd; ++actorIt)
+			{
+				//	dc.w 0x0001, 0x0000
+
+				ion::Vector2i position = actorIt->second.m_trackPosition.GetValue(0.0f);
+
+				stream << "\tdc.w 0x" << HEX4(position.x) << ", 0x" << HEX4(position.y) << std::endl;
+			}
+
+			stream << std::endl;
+
+			// =========================================================================================================================
 
 			//; Keyframe times
 			//SceneAnim_l1a1_BossTest11_KeyframeTimes :
@@ -3785,6 +4762,8 @@ bool Project::ExportSceneAnimations(MapId mapId, const std::string& filename, Ex
 			}
 
 			stream << std::endl;
+
+			// =========================================================================================================================
 
 			//; Keyframe tracks (position)
 			//SceneAnim_l1a1_BossTest11_KeyframeTrackList_Pos:
@@ -3833,6 +4812,7 @@ bool Project::ExportSceneAnimations(MapId mapId, const std::string& filename, Ex
 				for (int i = 1; i < numKeyframes + 1; i++)
 				{
 					ion::Vector2i position = actorIt->second.m_trackPosition.GetValue(keyframeStep * i);
+
 					ion::Vector2i delta = position - lastPosition;
 					ion::Vector2 velocity((float)delta.x / megaDriveFramesPerKeyframe, (float)delta.y / megaDriveFramesPerKeyframe);
 					lastPosition = position;
@@ -3858,7 +4838,7 @@ bool Project::ExportGameObjects(MapId mapId, const std::string& filename, Export
 	Map& map = m_maps.find(mapId)->second;
 	const std::string& mapName = map.GetName();
 
-	ion::io::File file(filename, ion::io::File::eOpenWrite);
+	ion::io::File file(filename, ion::io::File::OpenMode::Write);
 	if (file.IsOpen())
 	{
 		if (format == ExportFormat::Beehive)
@@ -3996,6 +4976,8 @@ bool Project::ExportGameObjects(MapId mapId, const std::string& filename, Export
 
 bool Project::ExportSpriteSheets(const std::string& directory, ExportFormat format)
 {
+	std::vector<IncludeFile> exportedFilenames;
+
 	for(TActorMap::iterator it = m_actors.begin(), end = m_actors.end(); it != end; ++it)
 	{
 		//if(binary)
@@ -4004,7 +4986,7 @@ bool Project::ExportSpriteSheets(const std::string& directory, ExportFormat form
 		//	binaryFilename += ".bin";
 		//
 		//	//Export binary data
-		//	ion::io::File binaryFile(binaryFilename, ion::io::File::eOpenWrite);
+		//	ion::io::File binaryFile(binaryFilename, ion::io::File::OpenMode::Write);
 		//	if(binaryFile.IsOpen())
 		//	{
 		//		collisionMap.Export(*this, binaryFile);
@@ -4021,7 +5003,7 @@ bool Project::ExportSpriteSheets(const std::string& directory, ExportFormat form
 			std::stringstream filename;
 			filename << directory << "\\" << it->second.GetName() << ".bee";
 
-			ion::io::File file(filename.str(), ion::io::File::eOpenWrite);
+			ion::io::File file(filename.str(), ion::io::File::OpenMode::Write);
 			if (file.IsOpen())
 			{
 				ion::io::Archive archive(file, ion::io::Archive::Direction::Out);
@@ -4038,13 +5020,14 @@ bool Project::ExportSpriteSheets(const std::string& directory, ExportFormat form
 			std::stringstream filename;
 			filename << directory << "\\" << it->second.GetName() << ".ASM";
 
-			ion::io::File file(filename.str(), ion::io::File::eOpenWrite);
+			ion::io::File file(filename.str(), ion::io::File::OpenMode::Write);
 			if(file.IsOpen())
 			{
 				std::stringstream stream;
 				WriteFileHeader(stream);
 				it->second.ExportSpriteSheets(m_platformConfig, stream);
 				file.Write(stream.str().c_str(), stream.str().size());
+				exportedFilenames.push_back(IncludeFile { it->second.GetName(), filename.str(), IncludeExportFlags::None });
 			}
 			else
 			{
@@ -4053,11 +5036,15 @@ bool Project::ExportSpriteSheets(const std::string& directory, ExportFormat form
 		}
 	}
 
+	WriteIncludeFile(m_settings.Get("projectRootDir"), directory, "SPRITES.ASM", exportedFilenames, (format == ExportFormat::Beehive));
+
 	return true;
 }
 
 bool Project::ExportSpriteAnims(const std::string& directory, ExportFormat format) const
 {
+	std::vector<IncludeFile> exportedFilenames;
+
 	for(TActorMap::const_iterator it = m_actors.begin(), end = m_actors.end(); it != end; ++it)
 	{
 		//if(binary)
@@ -4069,13 +5056,14 @@ bool Project::ExportSpriteAnims(const std::string& directory, ExportFormat forma
 			std::stringstream filename;
 			filename << directory << "\\" << it->second.GetName() << ".ASM";
 
-			ion::io::File file(filename.str(), ion::io::File::eOpenWrite);
+			ion::io::File file(filename.str(), ion::io::File::OpenMode::Write);
 			if(file.IsOpen())
 			{
 				std::stringstream stream;
 				WriteFileHeader(stream);
 				it->second.ExportSpriteAnims(m_platformConfig, stream);
 				file.Write(stream.str().c_str(), stream.str().size());
+				exportedFilenames.push_back(IncludeFile { it->second.GetName(), filename.str(), IncludeExportFlags::None });
 			}
 			else
 			{
@@ -4084,12 +5072,14 @@ bool Project::ExportSpriteAnims(const std::string& directory, ExportFormat forma
 		}
 	}
 
+	WriteIncludeFile(m_settings.Get("projectRootDir"), directory, "SPRTANMS.ASM", exportedFilenames, (format == ExportFormat::Beehive));
+
 	return true;
 }
 
 bool Project::ExportStampAnims(const std::string& filename, ExportFormat format) const
 {
-	ion::io::File file(filename, ion::io::File::eOpenWrite);
+	ion::io::File file(filename, ion::io::File::OpenMode::Write);
 	if(file.IsOpen())
 	{
 		//if(binary)
@@ -4136,24 +5126,29 @@ bool Project::ExportStampAnims(const std::string& filename, ExportFormat format)
 
 bool Project::ExportSpritePalettes(const std::string& directory) const
 {
+	std::vector<IncludeFile> exportedFilenames;
+
 	for(TActorMap::const_iterator it = m_actors.begin(), end = m_actors.end(); it != end; ++it)
 	{
 		std::stringstream filename;
 		filename << directory << "\\" << it->second.GetName() << ".ASM";
 
-		ion::io::File file(filename.str(), ion::io::File::eOpenWrite);
+		ion::io::File file(filename.str(), ion::io::File::OpenMode::Write);
 		if(file.IsOpen())
 		{
 			std::stringstream stream;
 			WriteFileHeader(stream);
 			it->second.ExportSpritePalettes(m_platformConfig, stream);
 			file.Write(stream.str().c_str(), stream.str().size());
+			exportedFilenames.push_back(IncludeFile { it->second.GetName(), filename.str(), IncludeExportFlags::None });
 		}
 		else
 		{
 			return false;
 		}
 	}
+
+	WriteIncludeFile(m_settings.Get("projectRootDir"), directory, "SPRTPALS.ASM", exportedFilenames, false);
 
 	return true;
 }
@@ -4167,7 +5162,7 @@ bool Project::ExportMapBitmaps(const std::string& directory) const
 
 		const Map& map = it->second;
 
-		BMPReader writer;
+		ion::ImageFormatBMP writer;
 		writer.SetDimensions(map.GetWidth() * m_platformConfig.tileWidth, map.GetHeight() * m_platformConfig.tileHeight);
 
 		const Palette* palette = GetPalette(0);
@@ -4177,7 +5172,7 @@ bool Project::ExportMapBitmaps(const std::string& directory) const
 			for(int i = 0; i < Palette::coloursPerPalette && palette->IsColourUsed(i); i++)
 			{
 				Colour colour = palette->GetColour(i);
-				writer.SetPaletteEntry(i, BMPReader::Colour(colour.GetRed(), colour.GetGreen(), colour.GetBlue()));
+				writer.SetPaletteEntry(i, ion::ImageFormat::Colour(colour.GetRed(), colour.GetGreen(), colour.GetBlue()));
 			}
 
 			for(int tileX = 0; tileX < map.GetWidth(); tileX++)
@@ -4253,7 +5248,7 @@ bool Project::ExportStampBitmaps(const std::string& directory) const
 
 		const Stamp& stamp = it->second;
 
-		BMPReader writer;
+		ion::ImageFormatBMP writer;
 		writer.SetDimensions(stamp.GetWidth() * m_platformConfig.tileWidth, stamp.GetHeight() * m_platformConfig.tileHeight);
 
 		const Tile* firstTile = m_tileset.GetTile(stamp.GetTile(0, 0));
@@ -4271,7 +5266,7 @@ bool Project::ExportStampBitmaps(const std::string& directory) const
 		for(int i = 0; i < Palette::coloursPerPalette && palette.IsColourUsed(i); i++)
 		{
 			Colour colour = palette.GetColour(i);
-			writer.SetPaletteEntry(i, BMPReader::Colour(colour.GetRed(), colour.GetGreen(), colour.GetBlue()));
+			writer.SetPaletteEntry(i, ion::ImageFormat::Colour(colour.GetRed(), colour.GetGreen(), colour.GetBlue()));
 		}
 		
 		for(int tileX = 0; tileX < stamp.GetWidth(); tileX++)

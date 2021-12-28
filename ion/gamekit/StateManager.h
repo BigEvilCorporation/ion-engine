@@ -56,7 +56,7 @@ namespace ion
 			virtual void OnPauseState() = 0;
 			virtual void OnResumeState() = 0;
 
-			virtual bool Update(float deltaTime, input::Keyboard* keyboard, input::Mouse* mouse, input::Gamepad* gamepad) = 0;
+			virtual bool Update(float deltaTime, input::Keyboard* keyboard, input::Mouse* mouse, const std::vector<input::Gamepad*>& gamepads) = 0;
 			virtual void Render(render::Renderer& renderer, const render::Camera& camera, render::Viewport& viewport) = 0;
 
 		protected:
@@ -83,7 +83,7 @@ namespace ion
 			void Pause();
 			void Resume();
 
-			bool Update(float deltaTime, input::Keyboard* keyboard, input::Mouse* mouse, input::Gamepad* gamepad);
+			bool Update(float deltaTime, input::Keyboard* keyboard, input::Mouse* mouse, const std::vector<input::Gamepad*>& gamepads);
 			void Render(render::Renderer& renderer, const render::Camera& camera, render::Viewport& viewport);
 
 		protected:

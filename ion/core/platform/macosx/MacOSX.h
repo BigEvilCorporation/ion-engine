@@ -14,6 +14,10 @@
 #include <pthread.h>
 #include <dispatch/dispatch.h>
 #include <signal.h>
+#include <string.h>
+#include <libgen.h>
+#include <mach-o/dyld.h>
+#include <limits.h>
 
 //C strings
 #define sprintf_s snprintf

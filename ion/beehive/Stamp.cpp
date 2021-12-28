@@ -16,6 +16,7 @@
 #include <core/memory/Endian.h>
 #include <core/string/String.h>
 #include <core/cryptography/Hash.h>
+#include <ion/maths/Geometry.h>
 
 #define HEX1(val) std::hex << std::setfill('0') << std::setw(1) << std::uppercase << (int)val
 #define HEX2(val) std::hex << std::setfill('0') << std::setw(2) << std::uppercase << (int)val
@@ -44,11 +45,16 @@ Stamp::Stamp(StampId stampId, int width, int height)
 
 	int size = width * height;
 	m_tiles.resize(size);
+	
+	m_terrainLayers.resize(1);
+	m_terrainLayers[0].resize(size);
 
-	for(int i = 0; i < size; i++)
+	for (int i = 0; i < size; i++)
 	{
-		m_tiles[i].m_id = InvalidTileId;
+		std::fill(m_terrainLayers[0].begin(), m_terrainLayers[0].end(), InvalidTerrainTileId);
 	}
+
+	std::fill(m_tiles.begin(), m_tiles.end(), TileDesc(InvalidTileId));
 }
 
 StampId Stamp::GetId() const
@@ -64,6 +70,21 @@ int Stamp::GetWidth() const
 int Stamp::GetHeight() const
 {
 	return m_height;
+}
+
+int Stamp::GetNumTerrainLayers() const
+{
+	return m_terrainLayers.size();
+}
+
+void Stamp::SetNumTerrainLayers(int numLayers)
+{
+	m_terrainLayers.resize(numLayers);
+
+	for (int i = 0; i < numLayers; i++)
+	{
+		m_terrainLayers[i].resize(m_width * m_height);
+	}
 }
 
 void Stamp::Resize(int width, int height, bool shiftRight, bool shiftDown)
@@ -83,20 +104,51 @@ void Stamp::Resize(int width, int height, bool shiftRight, bool shiftDown)
 	blankTile.m_id = InvalidTileId;
 	std::fill(tiles.begin(), tiles.end(), blankTile);
 
-	//Copy tiles
-	for(int x = 0; x < ion::maths::Min(width, m_width); x++)
+	//Copy graphics tiles
+	for (int x = 0; x < ion::maths::Min(width, m_width); x++)
 	{
-		for(int y = 0; y < ion::maths::Min(height, m_height); y++)
+		for (int y = 0; y < ion::maths::Min(height, m_height); y++)
 		{
 			int destTileIdx = (y * width) + x;
-			if(shiftRight && width > m_width)
+			if (shiftRight && width > m_width)
 				destTileIdx += (width - m_width);
-			if(shiftDown && height > m_height)
+			if (shiftDown && height > m_height)
 				destTileIdx += (height - m_height) * width;
 
 			tiles[destTileIdx].m_id = GetTile(x, y);
 			tiles[destTileIdx].m_flags = GetTileFlags(x, y);
 		}
+	}
+
+	//Copy terrain tiles
+	for (int layer = 0; layer < m_terrainLayers.size(); layer++)
+	{
+		//Create new tile array
+		std::vector<TerrainTileId> terrainTiles;
+
+		//Set new size
+		int size = width * height;
+		terrainTiles.resize(size);
+
+		//Fill with invalid tile
+		std::fill(terrainTiles.begin(), terrainTiles.end(), InvalidTerrainTileId);
+
+		//Copy tiles
+		for (int x = 0; x < ion::maths::Min(width, m_width); x++)
+		{
+			for (int y = 0; y < ion::maths::Min(height, m_height); y++)
+			{
+				int destTileIdx = (y * width) + x;
+				if (shiftRight && width > m_width)
+					destTileIdx += (width - m_width);
+				if (shiftDown && height > m_height)
+					destTileIdx += (height - m_height) * width;
+
+				terrainTiles[destTileIdx] = GetTerrainTile(x, y) | GetCollisionTileFlags(x, y);
+			}
+		}
+
+		m_terrainLayers[layer] = terrainTiles;
 	}
 
 	//Set new
@@ -145,6 +197,164 @@ u32 Stamp::GetTileFlags(int x, int y) const
 	int tileIdx = (y * m_width) + x;
 	ion::debug::Assert(tileIdx < (m_width * m_height), "Stamp::GetTileFlags() - Out of range");
 	return m_tiles[tileIdx].m_flags;
+}
+
+void Stamp::SetTerrainTile(int x, int y, TerrainTileId tile, int layer)
+{
+	ion::debug::Assert(layer < m_terrainLayers.size(), "Stamp::SetTerrainTile() - Layer out of range");
+	ion::debug::Assert(tile <= eCollisionTileFlagNone, "Stamp::SetTerrainTile() - Collision tile ID out of range");
+	u32 tileIdx = (y * m_width) + x;
+	ion::debug::Assert(tileIdx < (m_width * m_height), "Stamp::SetTerrainTile() - Out of range");
+	u32& entry = m_terrainLayers[layer][tileIdx];
+	entry &= ~s_collisionTileTerrainIdMask;
+	entry |= tile;
+}
+
+TerrainTileId Stamp::GetTerrainTile(int x, int y, int layer) const
+{
+	u32 tileIdx = (y * m_width) + x;
+	ion::debug::Assert(layer < m_terrainLayers.size(), "Stamp::GetTerrainTile() - Layer out of range");
+	ion::debug::Assert(tileIdx < (m_width * m_height), "CollisionMap::GetTerrainTile() - Out of range");
+	return m_terrainLayers[layer][tileIdx] & s_collisionTileTerrainIdMask;
+}
+
+void Stamp::SetCollisionTileFlags(int x, int y, u16 flags, int layer)
+{
+	ion::debug::Assert(layer < m_terrainLayers.size(), "Stamp::SetCollisionTileFlags() - Layer out of range");
+	int tileIdx = (y * m_width) + x;
+	ion::debug::Assert(tileIdx < (m_width * m_height), "Stamp::SetCollisionTileFlags() - Out of range");
+	u32& entry = m_terrainLayers[layer][tileIdx];
+	entry &= ~s_collisionTileFlagMask;
+	entry |= flags;
+}
+
+u16 Stamp::GetCollisionTileFlags(int x, int y, int layer) const
+{
+	int tileIdx = (y * m_width) + x;
+	ion::debug::Assert(layer < m_terrainLayers.size(), "Stamp::GetCollisionTileFlags() - Layer out of range");
+	ion::debug::Assert(tileIdx < (m_width * m_height), "Stamp::GetCollisionTileFlags() - Out of range");
+	return m_terrainLayers[layer][tileIdx] & s_collisionTileFlagMask;
+}
+
+ion::gamekit::BezierPath* Stamp::AddTerrainBezier()
+{
+	m_terrainBeziers.push_back(TerrainBezier({ ion::gamekit::BezierPath(), 0, 0 }));
+	return &m_terrainBeziers.back().bezier;
+}
+
+void Stamp::AddTerrainBezier(const ion::gamekit::BezierPath& bezier)
+{
+	m_terrainBeziers.push_back(TerrainBezier({ bezier, 0, 0 }));
+}
+
+ion::gamekit::BezierPath* Stamp::GetTerrainBezier(u32 index)
+{
+	ion::debug::Assert(index < m_terrainBeziers.size(), "CollisionMap::GetTerrainBezier() - Out of range");
+	return &m_terrainBeziers[index].bezier;
+}
+
+const ion::gamekit::BezierPath* Stamp::GetTerrainBezier(u32 index) const
+{
+	ion::debug::Assert(index < m_terrainBeziers.size(), "CollisionMap::GetTerrainBezier() - Out of range");
+	return &m_terrainBeziers[index].bezier;
+}
+
+void Stamp::SetTerrainBezierFlags(u32 index, u16 flags)
+{
+	ion::debug::Assert(index < m_terrainBeziers.size(), "CollisionMap::SetTerrainBezierFlags() - Out of range");
+	m_terrainBeziers[index].terrainFlags = flags;
+}
+
+u16 Stamp::GetTerrainBezierFlags(u32 index) const
+{
+	ion::debug::Assert(index < m_terrainBeziers.size(), "CollisionMap::GetTerrainBezierFlags() - Out of range");
+	return m_terrainBeziers[index].terrainFlags;
+}
+
+void Stamp::SetTerrainBezierLayer(u32 index, u8 layer)
+{
+	ion::debug::Assert(index < m_terrainBeziers.size(), "CollisionMap::SetTerrainBezierLayer() - Out of range");
+	m_terrainBeziers[index].layer = layer;
+}
+
+u8 Stamp::GetTerrainBezierLayer(u32 index) const
+{
+	ion::debug::Assert(index < m_terrainBeziers.size(), "CollisionMap::GetTerrainBezierLayer() - Out of range");
+	return m_terrainBeziers[index].layer;
+}
+
+void Stamp::SetTerrainBezierGenerateWidth(u32 index, bool generateWidth)
+{
+	ion::debug::Assert(index < m_terrainBeziers.size(), "Stamp::SetTerrainBezierGenerateWidth() - Out of range");
+	m_terrainBeziers[index].generateWidthData = generateWidth;
+}
+
+bool Stamp::GetTerrainBezierGenerateWidth(u32 index) const
+{
+	ion::debug::Assert(index < m_terrainBeziers.size(), "Stamp::GetTerrainBezierGenerateWidth() - Out of range");
+	return m_terrainBeziers[index].generateWidthData;
+}
+
+const ion::gamekit::BezierPath* Stamp::FindTerrainBezier(int x, int y, ion::Vector2i& topLeft) const
+{
+	const ion::gamekit::BezierPath* bezier = NULL;
+	ion::Vector2i bottomRight;
+
+	ion::Vector2 bezierBoundsMin;
+	ion::Vector2 bezierBoundsMax;
+
+	for (int i = 0; i < m_terrainBeziers.size() && !bezier; i++)
+	{
+		m_terrainBeziers[i].bezier.GetBounds(bezierBoundsMin, bezierBoundsMax);
+
+		if (x >= topLeft.x && y >= topLeft.y
+			&& x < bottomRight.x && y < bottomRight.y)
+		{
+			bezier = &m_terrainBeziers[i].bezier;
+			topLeft.x = bezierBoundsMin.x;
+			topLeft.y = bezierBoundsMin.y;
+		}
+	}
+
+	return bezier;
+}
+
+int Stamp::FindTerrainBeziers(int x, int y, int width, int height, std::vector<const ion::gamekit::BezierPath*>& beziers) const
+{
+	ion::Vector2i boundsMin(x * 8, y * 8);
+	ion::Vector2i boundsMax((x + width) * 8, (y + height) * 8);
+
+	ion::Vector2 bezierBoundsMin;
+	ion::Vector2 bezierBoundsMax;
+
+	for (int i = 0; i < m_terrainBeziers.size(); i++)
+	{
+		const ion::gamekit::BezierPath& bezier = m_terrainBeziers[i].bezier;
+		bezier.GetBounds(bezierBoundsMin, bezierBoundsMax);
+
+		//Invert Y
+		float temp = ((m_height * 8) - bezierBoundsMin.y - 1);
+		bezierBoundsMin.y = ((m_height * 8) - bezierBoundsMax.y - 1);
+		bezierBoundsMax.y = temp;
+
+		if (ion::maths::BoxIntersectsBox(boundsMin, boundsMax, ion::Vector2i(bezierBoundsMin.x, bezierBoundsMin.y), ion::Vector2i(bezierBoundsMax.x, bezierBoundsMax.y)))
+		{
+			beziers.push_back(&bezier);
+		}
+	}
+
+	return beziers.size();
+}
+
+void Stamp::RemoveTerrainBezier(u32 index)
+{
+	ion::debug::Assert(index < m_terrainBeziers.size(), "CollisionMap::RemoveTerrainBezier() - Out of range");
+	m_terrainBeziers.erase(m_terrainBeziers.begin() + index);
+}
+
+int Stamp::GetNumTerrainBeziers() const
+{
+	return m_terrainBeziers.size();
 }
 
 void Stamp::SetName(const std::string& name)
@@ -310,6 +520,20 @@ void Stamp::Serialise(ion::io::Archive& archive)
 	archive.Serialise(m_nameHash, "nameHash");
 	archive.Serialise(m_stampAnimSheets, "stampAnimSheets");
 	archive.Serialise(m_tiles, "tiles");
+	archive.Serialise(m_terrainBeziers, "beziers");
+	archive.Serialise(m_terrainLayers, "terrainLayers");
+
+	//Legacy single terrain layer
+	if (archive.GetDirection() == ion::io::Archive::Direction::In && m_terrainLayers.size() == 0)
+	{
+		m_terrainLayers.resize(1);
+		archive.Serialise(m_terrainLayers[0], "terrainTiles");
+
+		if (m_terrainLayers[0].size() != m_tiles.size())
+		{
+			m_terrainLayers[0].resize(m_tiles.size());
+		}
+	}
 }
 
 void Stamp::Export(const Project& project, std::stringstream& stream) const

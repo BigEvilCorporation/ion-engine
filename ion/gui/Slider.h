@@ -19,7 +19,7 @@ namespace ion
 		class Slider : public Widget
 		{
 		public:
-			enum DataType { Integer, Float };
+			enum class DataType { Integer, Float };
 
 			Slider(const std::string& text, float min, float max, float defaultValue, float step, std::function<void(const Slider&, float)> const& onChanged);
 			~Slider();

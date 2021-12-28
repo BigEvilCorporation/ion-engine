@@ -14,6 +14,10 @@
 
 #pragma once
 
+#include <ion/core/Platform.h>
+
+#include "OpenGLVersion.h"
+
 #if defined ION_RENDER_SUPPORTS_GLEW
 #include <GL/glew.h>
 #endif
@@ -40,6 +44,23 @@
 #include <GL/glext.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengl.h>
+#elif defined ION_PLATFORM_DREAMCAST
+#include <GL/gl.h>
+#include <GL/glu.h>
+#include <GL/glext.h>
+#include <GL/glkos.h>
+#elif defined ION_PLATFORM_SWITCH
+#include <nn/gll.h>
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+#elif defined ION_PLATFORM_ANDROID
+#include <EGL/egl.h>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wattributes"
+#include <EGL/eglext.h>
+#pragma GCC diagnostic pop
+#include <GLES3/gl3.h>
+#include <GLES3/gl3ext.h>
 #else
 #include <GL/gl.h>
 #include <GL/glu.h>
@@ -54,3 +75,7 @@
 #include "renderer/cggl/ShaderCgGL.h"
 #endif
 
+#if ION_PLATFORM_WINDOWS || defined ION_PLATFORM_SWITCH
+#define ION_GL_SUPPORT_FENCE
+#define ION_GL_SUPPORT_PIXEL_BUFFER_OBJECT
+#endif

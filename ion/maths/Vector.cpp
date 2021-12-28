@@ -2,9 +2,23 @@
 
 namespace ion
 {
+	template<> const Vector2 Vector2::Min(maths::FLOAT_MIN, maths::FLOAT_MIN);
+	template<> const Vector2 Vector2::Max(maths::FLOAT_MAX, maths::FLOAT_MAX);
+	template<> const Vector2 Vector2::Zero(0.0f, 0.0f);
+
+	template<> const Vector2i Vector2i::Min(maths::S32_MIN, maths::S32_MIN);
+	template<> const Vector2i Vector2i::Max(maths::S32_MAX, maths::S32_MAX);
+	template<> const Vector2i Vector2i::Zero(0, 0);
+
+	const Vector3 Vector3::Min(maths::FLOAT_MIN, maths::FLOAT_MIN, maths::FLOAT_MIN);
+	const Vector3 Vector3::Max(maths::FLOAT_MAX, maths::FLOAT_MAX, maths::FLOAT_MAX);
+	const Vector3 Vector3::Zero(0.0f, 0.0f, 0.0f);
+
 	Vector3::Vector3()
-	{ 
-		Zero();
+	{
+		x = 0.0f;
+		y = 0.0f;
+		z = 0.0f;
 	}
 
 	Vector3::Vector3(float X, float Y, float Z)
@@ -29,11 +43,6 @@ namespace ion
 	}
 
 	Vector3::~Vector3() {}
-
-	void Vector3::Zero()
-	{
-		x = y = z = 0.0f;
-	}
 
 	float Vector3::operator [](int index) const
 	{

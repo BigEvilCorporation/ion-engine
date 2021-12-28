@@ -5,6 +5,8 @@
 // Description:	Scene manager
 ///////////////////////////////////////////////////
 
+#if 0
+
 #include "core/Colour.h"
 #include "core/Debug.h"
 #include "renderer/Scene.h"
@@ -118,3 +120,5 @@ namespace ion
 		}
 	}
 }
+
+#endif

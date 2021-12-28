@@ -10,7 +10,7 @@
 #pragma once
 
 #include "maths/Maths.h"
-#include "io/Archive.h"
+#include "core/io/Archive.h"
 
 namespace ion
 {
@@ -18,6 +18,10 @@ namespace ion
 	{
 	public:
 		T x, y;
+
+		static const TVector2<T> Min;
+		static const TVector2<T> Max;
+		static const TVector2<T> Zero;
 
 		TVector2();
 		TVector2(T X, T Y);
@@ -29,17 +33,25 @@ namespace ion
 
 		bool operator ==(const TVector2<T>& rhs) const;
 
+		TVector2<T> operator -() const;
+
 		TVector2<T> operator *(T scalar) const;
 		TVector2<T> operator /(T scalar) const;
+
 		TVector2<T> operator *(const TVector2<T> &vector) const;
 		TVector2<T> operator /(const TVector2<T> &vector) const;
 		TVector2<T> operator +(const TVector2<T> &vector) const;
 		TVector2<T> operator -(const TVector2<T> &vector) const;
+
+		void operator /=(T scalar);
+
 		void operator +=(const TVector2<T> &vector);
 		void operator -=(const TVector2<T> &vector);
 		void operator *=(const TVector2<T> &vector);
+		void operator /=(const TVector2<T> &vector);
 
 		float GetLength() const;
+		float GetLengthSq() const;
 		float Dot(const TVector2<T>& vector) const;
 		float Angle(const TVector2<T>& vector) const;
 		TVector2<T> Normalise() const;
@@ -60,13 +72,15 @@ namespace ion
 
 		float x, y, z;
 
+		static const Vector3 Min;
+		static const Vector3 Max;
+		static const Vector3 Zero;
+
 		Vector3();
 		Vector3(float X, float Y, float Z);
 		Vector3(const float* float3);
 		Vector3(const Vector3& vector);
 		~Vector3();
-
-		void Zero();
 
 		float operator [](int index) const;
 
@@ -144,6 +158,11 @@ namespace ion
 		return x == rhs.x && y == rhs.y;
 	}
 
+	template <typename T> TVector2<T> TVector2<T>::operator -() const
+	{
+		return TVector2<T>(-x, -y);
+	}
+
 	template <typename T> TVector2<T> TVector2<T>::operator *(T Scalar) const
 	{
 		return TVector2<T>(x * Scalar, y * Scalar);
@@ -152,6 +171,12 @@ namespace ion
 	template <typename T> TVector2<T> TVector2<T>::operator /(T Scalar) const
 	{
 		return TVector2<T>(x / Scalar, y / Scalar);
+	}
+
+	template <typename T> void TVector2<T>::operator /=(T Scalar)
+	{
+		x /= Scalar;
+		y /= Scalar;
 	}
 
 	template <typename T> TVector2<T> TVector2<T>::operator *(const TVector2<T> &Vector) const
@@ -192,9 +217,20 @@ namespace ion
 		y *= Vector.y;
 	}
 
+	template <typename T> void TVector2<T>::operator /=(const TVector2<T> &Vector)
+	{
+		x /= Vector.x;
+		y /= Vector.y;
+	}
+
 	template <typename T> float TVector2<T>::GetLength() const
 	{
 		return maths::Sqrt((float)x*(float)x + (float)y*(float)y);
+	}
+
+	template <typename T> float TVector2<T>::GetLengthSq() const
+	{
+		return (float)x * (float)x + (float)y * (float)y;
 	}
 
 	template <typename T> float TVector2<T>::Dot(const TVector2<T>& vector) const

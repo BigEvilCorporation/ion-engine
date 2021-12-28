@@ -5,6 +5,8 @@
 // Description:	Scene node
 ///////////////////////////////////////////////////
 
+#if 0
+
 #include "renderer/SceneNode.h"
 
 namespace ion
@@ -32,3 +34,5 @@ namespace ion
 		}
 	}
 }
+
+#endif

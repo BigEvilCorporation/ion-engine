@@ -17,12 +17,6 @@
 
 #include <algorithm>
 
-//TODO: Renderer::BindMaterial()
-#if defined ION_RENDERER_FIXED
-#include <ion/renderer/opengl/TextureOpenGL.h>
-#include <ion/renderer/opengl/RendererOpenGL.h>
-#endif
-
 namespace ion
 {
 	namespace render
@@ -31,143 +25,52 @@ namespace ion
 		{
 			//Set default lighting and shadows
 			SetLightingEnabled(false);
-			SetLightingMode(ePhong);
-			SetBlendMode(eAdditive);
+			SetLightingMode(LightingMode::Phong);
+			SetBlendMode(BlendMode::Additive);
 			SetReceiveShadows(false);
-
-#if defined ION_RENDERER_SHADER
-			m_vertexShader = NULL;
-			m_pixelShader = NULL;
-#endif
 		}
 
 		Material::~Material()
 		{
 		}
 
-		void Material::Bind(const Matrix4& worldMtx, const Matrix4& viewMtx, const Matrix4& projectionMtx)
-		{
 #if defined ION_RENDERER_SHADER
-			ApplyShaderParams(worldMtx, viewMtx, projectionMtx);
-
-			if(m_vertexShader)
-			{
-				m_vertexShader->Bind();
-			}
-
-			if(m_pixelShader)
-			{
-				m_pixelShader->Bind();
-			}
-#elif defined ION_RENDERER_FIXED
-			//Set fixed function matrix
-			glLoadMatrixf((worldMtx * viewMtx).GetAsFloatArray());
-
-			//TODO: Fixed function material params
-			if(m_diffuseMaps.size() > 0)
-			{
-#if !defined ION_RENDERER_OPENGLES
-				glEnable(GL_TEXTURE_2D);
-#endif
-				glBindTexture(GL_TEXTURE_2D, ((TextureOpenGL*)m_diffuseMaps[0])->GetTextureId());
-			}
-
-#if !defined ION_RENDERER_OPENGLES
-			//TODO: Renderer needs an ApplyMaterial() to handle this
-
-			//Setup default lighting
-            if(m_lightingEnabled)
-            {
-                float ambient[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-                float diffuse[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-                glLightfv(GL_LIGHT0, GL_AMBIENT, ambient);
-                glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse);
-                glEnable(GL_LIGHT0);
-                glEnable(GL_LIGHTING);
-
-				//Set material properties
-				glMaterialfv(GL_FRONT, GL_AMBIENT, (float*)&m_ambientColour.r);
-				glMaterialfv(GL_FRONT, GL_DIFFUSE, (float*)&m_diffuseColour.r);
-				glMaterialfv(GL_FRONT, GL_SPECULAR, (float*)&m_specularColour.r);
-
-				//Disable lighting
-				glDisable(GL_LIGHT0);
-				glDisable(GL_LIGHTING);
-            }
-#endif
-
-			RendererOpenGL::CheckGLError("Material::Bind");
-#endif
-		}
-
-		void Material::Unbind()
+		void Material::SetShader(io::ResourceHandle<Shader> shader)
 		{
-#if defined ION_RENDERER_SHADER
-			if(m_vertexShader)
+			m_shader = shader;
+
+			if(shader)
 			{
-				m_vertexShader->Unbind();
-			}
-
-			if(m_pixelShader)
-			{
-				m_pixelShader->Unbind();
-			}
-#elif defined ION_RENDERER_FIXED
-			//Restore fixed function matrix
-			glLoadMatrixf(Matrix4().GetAsFloatArray());
-
-			glBindTexture(GL_TEXTURE_2D, 0);
-#if !defined ION_RENDERER_OPENGLES
-			glDisable(GL_TEXTURE_2D);
-#endif
-
-			RendererOpenGL::CheckGLError("Material::Unbind");
-#endif
-		}
-
-#if defined ION_RENDERER_SHADER
-		void Material::SetVertexShader(Shader* vertexShader)
-		{
-			m_vertexShader = vertexShader;
-
-			if(vertexShader)
-			{
-				m_vertexShaderParams.m_matrices.m_world = vertexShader->CreateParamHndl<Matrix4>("gWorldMatrix");
-				m_vertexShaderParams.m_matrices.m_worldViewProjection = vertexShader->CreateParamHndl<Matrix4>("gWorldViewProjectionMatrix");
-				m_vertexShaderParams.m_colours.m_ambient = vertexShader->CreateParamHndl<Colour>("gAmbientColour");
-				m_vertexShaderParams.m_colours.m_diffuse = vertexShader->CreateParamHndl<Colour>("gDiffuseColour");
-				m_vertexShaderParams.m_colours.m_specular = vertexShader->CreateParamHndl<Colour>("gSpecularColour");
-				m_vertexShaderParams.m_colours.m_emissive = vertexShader->CreateParamHndl<Colour>("gEmissiveColour");
-				m_vertexShaderParams.m_textures.m_diffuseMap = vertexShader->CreateParamHndl<Texture>("gDiffuseTexture");
-				m_vertexShaderParams.m_textures.m_normalMap = vertexShader->CreateParamHndl<Texture>("gNormalTexture");
-				m_vertexShaderParams.m_textures.m_opacityMap = vertexShader->CreateParamHndl<Texture>("gOpacityTexture");
-				m_vertexShaderParams.m_textures.m_specularMap = vertexShader->CreateParamHndl<Texture>("gSpecularTexture");
+				m_shaderParams.matrices.world = shader->CreateParamHndl<Matrix4>("gWorldMatrix");
+				m_shaderParams.matrices.view = shader->CreateParamHndl<Matrix4>("gViewMatrix");
+				m_shaderParams.matrices.worldView = shader->CreateParamHndl<Matrix4>("gWorldViewMatrix");
+				m_shaderParams.matrices.worldViewProjection = shader->CreateParamHndl<Matrix4>("gWorldViewProjectionMatrix");
+				m_shaderParams.matrices.normal = shader->CreateParamHndl<Matrix4>("gNormalMatrix");
+				m_shaderParams.colours.ambient = shader->CreateParamHndl<Colour>("gAmbientColour");
+				m_shaderParams.colours.diffuse = shader->CreateParamHndl<Colour>("gDiffuseColour");
+				m_shaderParams.colours.specular = shader->CreateParamHndl<Colour>("gSpecularColour");
+				m_shaderParams.colours.emissive = shader->CreateParamHndl<Colour>("gEmissiveColour");
+				m_shaderParams.textures.diffuseMap = shader->CreateParamHndl<Texture>("gDiffuseTexture");
+				m_shaderParams.textures.normalMap = shader->CreateParamHndl<Texture>("gNormalTexture");
+				m_shaderParams.textures.opacityMap = shader->CreateParamHndl<Texture>("gOpacityTexture");
+				m_shaderParams.textures.specularMap = shader->CreateParamHndl<Texture>("gSpecularTexture");
 			}
 		}
 
-		void Material::SetPixelShader(Shader* pixelShader)
+		io::ResourceHandle<Shader> Material::GetShader() const
 		{
-			m_pixelShader = pixelShader;
+			return m_shader;
+		}
 
-			if(pixelShader)
-			{
-				m_pixelShaderParams.m_matrices.m_world = pixelShader->CreateParamHndl<Matrix4>("gWorldMatrix");
-				m_pixelShaderParams.m_matrices.m_worldViewProjection = pixelShader->CreateParamHndl<Matrix4>("gWorldViewProjectionMatrix");
-				m_pixelShaderParams.m_colours.m_ambient = pixelShader->CreateParamHndl<Colour>("gAmbientColour");
-				m_pixelShaderParams.m_colours.m_diffuse = pixelShader->CreateParamHndl<Colour>("gDiffuseColour");
-				m_pixelShaderParams.m_colours.m_specular = pixelShader->CreateParamHndl<Colour>("gSpecularColour");
-				m_pixelShaderParams.m_colours.m_emissive = pixelShader->CreateParamHndl<Colour>("gEmissiveColour");
-				m_pixelShaderParams.m_textures.m_diffuseMap = pixelShader->CreateParamHndl<Texture>("gDiffuseTexture");
-				m_pixelShaderParams.m_textures.m_normalMap = pixelShader->CreateParamHndl<Texture>("gNormalTexture");
-				m_pixelShaderParams.m_textures.m_opacityMap = pixelShader->CreateParamHndl<Texture>("gOpacityTexture");
-				m_pixelShaderParams.m_textures.m_specularMap = pixelShader->CreateParamHndl<Texture>("gSpecularTexture");
-			}
+		Material::ShaderParams& Material::GetShaderParams()
+		{
+			return m_shaderParams;
 		}
 #endif
 
 		void Material::RegisterSerialiseType(io::Archive& archive)
 		{
-			archive.RegisterPointerType<Material>();
+			archive.RegisterPointerType<Material>("ion::render::Material");
 		}
 
 		void Material::Serialise(io::Archive& archive)
@@ -186,8 +89,7 @@ namespace ion
 
 			//TODO
 			//Shaders
-			//archive.Serialise(mVertexShader);
-			//archive.Serialise(mPixelShader);
+			//archive.Serialise(m_shader);
 
 			//Params
 			archive.Serialise(m_lightingEnabled);
@@ -197,8 +99,7 @@ namespace ion
 
 			if(archive.GetDirection() == io::Archive::Direction::In)
 			{
-				//SetVertexShader(mVertexShader);
-				//SetPixelShader(mPixelShader);
+				//SetShader(m_shader);
 			}
 		}
 
@@ -252,61 +153,59 @@ namespace ion
 			return m_emissiveColour;
 		}
 
-		void Material::AddDiffuseMap(Texture* diffuse)
+		void Material::AddDiffuseMap(io::ResourceHandle<Texture>& diffuse)
 		{
 			m_diffuseMaps.push_back(diffuse);
 		}
 
-		void Material::SetDiffuseMap(Texture* diffuse, int diffuseMapIdx)
+		void Material::SetDiffuseMap(io::ResourceHandle<Texture>& diffuse, int diffuseMapIdx)
 		{
 			m_diffuseMaps.insert(m_diffuseMaps.begin() + diffuseMapIdx, diffuse);
 		}
 
-		void Material::SetNormalMap(Texture* normal)
+		void Material::SetNormalMap(io::ResourceHandle<Texture>& normal)
 		{
 			m_normalMap = normal;
 		}
 
-		void Material::SetSpecularMap(Texture* specular)
+		void Material::SetSpecularMap(io::ResourceHandle<Texture>& specular)
 		{
 			m_specularMap = specular;
 		}
 
-		void Material::SetOpacityMap(Texture* opacity)
+		void Material::SetOpacityMap(io::ResourceHandle<Texture>& opacity)
 		{
 			m_opacityMap = opacity;
 		}
 
-		Texture* Material::GetDiffuseMap(int diffuseMapIdx) const
+		io::ResourceHandle<Texture> Material::GetDiffuseMap(int diffuseMapIdx) const
 		{
-			Texture* texture = NULL;
-
 			if(diffuseMapIdx < (int)m_diffuseMaps.size())
 			{
-				texture = m_diffuseMaps[diffuseMapIdx];
+				return m_diffuseMaps[diffuseMapIdx];
 			}
 
-			return texture;
+			return io::ResourceHandle<Texture>();
 		}
 
-		Texture* Material::GetNormalMap() const
+		io::ResourceHandle<Texture> Material::GetNormalMap() const
 		{
 			return m_normalMap;
 		}
 
-		Texture* Material::GetSpecularMap() const
+		io::ResourceHandle<Texture> Material::GetSpecularMap() const
 		{
 			return m_specularMap;
 		}
 
-		Texture* Material::GetOpacityMap() const
+		io::ResourceHandle<Texture> Material::GetOpacityMap() const
 		{
 			return m_opacityMap;
 		}
 
 		int Material::GetNumDiffuseMaps() const
 		{
-			return m_diffuseMaps.size();
+			return (int)m_diffuseMaps.size();
 		}
 
 		void Material::SetLightingEnabled(bool lighting)
@@ -353,66 +252,5 @@ namespace ion
 		{
 
 		}
-
-#if defined ION_RENDERER_SHADER
-		void Material::ApplyShaderParams(const Matrix4& worldMtx, const Matrix4& viewMtx, const Matrix4& projectionMtx)
-		{
-			Matrix4 worldViewProjMtx = worldMtx * viewMtx * projectionMtx;
-
-			m_vertexShaderParams.m_matrices.m_world.SetValue(worldMtx);
-			m_vertexShaderParams.m_matrices.m_worldViewProjection.SetValue(worldViewProjMtx);
-			m_vertexShaderParams.m_colours.m_ambient.SetValue(m_ambientColour);
-			m_vertexShaderParams.m_colours.m_diffuse.SetValue(m_diffuseColour);
-			m_vertexShaderParams.m_colours.m_specular.SetValue(m_specularColour);
-			m_vertexShaderParams.m_colours.m_emissive.SetValue(m_emissiveColour);
-
-			if(m_diffuseMaps.size() > 0)
-			{
-				m_vertexShaderParams.m_textures.m_diffuseMap.SetValue(*m_diffuseMaps[0]);
-			}
-
-			if(m_normalMap)
-			{
-				m_vertexShaderParams.m_textures.m_normalMap.SetValue(*m_normalMap);
-			}
-
-			if(m_specularMap)
-			{
-				m_vertexShaderParams.m_textures.m_specularMap.SetValue(*m_specularMap);
-			}
-
-			if(m_opacityMap)
-			{
-				m_vertexShaderParams.m_textures.m_opacityMap.SetValue(*m_opacityMap);
-			}
-
-			m_pixelShaderParams.m_matrices.m_world.SetValue(worldMtx);
-			m_pixelShaderParams.m_matrices.m_worldViewProjection.SetValue(worldViewProjMtx);
-			m_pixelShaderParams.m_colours.m_ambient.SetValue(m_ambientColour);
-			m_pixelShaderParams.m_colours.m_diffuse.SetValue(m_diffuseColour);
-			m_pixelShaderParams.m_colours.m_specular.SetValue(m_specularColour);
-			m_pixelShaderParams.m_colours.m_emissive.SetValue(m_emissiveColour);
-
-			if(m_diffuseMaps.size() > 0)
-			{
-				m_pixelShaderParams.m_textures.m_diffuseMap.SetValue(*m_diffuseMaps[0]);
-			}
-
-			if(m_normalMap)
-			{
-				m_pixelShaderParams.m_textures.m_normalMap.SetValue(*m_normalMap);
-			}
-
-			if(m_specularMap)
-			{
-				m_pixelShaderParams.m_textures.m_specularMap.SetValue(*m_specularMap);
-			}
-
-			if(m_opacityMap)
-			{
-				m_pixelShaderParams.m_textures.m_opacityMap.SetValue(*m_opacityMap);
-			}
-		}
-#endif
 	}
 }

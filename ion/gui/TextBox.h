@@ -22,11 +22,14 @@ namespace ion
 			virtual ~TextBox();
 
 			void SetText(const std::string& text);
+			void SetScroll(float scroll);
 
 			virtual void Update(float deltaTime);
 
 		private:
 			std::string m_text;
+			float m_scrollOverride;
+			UUID64 m_id;
 		};
 	}
 }
